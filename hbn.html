@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>html_v17｜橫式（版面）</title>
+
+<!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+  @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
+  @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
+  @font-face {font-family: "ShopeeNotoSans-Content-R"; src: url("字體/ShopeeNotoSans(content)-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap;}
+
+  :root{ --canvas-w:1200px; --canvas-h:360px; --cta-bg:#2176FF; --cta-fg:#ffffff; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#fafafa;font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial,system-ui}
+  .wrap{max-width:var(--canvas-w);margin:24px auto;padding:0 0 80px}
+
+  /* 工具列（樣式沿用 index.html 風格） */
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+    background:#fff; padding:10px;
+    border-radius:8px; border:1px solid #eaeaea;
+    box-shadow:0 2px 5px rgba(0,0,0,0.06);
+    margin-bottom:10px;
+  }
+  .toolbar label{
+    font-size:13px; color:#444; display:flex; align-items:center; gap:6px;
+    background:#fafafa; padding:6px 8px; border-radius:6px; border:1px solid #eee;
+  }
+  .toolbar input[type="color"]{ border:none; width:24px; height:24px; padding:0; background:none; cursor:pointer; }
+  .toolbar input[type="file"]{ font-size:12px; }
+  .toolbar button{
+    background:#2176FF; color:#fff; border:none; padding:8px 12px;
+    border-radius:6px; cursor:pointer; font-size:13px;
+    box-shadow:0 2px 4px rgba(33,118,255,0.2);
+  }
+  .toolbar button:hover{ background:#1b65db; }
+  .note{ font-size:12px; color:#888; margin-left:5px; }
+
+  /* === HBN 畫布（固定 1200x360、直角） === */
+  .HBN{position:relative;width:1200px;height:360px;overflow:hidden;border-radius:0;background:#c2dff3;}
+  .HBN .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+
+  /* Logo：最多 3 個，限高 50px、間距 15px、寬不限（.brand margin:0） */
+  #horiz .brand{position:absolute;left:98.5px;top:95px;display:flex;align-items:center;gap:15px;z-index:5;margin:0}
+  #horiz .brand img{max-height:50px;height:auto;width:auto;object-fit:contain}
+
+  /* 文案區（固定） */
+  #horiz .stack{position:absolute;left:98.5px;top:142px;display:block;max-width:64%;}
+  #horiz #h1-h{position:absolute;left:0;top:0;}
+  #horiz #h2-h{position:absolute;left:0;top:54px;}
+  #horiz #date-h{position:absolute;left:0;top:117px;}
+
+  /* 文字（固定 px、不允許換行） */
+  .h1, .h2, .date{
+    position:relative; z-index:5;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    outline-offset:0;
+  }
+  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:53px;letter-spacing:0px;color:#1b5e7a;text-align:left; }
+  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:41px;letter-spacing:0px;color:#0b6c4a;text-align:left;height:62px;display:flex;align-items:center; }
+  .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:27px;line-height:49px;letter-spacing:0px;color:#306b8f;text-align:left; }
+
+  /* CTA */
+  .cta{
+    position:absolute;right:22px;bottom:25px;
+    display:flex; align-items:center; justify-content:center;
+    width:238px; height:44px;
+    background:var(--cta-bg); color:var(--cta-fg);
+    border-radius:8px;
+    font-family:"ShopeeNotoSans-Content-R";
+    font-weight:400; font-size:29px;
+    line-height:1;
+    user-select:none; padding:0 22px; z-index:6;
+  }
+  .cta .text{ display:block; line-height:1; transform: translateY(-1px) translateX(-6px);}
+  .cta .triangle{
+    position:absolute; right:18px; top:50%;
+    transform: translateY(-50%);
+    width:0; height:0; border-left:10px solid currentColor;
+    border-top:9.5px solid transparent; border-bottom:9.5px solid transparent;
+  }
+
+  [contenteditable="true"]{outline:2px dashed rgba(255,255,255,.0);transition:outline-color .2s}
+  [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
+  .counter{
+    position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;
+    background:#111;color:#fff;padding:2px 6px;border-radius:6px;
+    pointer-events:none;user-select:none;
+  }
+
+  /* 圖片編輯器（含四角工具） */
+  .editor{position:absolute;inset:0;z-index:2;}
+  .editor-item{position:absolute;cursor:move;}
+  .editor-item img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none; image-rendering:auto;}
+  .editor-bg{z-index:1;} /* 底圖層 */
+
+  .editor-item .ctrl{
+    position:absolute;z-index:10;display:grid;place-items:center;
+    width:28px;height:28px;border-radius:6px;
+    background:rgba(17,17,17,.8);color:#fff;border:0;cursor:pointer;
+    font-size:14px;line-height:1;box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+  .editor-item .ctrl:hover{background:#111}
+  .editor-item .ctrl.del{left:6px;top:6px;}
+  .editor-item .ctrl.edit{left:6px;bottom:6px;}
+  .editor-item .layer-btns{position:absolute;right:6px;top:6px;display:flex;gap:0;}
+  /* 依需求：隱藏「圖層置前」 */
+  .editor-item .layer-btns .ctrl[title="圖層置前"]{display:none !important;}
+  .editor-item .layer-btns .ctrl{width:26px;height:26px;border-radius:6px;}
+  .editor-item .ctrl.resize{right:6px;bottom:6px;}
+
+  /* ✅ 文案底圖：左半遮罩（背景實色）與中央漸層（要輸出） */
+  .bg-solid{position:absolute;left:0;top:0;width:600px;height:360px;z-index:2;pointer-events:none;}
+  .bg-gradient{position:absolute;width:100px;height:360px;left:600px;top:0;pointer-events:none;z-index:3;}
+
+  /* 掛標 */
+  .mall-tag{position:absolute;inset:0;z-index:8;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+  .toggle-tag{
+    position:absolute;left:3px;top:3px;z-index:9;
+    width:28px;height:28px;border-radius:999px;border:0;cursor:pointer;
+    background:#111;color:#fff;display:grid;place-items:center;font-size:16px;line-height:1;
+    box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+
+  /* 背景縮放控制 */
+  .bg-scale-panel{
+    position:absolute;right:8px;top:8px;z-index:7;display:flex;gap:6px;align-items:center;
+    background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px
+  }
+  .bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px}
+  .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
+
+  /* 浮動控制面板（左下） */
+  .panel{
+    position:fixed;display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:10px;
+    font-size:12px;backdrop-filter:saturate(1.2) blur(3px);z-index:9997;
+  }
+  .ux-panel{left:12px;bottom:12px;}
+
+  /* Modal / Nudge / Toast（保留 index.html 結構） */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9998;}
+  .modal.show{display:flex;}
+  .modal-panel{background:#111;border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);color:#fff;display:flex;flex-direction:column;gap:8px;min-width:820px}
+  .modal-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+  .modal-toolbar label{font-size:12px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+  .modal-actions button{border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .btn-primary{background:#2ecc71;color:#111}
+  .btn-danger{background:#e74c3c;color:#fff}
+  .btn-ghost{background:#444;color:#fff}
+  .checkerboard{position:relative;display:inline-block;border-radius:8px;overflow:auto;background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0/20px 20px;padding:0;max-width:100%;max-height:60vh}
+  #eraseCanvas{display:block;background:transparent}
+  #eraseWrap{padding:0;border-radius:8px}
+
+  .nudge{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.55);}
+  .nudge.show{display:flex;}
+  .nudge-box{position:relative; width:300px; height:200px; background:#0000; border-radius:10px; overflow:hidden; box-shadow:none;}
+  .nudge-box img{width:100%; height:100%; object-fit:cover; cursor:pointer; display:block;}
+  .nudge-close{position:absolute; right:6px; top:6px; width:28px; height:28px; border-radius:999px; background:#111; color:#fff; border:0; cursor:pointer; font-size:16px; line-height:28px; text-align:center;}
+
+  .toast{position:fixed;right:16px;top:16px;z-index:99999;background:#111;color:#fff;font-size:12px;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:.98;max-width:68ch}
+  .toast.ok{background:#16a34a}
+  .toast.err{background:#dc2626}
+
+  .is-exporting .panel,
+  .is-exporting .bg-scale-panel,
+  .is-exporting .toggle-tag,
+  .is-exporting .modal,
+  .is-exporting .nudge { display:none !important; }
+
+  /* ✅ 關閉文案底圖 */
+  .no-underlay .bg-solid, .no-underlay .bg-gradient{ display:none !important; }
+
+  /* 初始：還沒上傳底圖時，不顯示遮罩/漸層 */
+  .pending-underlay .bg-solid,
+  .pending-underlay .bg-gradient{ display:none !important; }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <h2>html_v17（橫式）</h2>
+
+    <!-- 第一排：顏色 -->
+    <div class="toolbar">
+      <label>主標色：<input id="h1-color-horiz" type="color" value="#1b5e7a"></label>
+      <label>副標色：<input id="h2-color-horiz" type="color" value="#0b6c4a"></label>
+      <label>日期色：<input id="date-color-horiz" type="color" value="#306b8f"></label>
+      <label>CTA底色：<input id="cta-bg-h" type="color" value="#2176FF"></label>
+      <label>CTA字色：<input id="cta-fg-h" type="color" value="#ffffff"></label>
+      <label>背景色：<input id="bg-color-h" type="color" value="#c2dff3"></label>
+      <button id="dl-h" type="button" style="margin-left:auto;">下載（≤245KB）</button>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）</span>
+    </div>
+
+    <!-- 第二排：上傳 -->
+    <div class="toolbar">
+      <label>LOGO（橫，最多 3）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <label>底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
+      <label>商品圖（最多3）：<input id="items-h" type="file" accept="image/*" multiple></label>
+    </div>
+
+    <!-- APP 橫式（只留版面，功能由 index.html 同步邏輯搬進來） -->
+    <div id="horiz" class="HBN pending-underlay">
+      <img class="bg" id="bgH" src="程式檔案/橫BG-APP.png" alt="背景" />
+      <div class="editor" id="editorH">
+        <!-- ✅ 文案底圖（實色 + 漸層） -->
+        <div class="bg-solid" id="solidH"></div>
+        <div class="bg-gradient" id="gradH"></div>
+      </div>
+
+      <img class="mall-tag" id="tagH" src="程式檔案/紅商城.PNG" alt="商城掛標">
+      <button class="toggle-tag" data-target="tagH" title="換色">🎨</button>
+
+      <div class="brand" id="brandH"></div>
+
+      <div class="stack">
+        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1">99購物節開跑<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-h" class="h2" contenteditable="true" data-limit="7" data-role="h2">滿$990享8折<span class="counter" aria-hidden="true"></span></div>
+        <div id="date-h" class="date" contenteditable="true" data-limit="14" data-role="date">9/9 - 9/11<span class="counter" aria-hidden="true"></span></div>
+      </div>
+
+      <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
+
+      <div class="bg-scale-panel" id="bgScaleH" hidden>
+        <span class="tag">背景圖尺寸</span>
+        <button type="button" data-step="-0.05">–</button>
+        <span id="bgScaleValH">100%</span>
+        <button type="button" data-step="0.05">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 左下角浮動：關閉文案底圖 -->
+  <div class="ux-panel panel" id="uxPanel">
+    <label style="display:flex;align-items:center;gap:6px">
+      <input id="toggleUnderlayH" type="checkbox" />
+      關閉文案底圖
+    </label>
+  </div>
+
+  <!-- 去背/裁切 Modal（沿用 index.html） -->
+  <div class="modal" id="eraseModal" aria-hidden="true">
+    <div class="modal-panel">
+      <div class="modal-toolbar">
+        <label><input type="radio" name="mode" value="erase" checked> 擦除</label>
+        <label><input type="radio" name="mode" value="select"> 智慧選取</label>
+        <label><input type="radio" name="mode" value="crop"> 裁切</label>
+        <label>筆刷：<input id="brushSize" type="range" min="5" max="120" value="40"></label>
+        <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
+        <span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
+      </div>
+      <div id="eraseWrap" class="checkerboard">
+        <canvas id="eraseCanvas" width="800" height="400"></canvas>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="eraseReset" type="button">重作</button>
+        <button class="btn-primary" id="cropConfirm" type="button" title="只套用裁切，不關閉視窗">確定裁切</button>
+        <button class="btn-primary" id="eraseApply" type="button">完成</button>
+        <button class="btn-danger" id="eraseCancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 取消提示小視窗 -->
+  <div class="nudge" id="cancelNudge" aria-hidden="true">
+    <div class="nudge-box">
+      <button class="nudge-close" id="nudgeClose" aria-label="關閉">✖</button>
+      <img id="nudgeImg" src="程式檔案/跳出.png" alt="跳出提示">
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" style="display:none"></div>
+
+<script>
+/* ===========================================================
+   主功能：從 index.html 抄過來（僅保留 HBN 橫式需要的部分）
+   - 底圖上傳：建立 editor-bg，可拖曳/縮放
+   - 自動吸色：同步背景色 + 文案底圖（實色 + 漸層）+ 自動配色
+   - 商品圖：拖曳/縮放/去背裁切
+   - 左下角：關閉文案底圖
+   =========================================================== */
+
+function showToast(msg, type='ok', ms=2000, targetEl=null){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.className = 'toast ' + (type==='ok' ? 'ok' : 'err');
+
+  if (targetEl) {
+    const rect = targetEl.getBoundingClientRect();
+    t.style.left = (rect.right + 8) + 'px';
+    t.style.top  = (rect.top - 8) + 'px';
+    t.style.right = 'auto';
+  } else {
+    t.style.right = '16px';
+    t.style.top   = '16px';
+    t.style.left  = 'auto';
+  }
+
+  t.style.display = 'block';
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(()=>{ t.style.display='none'; }, ms);
+}
+
+function readAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>resolve(fr.result);
+    fr.onerror=reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+/* ===== 色彩工具（直接沿用 index.html） ===== */
+function hexToRgb(hex){ const h = (hex||'#000').replace('#',''); const b = h.length===3 ? h.split('').map(c=>c+c).join('') : h; return { r:parseInt(b.slice(0,2),16), g:parseInt(b.slice(2,4),16), b:parseInt(b.slice(4,6),16) }; }
+function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+function rgbToHsl(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){ h=s=0; } else { const d=max-min; s=l>0.5? d/(2-max-min) : d/(max+min); switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; case b: h=(r-g)/d+4; break; } h*=60; } return {h,s,l}; }
+function hslToRgb(h,s,l){ h/=360; let r,g,b; if(s===0){ r=g=b=l; } else { const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6) return p+(q-p)*6*t; if(t<1/2) return q; if(t<2/3) return p+(q-p)*(2/3 - t)*6; return p; }; const q=l<.5 ? l*(1+s) : l+s - l*s; const p=2*l - q; r=hue2rgb(p,q,h+1/3); g=hue2rgb(p,q,h); b=hue2rgb(p,q,h-1/3); } return {r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255)}; }
+function hexToHsl(hex){ const {r,g,b}=hexToRgb(hex); return rgbToHsl(r,g,b); }
+function hslToHex(h,s,l){ const {r,g,b}=hslToRgb(h,s,l); return rgbToHex(r,g,b); }
+function hexToRgba(hex, a){ const {r,g,b}=hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+function splitComplement(baseHex){ const {h,s,l} = hexToHsl(baseHex); const comp = (h+180)%360; const a = (comp+30)%360; const b = (comp+330)%360; const L = Math.max(0.28, Math.min(0.72, l)); const S = Math.max(0.45, s); return { a: hslToHex(a, S, L), b: hslToHex(b, S, L) }; }
+function hueShift(hex, deg){ const {h,s,l} = hexToHsl(hex); return hslToHex((h+deg+360)%360, s, l); }
+
+function updateSolid(editor, color){ const solid = editor?.querySelector('.bg-solid'); if(solid) solid.style.background = color; }
+function updateGradient(editor, color){
+  const grad = editor?.querySelector('.bg-gradient');
+  if(!grad) return;
+  grad.style.width = '100px';
+  grad.style.left = '600px';
+  grad.style.background = `linear-gradient(to right, ${color} 0%, ${hexToRgba(color,0)} 100%)`;
+}
+
+function applySplitToTexts(scopeId, baseHex){
+  const pair = splitComplement(baseHex);
+  const h1Color = hueShift(pair.b, 50);
+  const others = pair.a;
+
+  const root = document.getElementById(scopeId);
+  if(!root) return;
+
+  const h1 = root.querySelector('.h1');
+  const h2 = root.querySelector('.h2');
+  const date = root.querySelector('.date');
+
+  if(h1) h1.style.color = h1Color;
+  if(h2) h2.style.color = others;
+  if(date) date.style.color = others;
+
+  const h1p = document.getElementById('h1-color-horiz');
+  const h2p = document.getElementById('h2-color-horiz');
+  const dp  = document.getElementById('date-color-horiz');
+  if(h1p) h1p.value = h1Color;
+  if(h2p) h2p.value = others;
+  if(dp)  dp.value  = others;
+}
+
+/* ===== Logo 上傳（含拖曳排序） ===== */
+function bindLogoUpload(){
+  const input = document.getElementById('logo-horiz');
+  const container = document.getElementById('brandH');
+  if(!input || !container) return;
+
+  input.addEventListener('change', async (e)=>{
+    try{
+      const files = Array.from(e.target.files || []).slice(0,3);
+      container.innerHTML='';
+      for(const f of files){
+        const url = await readAsDataURL(f);
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Logo';
+        container.appendChild(img);
+      }
+      showToast('LOGO 上傳成功（可拖曳排序）', 'ok');
+    }catch(err){
+      console.error(err);
+      showToast('LOGO 上傳失敗', 'err');
+    }
+  });
+}
+
+function enableLogoReorder(containerId){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+
+  const makeDraggable = (img)=>{
+    img.draggable = true;
+    img.addEventListener('dragstart', (e)=>{
+      img.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', ''); } catch {}
+    });
+    img.addEventListener('dragend', ()=> img.classList.remove('dragging'));
+  };
+
+  const refresh = ()=> Array.from(container.querySelectorAll('img')).forEach(makeDraggable);
+
+  container.addEventListener('dragover', (e)=>{
+    e.preventDefault();
+    const dragging = container.querySelector('img.dragging');
+    if(!dragging) return;
+    const after = getDragAfterElement(container, e.clientX);
+    if(after == null){
+      container.appendChild(dragging);
+    }else{
+      container.insertBefore(dragging, after);
+    }
+  });
+
+  function getDragAfterElement(container, x){
+    const els = [...container.querySelectorAll('img:not(.dragging)')];
+    return els.reduce((closest, child)=>{
+      const box = child.getBoundingClientRect();
+      const offset = x - box.left - box.width/2;
+      if(offset < 0 && offset > closest.offset){
+        return { offset, element: child };
+      }else{
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+  }
+
+  refresh();
+  const mo = new MutationObserver(refresh);
+  mo.observe(container, {childList:true});
+}
+
+/* ===== 去背/裁切（index.html） ===== */
+const eraseModal = document.getElementById('eraseModal');
+const eraseCanvas = document.getElementById('eraseCanvas');
+const eCtx = eraseCanvas.getContext('2d', { willReadFrequently:true });
+const brushSize = document.getElementById('brushSize');
+const toleranceSlider = document.getElementById('tolerance');
+const eraseReset = document.getElementById('eraseReset');
+const eraseApply = document.getElementById('eraseApply');
+const eraseCancel = document.getElementById('eraseCancel');
+const cropConfirm = document.getElementById('cropConfirm');
+
+let editingTargetImg = null;
+let editingTargetBox = null;
+let originalImg = null;
+let drawn = false;
+let lastX=0, lastY=0, drawing=false;
+
+let cropStart=null, cropEnd=null, cropping=false;
+
+function openEraseEditor(imgEl){
+  editingTargetImg = imgEl;
+  editingTargetBox = imgEl.closest('.editor-item');
+  originalImg = new Image();
+  originalImg.crossOrigin = 'anonymous';
+  originalImg.onload = ()=>{
+    eraseCanvas.width  = Math.max(1, originalImg.naturalWidth);
+    eraseCanvas.height = Math.max(1, originalImg.naturalHeight);
+    eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height);
+    eCtx.drawImage(originalImg, 0, 0, eraseCanvas.width, eraseCanvas.height);
+    drawn = true;
+    cropStart = cropEnd = null; cropping=false;
+    eraseModal.classList.add('show');
+  };
+  originalImg.src = imgEl.src;
+}
+function redrawOriginal(){
+  if(!originalImg) return;
+  eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height);
+  eCtx.drawImage(originalImg, 0, 0, eraseCanvas.width, eraseCanvas.height);
+}
+
+eraseCanvas.addEventListener('mousedown', (e)=>{
+  if(!drawn) return;
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const rect = eraseCanvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left; lastY = e.clientY - rect.top;
+  if(mode==='erase'){ drawing = true; }
+  else if(mode==='select'){ floodSelect(Math.round(lastX), Math.round(lastY), Number(toleranceSlider.value)); }
+  else if(mode==='crop'){ cropping = true; cropStart = {x:lastX, y:lastY}; cropEnd = {x:lastX, y:lastY}; drawCropRect(); }
+});
+window.addEventListener('mousemove', (e)=>{
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const rect = eraseCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+  if(mode==='erase' && drawing){
+    eCtx.save(); eCtx.globalCompositeOperation = 'destination-out';
+    eCtx.beginPath(); eCtx.lineCap = 'round'; eCtx.lineJoin = 'round';
+    eCtx.lineWidth = Number(brushSize.value); eCtx.moveTo(lastX,lastY); eCtx.lineTo(x,y); eCtx.stroke(); eCtx.restore();
+    lastX=x; lastY=y;
+  }else if(mode==='crop' && cropping){ cropEnd = {x,y}; drawCropRect(); }
+});
+window.addEventListener('mouseup', ()=>{ drawing=false; cropping=false; });
+eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; });
+
+function colorAt(data, w, x, y){ const i = (y*w + x)*4; return [data[i], data[i+1], data[i+2], data[i+3]]; }
+function withinTol(a,b,tol){ return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol; }
+function floodSelect(sx, sy, tol=20){
+  const x = Math.max(0, Math.min(eraseCanvas.width-1, Math.round(sx)));
+  const y = Math.max(0, Math.min(eraseCanvas.height-1, Math.round(sy)));
+  const img = eCtx.getImageData(0,0,eraseCanvas.width,eraseCanvas.height);
+  const {data, width:w, height:h} = img;
+  const seed = colorAt(data, w, x, y);
+  const q = [[x,y]]; const visited = new Uint8Array(w*h);
+  const setTransparent = (px,py)=>{ const i = (py*w+px)*4; data[i+3] = 0; };
+  while(q.length){
+    const [cx,cy] = q.pop(); const idx = cy*w+cx;
+    if(visited[idx]) continue;
+    visited[idx]=1;
+    const col = colorAt(data,w,cx,cy);
+    if(!withinTol(col, seed, tol)) continue;
+    setTransparent(cx,cy);
+    if(cx>0) q.push([cx-1,cy]); if(cx<w-1) q.push([cx+1,cy]);
+    if(cy>0) q.push([cx,cy-1]); if(cy<h-1) q.push([cx,cy+1]);
+  }
+  eCtx.putImageData(img,0,0);
+}
+function drawCropRect(){
+  redrawOriginal();
+  if(!(cropStart && cropEnd)) return;
+  const x=Math.min(cropStart.x, cropEnd.x);
+  const y=Math.min(cropStart.y, cropEnd.y);
+  const w=Math.abs(cropEnd.x - cropStart.x);
+  const h=Math.abs(cropEnd.y - cropStart.y);
+  eCtx.save();
+  eCtx.strokeStyle='#00E5FF';
+  eCtx.lineWidth=2;
+  eCtx.setLineDash([6,4]);
+  eCtx.strokeRect(x,y,w,h);
+  eCtx.restore();
+}
+function getCroppedCanvasFromSelection(){
+  if(!(cropStart && cropEnd)) return null;
+  redrawOriginal();
+  const x = Math.max(0, Math.min(cropStart.x, cropEnd.x));
+  const y = Math.max(0, Math.min(cropStart.y, cropEnd.y));
+  const w = Math.min(eraseCanvas.width - x, Math.abs(cropEnd.x - cropStart.x));
+  const h = Math.min(eraseCanvas.height - y, Math.abs(cropEnd.y - cropStart.y));
+  if(w<=2 || h<=2) return null;
+  const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+  const tctx = tmp.getContext('2d'); const cut = eCtx.getImageData(x,y,w,h); tctx.putImageData(cut, 0, 0);
+  return tmp;
+}
+function applyCroppedToTarget(closeAfter){
+  if(!editingTargetImg) return;
+  const outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
+  const dataUrl = outCanvas.toDataURL('image/png');
+
+  const box = editingTargetBox;
+  const newW = outCanvas.width;
+  const newH = outCanvas.height;
+
+  const CANVAS_H = box?.closest('.HBN')?.clientHeight || 360;
+  const maxH = CANVAS_H * 0.7;
+  const scale = Math.min(1, maxH / newH);
+
+  editingTargetImg.onload = ()=>{
+    if (box) {
+      const w = Math.round(newW * scale);
+      const h = Math.round(newH * scale);
+      box.style.width  = w + 'px';
+      box.style.height = h + 'px';
+      box.dataset.fixedW = String(w);
+      box.dataset.fixedH = String(h);
+    }
+  };
+  editingTargetImg.style.objectFit = 'contain';
+  editingTargetImg.src = dataUrl;
+
+  if(closeAfter){
+    eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null;
+  }else{
+    const tmp = new Image();
+    tmp.onload = ()=>{
+      eraseCanvas.width  = Math.max(1, tmp.naturalWidth);
+      eraseCanvas.height = Math.max(1, tmp.naturalHeight);
+      eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height);
+      eCtx.drawImage(tmp, 0, 0, eraseCanvas.width, eraseCanvas.height);
+      cropStart = cropEnd = null;
+    };
+    tmp.src = dataUrl;
+  }
+}
+
+eraseCancel.addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.add('show'); });
+document.getElementById('nudgeClose').addEventListener('click', ()=>{
+  document.getElementById('cancelNudge').classList.remove('show');
+  eraseModal.classList.remove('show');
+  editingTargetImg = null; editingTargetBox = null;
+});
+document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
+eraseApply.addEventListener('click', ()=>{ applyCroppedToTarget(true); });
+cropConfirm.addEventListener('click', ()=>{ applyCroppedToTarget(false); showToast('已套用裁切（可繼續編輯）','ok',1600); });
+
+/* ===== 背景吸色（取左上角平均 5x5，沿用 index.html） ===== */
+async function sampleTopLeftColor(dataUrl){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const oc = document.createElement('canvas');
+      oc.width = img.naturalWidth; oc.height = img.naturalHeight;
+      const ctx = oc.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const w = img.naturalWidth, h = img.naturalHeight;
+      const sw = Math.min(5, w), sh = Math.min(5, h);
+      const data = ctx.getImageData(0, 0, sw, sh).data;
+      let r=0,g=0,b=0,c=0;
+      for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++; }
+      r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c);
+      resolve(rgbToHex(r,g,b));
+    };
+    img.src = dataUrl;
+  });
+}
+
+/* ===== 核心：底圖上傳/拖曳/縮放 + 商品圖（抄 index.html 的 setupEditor） ===== */
+function setupEditor(canvasId, editorId, productsInputId, bgInputId, bgColorInputId, scalePanelId, scaleValId){
+  const canvas = document.getElementById(canvasId);
+  const editor = document.getElementById(editorId);
+  const productsInput = document.getElementById(productsInputId);
+  const bgInput = document.getElementById(bgInputId);
+  const bgColorInput = document.getElementById(bgColorInputId);
+  const scalePanel = document.getElementById(scalePanelId);
+  const scaleVal = document.getElementById(scaleValId);
+  if(!canvas || !editor) return;
+
+  const CANVAS_W = canvas.clientWidth;
+  const CANVAS_H = canvas.clientHeight;
+  let zCounter = 10;
+
+  function fitCoverSize(nw, nh){
+    const ratio = nw/nh;
+    const cr = CANVAS_W/CANVAS_H;
+    let w,h;
+    if(ratio > cr){ h = CANVAS_H; w = h * ratio; }
+    else{ w = CANVAS_W; h = w / ratio; }
+    return {w, h};
+  }
+
+  function makeItem({url, asBackground=false, idx=0}){
+    const box = document.createElement('div');
+    box.className = 'editor-item' + (asBackground ? ' editor-bg' : '');
+    box.style.zIndex = asBackground ? '1' : String(zCounter++);
+
+    // 商品圖給穩定 ID（未來要鏡射/同步才用得到）
+    if (!asBackground) box.dataset.pid = 'p_' + Math.random().toString(36).slice(2);
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.objectFit = 'contain';
+
+    const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='✖';
+    const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切';  editBtn.textContent='✎';
+    const layerBox = document.createElement('div'); layerBox.className='layer-btns';
+    const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
+    const backBtn  = document.createElement('button'); backBtn.className='ctrl';  backBtn.title='圖層置後';  backBtn.textContent='▼';
+    layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
+
+    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+
+    box.appendChild(img);
+    if(!asBackground){
+      box.appendChild(delBtn);
+      box.appendChild(editBtn);
+      box.appendChild(layerBox);
+      box.appendChild(resizeBtn);
+    }
+    editor.appendChild(box);
+
+    img.onload = ()=>{
+      const ratio = img.naturalWidth / img.naturalHeight;
+
+      if(asBackground){
+        const s = fitCoverSize(img.naturalWidth, img.naturalHeight);
+        box.style.width = s.w + 'px';
+        box.style.height = s.h + 'px';
+        box.style.left = ((CANVAS_W - s.w)/2) + 'px';
+        box.style.top  = ((CANVAS_H - s.h)/2) + 'px';
+        box.dataset.baseW = String(s.w);
+        box.dataset.baseH = String(s.h);
+        box.dataset.scale = '1';
+
+        // 隱藏預設底圖
+        const bgEl = canvas.querySelector('.bg');
+        if(bgEl) bgEl.style.visibility = 'hidden';
+
+        if(scalePanel){ scalePanel.hidden = false; if(scaleVal) scaleVal.textContent = '100%'; }
+
+        const curBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
+        updateSolid(editor, curBg);
+        updateGradient(editor, curBg);
+        applySplitToTexts(canvasId, curBg);
+
+        canvas.classList.remove('pending-underlay');
+      }else{
+        const targetH = CANVAS_H * 0.7;
+        const targetW = targetH * ratio;
+        box.style.width = targetW + 'px';
+        box.style.height = targetH + 'px';
+        box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (targetW/2)) + 'px';
+        box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
+        if(parseInt(box.style.zIndex,10) < 4){ box.style.zIndex = '4'; }
+      }
+    };
+
+    /* 拖拉 */
+    let dragging=false, startX=0, startY=0, origLeft=0, origTop=0;
+    box.addEventListener('mousedown', (e)=>{
+      if(e.target.classList.contains('ctrl') || e.target.tagName === 'BUTTON') return;
+      dragging = true;
+      startX = e.clientX; startY = e.clientY;
+      origLeft = parseFloat(box.style.left)||0;
+      origTop  = parseFloat(box.style.top)||0;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      box.style.left = (origLeft + dx) + 'px';
+      box.style.top  = (origTop  + dy) + 'px';
+    });
+    window.addEventListener('mouseup', ()=> dragging=false);
+
+    /* 等比縮放（右下 ↗） */
+    let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
+    resizeBtn?.addEventListener('mousedown', (e)=>{
+      resizing = true;
+      startRX = e.clientX; startRY = e.clientY;
+      startW = box.clientWidth; startH = box.clientHeight; aspect = startW / Math.max(1, startH);
+      e.stopPropagation(); e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e)=>{
+      if(!resizing) return;
+      const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
+      let newW = Math.max(20, startW + delta);
+      let newH = Math.max(20, newW / aspect);
+      box.style.width = newW + 'px';
+      box.style.height = newH + 'px';
+      box.dataset.fixedW = String(Math.round(newW));
+      box.dataset.fixedH = String(Math.round(newH));
+    });
+    window.addEventListener('mouseup', ()=> resizing=false);
+
+    if(!asBackground){
+      delBtn.addEventListener('click', ()=>{ box.remove(); });
+      editBtn.addEventListener('click', ()=>{ openEraseEditor(img); });
+      frontBtn.addEventListener('click', ()=>{ box.style.zIndex = String(++zCounter); });
+      // 置後：送到底層商品群（維持 z=4，覆蓋遮罩）
+      backBtn.addEventListener('click', ()=>{
+        const parent = box.parentElement;
+        if(!parent) return;
+        const items = Array.from(parent.querySelectorAll('.editor-item:not(.editor-bg)'));
+        const first = items[0];
+        if (first && first !== box) parent.insertBefore(box, first);
+        box.style.zIndex = '4';
+      });
+    }
+
+    return box;
+  }
+
+  function scaleBackground(step){
+    const bgBox = editor.querySelector('.editor-bg');
+    if(!bgBox) return;
+
+    const baseW = parseFloat(bgBox.dataset.baseW||bgBox.clientWidth);
+    const baseH = parseFloat(bgBox.dataset.baseH||bgBox.clientHeight);
+    let scale = parseFloat(bgBox.dataset.scale||'1');
+
+    scale = Math.max(0.1, Math.min(5, scale + step));
+
+    const centerX = (parseFloat(bgBox.style.left)||0) + bgBox.clientWidth/2;
+    const centerY = (parseFloat(bgBox.style.top)||0)  + bgBox.clientHeight/2;
+
+    const newW = baseW * scale; const newH = baseH * scale;
+    bgBox.style.width = newW + 'px';
+    bgBox.style.height = newH + 'px';
+    bgBox.style.left = (centerX - newW/2) + 'px';
+    bgBox.style.top  = (centerY - newH/2) + 'px';
+
+    bgBox.dataset.scale = String(scale);
+    if(scaleVal) scaleVal.textContent = Math.round(scale*100) + '%';
+  }
+
+  if(scalePanel){
+    scalePanel.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const step = Number(btn.dataset.step||0);
+      scaleBackground(step);
+    });
+  }
+
+  /* 商品圖 */
+  if(productsInput){
+    productsInput.addEventListener('change', async e=>{
+      const files = Array.from(e.target.files || []).slice(0, 3);
+      files.forEach(async (f, idx)=>{
+        const url = await readAsDataURL(f);
+        makeItem({url, asBackground:false, idx});
+      });
+    });
+  }
+
+  /* 底圖（抄 index.html：吸色 + 建背景層） */
+  if(bgInput){
+    bgInput.addEventListener('change', async e=>{
+      const f = e.target.files?.[0]; if(!f) return;
+      const url = await readAsDataURL(f);
+
+      // 也同步到 <img id="bgH"> 方便預覽（不影響 editor-bg）
+      const bgImg = document.getElementById('bgH');
+      if(bgImg) { bgImg.src = url; bgImg.style.visibility = 'visible'; }
+
+      const hex = await sampleTopLeftColor(url).catch(()=>null);
+      const finalHex = hex || (bgColorInput && bgColorInput.value) || '#c2dff3';
+
+      if(bgColorInput){ bgColorInput.value = finalHex; }
+      canvas.style.backgroundColor = finalHex;
+
+      updateSolid(editor, finalHex);
+      updateGradient(editor, finalHex);
+      applySplitToTexts(canvasId, finalHex);
+
+      const prev = editor.querySelector('.editor-bg'); if(prev) prev.remove();
+      makeItem({url, asBackground:true});
+
+      showToast('底圖已載入，可拖曳/縮放調整', 'ok');
+    });
+  }
+
+  // 初始化：先把遮罩/漸層套上目前背景色（但 pending-underlay 會先隱藏）
+  const initBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
+  updateSolid(editor, initBg);
+  updateGradient(editor, initBg);
+  applySplitToTexts(canvasId, initBg);
+}
+
+/* ===== 顏色工具：同步到畫面 ===== */
+function bindColor(inputId, selector, styleProp, extra){
+  const inp=document.getElementById(inputId);
+  if(!inp) return;
+  const apply=(val)=>{ document.querySelectorAll(selector).forEach(el=>{ el.style[styleProp]=val; }); if(typeof extra === 'function') extra(val); };
+  inp.addEventListener('input', e=>apply(e.target.value));
+  apply(inp.value);
+}
+
+
+/* ===== 匯出（沿用 index.html 的思路，簡化為單一畫布） ===== */
+if (!HTMLCanvasElement.prototype.toBlob) {
+  HTMLCanvasElement.prototype.toBlob = function (cb, type, quality) {
+    const bin = atob(this.toDataURL(type, quality).split(',')[1]);
+    const len = bin.length;
+    const arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    cb(new Blob([arr], { type: type || 'image/png' }));
+  };
+}
+
+function exportIgnore(el){
+  if(!el || !el.classList) return false;
+  return el.classList.contains('bg-scale-panel') ||
+         el.classList.contains('panel') ||
+         el.classList.contains('modal') ||
+         el.classList.contains('nudge') ||
+         el.classList.contains('toggle-tag') ||
+         el.classList.contains('ctrl');
+}
+
+async function downloadBanner(canvasId, bgColorInputId, filename){
+  const node = document.getElementById(canvasId);
+  if(!node){ showToast('找不到畫布', 'err', 2000); return; }
+
+  try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch{}
+
+  const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  const snap = await html2canvas(node, {
+    backgroundColor: null,
+    scale,
+    useCORS: true,
+    allowTaint: false,
+    removeContainer: true,
+    letterRendering: true,
+    logging: false,
+    ignoreElements: exportIgnore,
+    onclone: (doc)=>{ doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove()); }
+  });
+
+  const outC = document.createElement('canvas');
+  outC.width = snap.width; outC.height = snap.height;
+  const ctx = outC.getContext('2d');
+
+  const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+  const {r,g,b} = hexToRgb(bgHex);
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0,0,outC.width,outC.height);
+  ctx.drawImage(snap, 0, 0);
+
+  const toBlob = (type, quality)=> new Promise(res=> outC.toBlob(b=>res(b), type, quality));
+
+  // 先 PNG
+  let blob = await toBlob('image/png');
+  let outName = filename || 'banner.png';
+
+  // 若超過 245KB，改成 JPEG 逐步壓縮
+  const LIMIT = 245*1024;
+  if (blob && blob.size > LIMIT){
+    outName = outName.replace(/\.png$/i, '') + '.jpg';
+    let quality = 1.0;
+    blob = await toBlob('image/jpeg', quality);
+    while (blob && blob.size > LIMIT && quality > 0.45){
+      quality = Math.max(0.45, +(quality - 0.06).toFixed(2));
+      blob = await toBlob('image/jpeg', quality);
+    }
+    showToast(`已下載：${Math.round(blob.size/1024)}KB（JPEG 品質 ${Math.round(quality*100)}%）`,'ok',2500);
+  } else {
+    showToast(`已下載：${Math.round(blob.size/1024)}KB（PNG）`,'ok',2000);
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = outName;
+  document.body.appendChild(a);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  bindLogoUpload();
+  enableLogoReorder('brandH');
+
+  // 主功能（底圖/商品圖/背景縮放）— 直接沿用 index.html 的核心寫法
+  setupEditor('horiz', 'editorH', 'items-h', 'bg-horiz', 'bg-color-h', 'bgScaleH', 'bgScaleValH');
+
+  // 顏色同步
+  bindColor('h1-color-horiz', '#h1-h', 'color');
+  bindColor('h2-color-horiz', '#h2-h', 'color');
+  bindColor('date-color-horiz', '#date-h', 'color');
+  bindColor('cta-bg-h', '#horiz .cta', 'backgroundColor', v=>document.documentElement.style.setProperty('--cta-bg', v));
+  bindColor('cta-fg-h', '#horiz .cta', 'color', v=>document.documentElement.style.setProperty('--cta-fg', v));
+
+  // 背景色：同步遮罩 + 漸層 + 自動配色
+  bindColor('bg-color-h', '#horiz', 'backgroundColor', (val)=>{
+    const editor = document.getElementById('editorH');
+    updateSolid(editor, val);
+    updateGradient(editor, val);
+    applySplitToTexts('horiz', val);
+  });
+
+  // ✅ 左下角：關閉文案底圖
+  document.getElementById('toggleUnderlayH')?.addEventListener('change', (e)=>{
+    document.getElementById('horiz')?.classList.toggle('no-underlay', e.target.checked);
+  });
+
+  // 下載
+  document.getElementById('dl-h')?.addEventListener('click', ()=>{
+    downloadBanner('horiz', 'bg-color-h', 'HBN_v17_horiz.png');
+  });
+
+  // 掛標紅/白切換（沿用 index.html 的簡化版：單張）
+  document.querySelectorAll('.toggle-tag').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-target');
+      const img = document.getElementById(id);
+      if(!img) return;
+      const cur = img.getAttribute('src') || '';
+      const next = cur.includes('紅商城') ? cur.replace('紅商城', '白商城') : cur.replace('白商城', '紅商城');
+      img.src = next;
+      const nowIsWhite = next.includes('白商城');
+      showToast(`掛標切換：${nowIsWhite ? '白' : '紅'}`, 'ok', 1000);
+    });
+  });
+});
+</script>
+
+
+<script>
+// Add download button to each image
+document.addEventListener("DOMContentLoaded", function () {
+    const images = document.querySelectorAll("img");
+    
+    images.forEach((img, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "relative";
+        wrapper.style.display = "inline-block";
+        
+        img.parentNode.insertBefore(wrapper, img);
+        wrapper.appendChild(img);
+        
+        const btn = document.createElement("button");
+        btn.innerText = "下載圖片";
+        btn.style.position = "absolute";
+        btn.style.bottom = "8px";
+        btn.style.right = "8px";
+        btn.style.padding = "6px 10px";
+        btn.style.fontSize = "12px";
+        btn.style.cursor = "pointer";
+        btn.style.border = "none";
+        btn.style.borderRadius = "6px";
+        
+        btn.addEventListener("click", function () {
+            const link = document.createElement("a");
+            link.href = img.src;
+            link.download = "image_" + (index + 1);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+        
+        wrapper.appendChild(btn);
+    });
+});
+</script>
+
+</body>
+</html>
