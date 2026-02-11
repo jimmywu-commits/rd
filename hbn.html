@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>EDM Banners｜橫式＋方式（合併版｜含PC版位預覽）</title>
+<title>HBN審圖製稿系統v1</title>
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -58,8 +58,8 @@
 
   /* 方形 Logo app設定：105 x 105 盒 */
   #square .brand{position:absolute;left:45px;top:125px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
-  #square .logo-box{width:105px;height:105px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  #square .logo-box img{width:105px;height:105px;object-fit:contain}
+  #square .logo-box{ position:absolute; inset:0; width:auto; height:auto; }
+  #square .logo-box img{ width:auto !important; height:auto !important; max-width:105px; max-height:105px; object-fit:contain; display:block; }
 
   /* 文字（固定 px、不允許換行） */
   .h1, .h2, .date{
@@ -367,8 +367,7 @@
   position: relative;
   top: -2px;   /* 改成 -0.5px / -1px / -2px 視覺微調 */
 	  right: 6px;
-}
-  }
+
 
   /* Arrow: inline element (not absolute), vertically centered by flex */
   #horiz #cta-h .triangle{
@@ -456,6 +455,35 @@
   }
 </style>
 
+
+<!-- Assistant: Export/logo no distortion (match frontend display exactly) -->
+<style id="assistant-logo-no-distort">
+  /* Do not force square logo to 105x105; keep aspect ratio */
+  #square .logo-box{ width:auto !important; height:auto !important; }
+  #square .logo-box img{ width:auto !important; height:auto !important; max-width:105px; max-height:105px; object-fit:contain; display:block; }
+</style>
+
+
+<!-- Assistant: Square logo upload centered (no distortion) -->
+<style id="assistant-square-logo-centered">
+  #square .logo-box{
+    width:105px !important;
+    height:105px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+  }
+  #square .logo-box img{
+    max-width:100% !important;
+    max-height:100% !important;
+    width:auto !important;
+    height:auto !important;
+    object-fit:contain !important;
+    display:block !important;
+  }
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -526,7 +554,7 @@
         <div id="pdate" class="date">09/01 - 09/30</div>
       </div>
 
-      <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
+      <div class="cta" id="cta-ph"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <!-- PC 縮放面板（新） -->
       <div class="bg-scale-panel" id="bgScalePH" hidden>
@@ -2053,10 +2081,10 @@ backBtn.addEventListener('click', ()=>{
     }
   }
 
-  document.getElementById('dl-h').addEventListener('click', ()=>downloadJpgFor('horiz','bg-color-h','horiz.jpg'));
-  document.getElementById('dl-h-pc').addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
-  document.getElementById('dl-s').addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
-  document.getElementById('dl-s-pc').addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
+  const _dlH=document.getElementById('dl-h'); if(_dlH) _dlH.addEventListener('click', ()=>downloadJpgFor('horiz','bg-color-h','horiz.jpg'));
+  const _dlHPc=document.getElementById('dl-h-pc'); if(_dlHPc) _dlHPc.addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
+  const _dlS=document.getElementById('dl-s'); if(_dlS) _dlS.addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
+  const _dlSPc=document.getElementById('dl-s-pc'); if(_dlSPc) _dlSPc.addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
 // ========== 掛標紅／白切換（APP 與 PC 同步） ==========
 (function(){
   const GROUPS = {
