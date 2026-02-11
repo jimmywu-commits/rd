@@ -54,10 +54,10 @@
 
   /* 橫式 Logo：最多 3 個，限高 50px、間距 15px、寬不限（.brand margin:0） */
   #horiz .brand{position:absolute;left:88px;top:122px;display:flex;align-items:center;gap:15px;z-index:5;margin:0}
-  #horiz .brand img{max-height:50px;height:auto;width:auto;object-fit:contain}
+  #horiz .brand img{max-height:48px;height:auto;width:auto;object-fit:contain}
 
   /* 方形 Logo app設定：105 x 105 盒 */
-  #square .brand{position:absolute;left:53px;top:140px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
+  #square .brand{position:absolute;left:45px;top:125px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
   #square .logo-box{width:105px;height:105px;display:flex;align-items:center;justify-content:center;overflow:hidden}
   #square .logo-box img{width:105px;height:105px;object-fit:contain}
 
@@ -97,16 +97,16 @@
 
   /* 文案區（兩版皆固定） */
   #horiz .stack{position:absolute;left: 100px;top: 160px;display:block;max-width:64%;}
-  #square .stack{position:absolute;left: 180px;top: 150px;display:block;max-width:64%;}
+  #square .stack{position:absolute;left: 166px;top: 132px;display:block;max-width:64%;}
 
   /* 鎖死：主/副/日期的座標（兩版各自固定數值） */
   #horiz #h1-h{position:absolute;left: 0; top:0;top:0;}
   #horiz #h2-h{position:absolute;left: 0; top:60px;top:53px;}
   #horiz #date-h{position:absolute;left: 0; top:132px;top:117px;}
 
-  #square #h1-s{position:absolute;left: 0; top:-10px;top:-16.5px;}
-  #square #h2-s{position:absolute;left: 0; top:48px;top:36.5px;}
-  #square #date-s{position:absolute;left: 0; top:110px;top:100px;}
+  #square #h1-s{position:absolute;left: 0; top:0px;top:-16.5px;}
+  #square #h2-s{position:absolute;left: 0; top:44px;top:33.5px;}
+  #square #date-s{position:absolute;left: 0; top:114px;top:100px;}
 
   [contenteditable="true"]{outline:2px dashed rgba(255,255,255,.0);transition:outline-color .2s}
   [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
@@ -303,12 +303,12 @@
   #horiz .brand{ left:98.5px !important; top:95px !important; }
 
   /* Text stack container */
-  #horiz .stack{ left:98.5px !important; top:140px !important; }
+  #horiz .stack{ left:98.5px !important; top:142px !important; }
 
   /* Text positions (absolute X/Y achieved via stack left/top + inner offsets) */
   #horiz #h1-h{ left:0 !important; top:2 !important; }          /* (98.5, 151) */
-  #horiz #h2-h{ left:0 !important; top:51px !important; }        /* (98.5, 200) */
-  #horiz #date-h{ left:0 !important; top:118px !important; }     /* (98.5, 271) */
+  #horiz #h2-h{ left:0 !important; top:50px !important; }        /* (98.5, 200) */
+  #horiz #date-h{ left:0 !important; top:117px !important; }     /* (98.5, 271) */
 
   /* CTA (APP) */
   
@@ -577,7 +577,7 @@
         <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
         <div id="date-s" class="date" contenteditable="true" data-limit="14" data-role="date">9/1 - 9/30<span class="counter" aria-hidden="true"></span></div>
       </div>
-      <div class="cta" id="cta-s"><span class="text">逛逛去</span><span class="triangle"></span></div>
+      <div class="cta" id="cta-s"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <div class="bg-scale-panel" id="bgScaleS" hidden>
         <span class="tag">背景圖尺寸</span>
@@ -1863,6 +1863,7 @@ backBtn.addEventListener('click', ()=>{
     ctaPH.style.color = getComputedStyle(ctaH).color;
   }
   syncCta();
+  copyHorizCtaToSquare();
 
   function syncPcSText(){
     const h1 = document.getElementById('h1-s');
@@ -1891,6 +1892,21 @@ backBtn.addEventListener('click', ()=>{
     ctaPS.style.color = getComputedStyle(ctaS).color;
   }
   syncCtaS();
+
+
+  /* ====== Assistant: Square export copies Horizontal CTA (text + colors), but exports Square canvas ====== */
+  function copyHorizCtaToSquare(){
+    const h = document.getElementById('cta-h');
+    const s = document.getElementById('cta-s');
+    if(!h || !s) return;
+    const ht = h.querySelector('.text')?.textContent ?? '';
+    const st = s.querySelector('.text');
+    if(st && ht) st.textContent = ht;
+    // copy computed colors to keep identical
+    const cs = getComputedStyle(h);
+    s.style.backgroundColor = cs.backgroundColor;
+    s.style.color = cs.color;
+  }
 
   /* ===== 匯出 ===== */
   if (!HTMLCanvasElement.prototype.toBlob) {
@@ -2039,7 +2055,7 @@ backBtn.addEventListener('click', ()=>{
 
   document.getElementById('dl-h').addEventListener('click', ()=>downloadJpgFor('horiz','bg-color-h','horiz.jpg'));
   document.getElementById('dl-h-pc').addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
-  document.getElementById('dl-s').addEventListener('click', ()=>downloadJpgFor('square','bg-color-s','square.jpg'));
+  document.getElementById('dl-s').addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
   document.getElementById('dl-s-pc').addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
 // ========== 掛標紅／白切換（APP 與 PC 同步） ==========
 (function(){
