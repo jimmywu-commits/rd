@@ -159,7 +159,7 @@
 
   /* 左半遮罩（背景實色）與中央漸層（要輸出） */
   .bg-solid{position:absolute;left:0;top:0;width:600px;height: 360px;z-index:2;pointer-events:none;}
-  .bg-gradient{position:absolute;width:100px;height: 360px;left:600px;top:0;pointer-events:none;z-index:3;}
+  .bg-gradient{position:absolute;width:100px;height: 360px;left:599px; /* 1px overlap with solid */top:0;pointer-events:none;z-index:3;}
 
   /* PC 版位用（純視覺）：縮成 992x165 的遮罩尺寸 */
   .pc-canvas .bg-solid{width:500px;height:165px}
@@ -487,7 +487,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h2>橫式HBN</h2>
+    <h2>HBN&nbsp;橫LOGO</h2>
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
@@ -497,7 +497,7 @@
       <label>CTA底色：<input id="cta-bg-h" type="color" value="#2176FF"></label>
       <label>CTA字色：<input id="cta-fg-h" type="color" value="#ffffff"></label>
       <label>背景色：<input id="bg-color-h" type="color" value="#c2dff3"></label>
-      <button id="dl-h" type="button" style="margin-left:auto;">下載APP版（≤200KB）</button> 
+      <button id="dl-h" type="button" style="margin-left:auto;">下載圖片（≤145KB）</button> 
     </div>
 
     <!-- 第二排：上傳 -->
@@ -567,7 +567,7 @@
 
     <div class="hr"></div>
 
-    <h2>方式 HBN</h2>
+    <h2>HBN&nbsp;方LOGO</h2>
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
@@ -577,7 +577,7 @@
       <label>CTA底色：<input id="cta-bg-s" type="color" value="#2176FF"></label>
       <label>CTA字色：<input id="cta-fg-s" type="color" value="#ffffff"></label>
       <label>背景色：<input id="bg-color-s" type="color" value="#c2dff3"></label>
-      <button id="dl-s" type="button" style="margin-left:auto;">下載APP版（≤200KB）</button> 
+      <button id="dl-s" type="button" style="margin-left:auto;">下載圖片（≤145KB）</button> 
     </div>
 
     <!-- 第二排：上傳 -->
@@ -2010,39 +2010,36 @@ backBtn.addEventListener('click', ()=>{
         return new Promise(res => outC.toBlob(b=>res(b), type, quality));
       }
 
-      // 1) 先嘗試 PNG（無壓縮、最高畫質）
-      let blob = await toBlob('image/png');
-      let outName = (filename || 'banner.png');
+      // Always export as JPG (≤145KB rule)
+      let outName = (filename || 'banner').replace(/\.png$/i,'').replace(/\.jpg$/i,'') + '.jpg';
 
-      if (blob && blob.size > 200*1024){
-        // 2) 若超過 200KB 才改為 JPEG 並逐步壓縮
-        outName = outName.replace(/\.png$/i, '') + '.jpg';
-        let quality = 1.0;
-        blob = await toBlob('image/jpeg', quality);
-        while (blob && blob.size > 200*1024 && quality > 0.4){
-          quality = Math.max(0.4, +(quality - 0.06).toFixed(2));
+      // First: full-quality JPG (no compression)
+      let quality = 1.0;
+      let blob = await toBlob('image/jpeg', quality);
+
+      // If larger than 145KB, progressively compress
+      if (blob && blob.size > 145*1024){
+        while (blob && blob.size > 145*1024 && quality > 0.4){
+          quality = Math.max(0.4, +(quality - 0.05).toFixed(2));
           blob = await toBlob('image/jpeg', quality);
         }
-        if(!blob){ throw new Error('產生圖檔失敗'); }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = outName;
-        document.body.appendChild(a);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
-        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
-        showToast(`已下載：${Math.round(blob.size/1024)}KB（JPEG 品質 ${typeof quality!=='undefined'?Math.round(quality*100):'--'}%；原 PNG 超過 200KB）`,'ok',3000);
-      } else {
-        // PNG 在 200KB 以內 → 直接下載（不壓縮）
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = outName;
-        document.body.appendChild(a);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
-        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
-        showToast(`已下載：${Math.round(blob.size/1024)}KB（PNG 無壓縮）`,'ok',2000);
       }
+
+      if(!blob){ throw new Error('產生圖檔失敗'); }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; 
+      a.download = outName;
+      document.body.appendChild(a);
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
+
+      a.remove(); 
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+
+      showToast(`已下載：${Math.round(blob.size/1024)}KB（JPG ${blob.size <= 145*1024 ? '未壓縮' : '已壓縮'}）`,'ok',2500);
     }
 
     try{
