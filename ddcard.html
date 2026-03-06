@@ -45,7 +45,7 @@
   .hr{height:1px;background:#e5e5e5;margin:18px 0}
 
   /* === APP 畫布（固定 1200x400、直角） === */
-  .canvas{position:relative;width:531px;height: 792px;overflow:hidden;border-radius:0;background:#c2dff3;}
+  .canvas{position:relative;width:531px;height: 792px;overflow:visible;border-radius:0;background:#c2dff3;}
   .canvas .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
   /* === PC 版位（992x165，純前端預覽） === */
@@ -96,7 +96,7 @@
   }
 
   /* 文案區（兩版皆固定） */
-  #horiz .stack{position:absolute;left: 100px;top: 160px;display:block;max-width:64%;}
+  #horiz .stack{position:absolute;left: 100px;top: 160px;display:block;max-width:64%;z-index:5;}
   #square .stack{position:absolute;left: 166px;top: 132px;display:block;max-width:64%;}
 
   /* 鎖死：主/副/日期的座標（兩版各自固定數值） */
@@ -130,10 +130,14 @@
   /* 審核提示與左側小計數器 */
   .audit-tip{display:none;}
   .counter{
+    display:none;
     position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;
     background:#111;color:#fff;padding:2px 6px;border-radius:6px;
     pointer-events:none;user-select:none;
   }
+
+  /* 只在編輯(聚焦)時顯示字數 */
+  [contenteditable="true"]:focus .counter{ display:inline-block; }
 
   /* 浮動字數小泡泡 */
   .float-meter{
@@ -143,13 +147,17 @@
   }
 
   /* 圖片編輯器（含四角工具） */
-  .editor{position:absolute;inset:0;z-index:2;}
+  .editor{position:absolute;inset:0;z-index:10;}
+  .editor{pointer-events:none;}
+  .editor-item, .editor-item .ctrl, .editor-item .layer-btns{pointer-events:auto;}
+  .editor-item{pointer-events:auto;}
+
   .editor-item{position:absolute;cursor:move;}
   .editor-item img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none; image-rendering:auto;}
   .editor-bg{z-index:1;} /* 底圖層 */
 
   /* 四角工具鍵樣式（背景層不顯示） */
-  .editor-item .ctrl{position:absolute;z-index:10;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(17,17,17,.8);color:#fff;border:0;cursor:pointer;font-size:14px;line-height:1;box-shadow:0 4px 10px rgba(0,0,0,.25);} 
+  .editor-item .ctrl{position:absolute;z-index:999;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(17,17,17,.8);color:#fff;border:0;cursor:pointer;font-size:14px;line-height:1;box-shadow:0 4px 10px rgba(0,0,0,.25);} 
   .editor-item .ctrl:hover{background:#111}
   .editor-item .ctrl.del{left:6px;top:6px;}
   .editor-item .ctrl.edit{left:6px;bottom:6px;}
@@ -196,6 +204,34 @@
   .checkerboard{position:relative;display:inline-block;border-radius:8px;overflow:auto;background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0/20px 20px;padding:0;max-width:100%;max-height:60vh}
   #eraseCanvas{display:block;background:transparent}
   #eraseWrap{padding:0;border-radius:8px}
+  /* ===== Shadow editor overlay (modal) ===== */
+  #eraseWrap{ position:relative; }
+  #shadowBox{
+    position:absolute;
+    left:0; top:0;
+    width:777px; height:115px;
+    z-index:2;
+    cursor:move;
+    user-select:none;
+    touch-action:none;
+  }
+  #shadowBox img{
+    width:100%; height:100%;
+    display:block;
+    pointer-events:none;
+    user-select:none;
+  }
+  #shadowBox .shadow-resize{
+    position:absolute;
+    right:-6px; bottom:-6px;
+    width:14px; height:14px;
+    border-radius:4px;
+    border:2px solid rgba(255,255,255,.95);
+    background:rgba(17,17,17,.85);
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+    cursor:nwse-resize;
+  }
+
 
   .nudge{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.55);}
   .nudge.show{display:flex;}
@@ -274,6 +310,38 @@
 
 /* PC 版 ghost 商品圖的右下角縮放把手（與 APP 一致樣式） */
 .editor-item.ghost .ctrl.resize{ right:6px; bottom:6px; }
+
+
+/* Shadow editor inside modal (same as index_加入影子功能.html) */
+#shadowCanvas{position:absolute;left:0;top:0;z-index:0;pointer-events:none;}
+#eraseCanvas{position:relative;z-index:1;display:block;}
+.shadow-modal-box{
+  position:absolute;
+  left:10px; top:10px;
+  width:777px; height:115px;
+  cursor:move;
+  border:1px dashed rgba(255,255,255,.35);
+  border-radius:8px;
+  box-sizing:border-box;
+  z-index:3;
+}
+.shadow-modal-box img{
+  width:100%; height:100%;
+  object-fit:contain;
+  opacity:0;
+  mix-blend-mode:multiply;
+  pointer-events:none;
+  user-select:none;
+}
+.shadow-modal-handle{
+  position:absolute;
+  right:-6px; bottom:-6px;
+  width:14px; height:14px;
+  border-radius:4px;
+  background:#fff;
+  border:1px solid rgba(0,0,0,.4);
+  cursor:nwse-resize;
+}
 
 </style>
 
@@ -644,7 +712,7 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
 
 /* Ensure PC preview or other selectors don't re-introduce transforms that affect containing block */
 /* Optional: make sure overflow is hidden so absolute elements stay within canvas visually */
-#horiz { overflow: hidden !important; }
+#horiz { overflow: visible !important; }
 </style>
 
 
@@ -1045,9 +1113,16 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
         <label>筆刷：<input id="brushSize" type="range" min="5" max="120" value="40"></label>
         <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
         <span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
+        <label style="margin-left:auto;display:flex;align-items:center;gap:6px"><input type="checkbox" id="toggleShadow"> 增加影子</label>
+        <input type="checkbox" id="applyUploadSize" checked style="display:none">
       </div>
       <div id="eraseWrap" class="checkerboard">
+        <canvas id="shadowCanvas" width="800" height="400"></canvas>
         <canvas id="eraseCanvas" width="800" height="400"></canvas>
+        <div id="shadowModalBox" class="shadow-modal-box" aria-hidden="true" style="display:none;">
+          <img id="shadowModalImg" src="bg.png" alt="shadow" draggable="false">
+          <div class="shadow-modal-handle" title="縮放"></div>
+        </div>
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="eraseReset" type="button">重作</button>
@@ -1561,6 +1636,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   const eraseModal = document.getElementById('eraseModal');
   const eraseCanvas = document.getElementById('eraseCanvas');
   const eCtx = eraseCanvas.getContext('2d', { willReadFrequently:true });
+  const EDIT_PADDING = 100;
   const brushSize = document.getElementById('brushSize');
   const toleranceSlider = document.getElementById('tolerance');
   const eraseReset = document.getElementById('eraseReset');
@@ -1579,30 +1655,213 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   function openEraseEditor(imgEl){
     editingTargetImg = imgEl;
     editingTargetBox = imgEl.closest('.editor-item');
+
+    // Prefer storing a "base (no-shadow)" source so re-edit won't double-shadow
+    const box = editingTargetBox;
+    const baseSrc = box?.dataset?.baseSrc || imgEl.src;
+
+    // Setup shadow UI state from dataset
+    const shadowEnabled = (box?.dataset?.shadowEnabled === '1');
+    const toggle = document.getElementById('toggleShadow');
+    if(toggle) toggle.checked = shadowEnabled;
+
+    // Load image into canvas
     originalImg = new Image();
-    originalImg.crossOrigin = 'anonymous';
     originalImg.onload = ()=>{
-      eraseCanvas.width  = Math.max(1, originalImg.naturalWidth);
-      eraseCanvas.height = Math.max(1, originalImg.naturalHeight);
-      eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height);
-      eCtx.drawImage(originalImg, 0, 0, eraseCanvas.width, eraseCanvas.height);
-      // Display the editor canvas at the SAME on-canvas (possibly resized) size
-      try {
-        const b = editingTargetBox;
-        if(b){
-          const bw = Math.max(1, b.clientWidth);
-          const bh = Math.max(1, b.clientHeight);
-          eraseCanvas.style.width  = bw + 'px';
-          eraseCanvas.style.height = bh + 'px';
-        }
-      } catch(e){}
+      // Ensure modal canvas is large enough to leave 100px safe padding on all sides.
+// For very small uploads, we expand the edit canvas so the image won't become a 1px dot.
+const pad = EDIT_PADDING;
+const minW = 800, minH = 600; // visual floor for comfortable editing
+eraseCanvas.width  = Math.max(minW, Math.round(originalImg.naturalWidth) + pad*2);
+eraseCanvas.height = Math.max(minH, Math.round(originalImg.naturalHeight) + pad*2);
+    if(shadowCanvas){ shadowCanvas.width = eraseCanvas.width; shadowCanvas.height = eraseCanvas.height; }
+
+// Draw with 100px safe padding (visual editing space)
+redrawOriginal();
       drawn = true;
       cropStart = cropEnd = null; cropping=false;
+
+      // Show modal
       eraseModal.classList.add('show');
+
+      // Init / restore shadow overlay in modal
+      initShadowModalForBox(box);
     };
-    originalImg.src = imgEl.src;
+    originalImg.src = baseSrc;
   }
-  function redrawOriginal(){ if(!originalImg) return; eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height); eCtx.drawImage(originalImg, 0, 0, eraseCanvas.width, eraseCanvas.height); }
+  function redrawOriginal(){
+    if(!originalImg) return;
+    const cw = eraseCanvas.width, ch = eraseCanvas.height;
+    const pad = EDIT_PADDING;
+
+    // inner editable area
+    const innerW = Math.max(1, cw - pad*2);
+    const innerH = Math.max(1, ch - pad*2);
+
+    // keep aspect ratio, center inside inner area
+    const scale = Math.min(innerW / originalImg.naturalWidth, innerH / originalImg.naturalHeight);
+    const w = Math.max(1, Math.round(originalImg.naturalWidth * scale));
+    const h = Math.max(1, Math.round(originalImg.naturalHeight * scale));
+    const x = Math.round(pad + (innerW - w)/2);
+    const y = Math.round(pad + (innerH - h)/2);
+
+    eCtx.clearRect(0,0,cw,ch);
+    eCtx.drawImage(originalImg, x, y, w, h);
+
+    // store last known center for tools that rely on lastX/lastY
+    lastX = x + w/2;
+    lastY = y + h/2;
+  }
+
+  // ===== Shadow overlay inside modal =====
+  const shadowCanvas = document.getElementById('shadowCanvas');
+  const shadowCtx = shadowCanvas ? shadowCanvas.getContext('2d') : null;
+  const shadowBox = document.getElementById('shadowModalBox');
+  const shadowImg = document.getElementById('shadowModalImg');
+  const shadowHandle = shadowBox?.querySelector('.shadow-modal-handle');
+  const shadowToggle = document.getElementById('toggleShadow');
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function renderShadowPreview(){
+    if(!shadowCtx || !shadowCanvas) return;
+    shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height);
+    if(!shadowToggle?.checked) return;
+    if(!shadowImg || !shadowImg.complete || shadowImg.naturalWidth<=0) return;
+    const x = parseFloat(shadowBox.style.left)||0;
+    const y = parseFloat(shadowBox.style.top)||0;
+    const w = shadowBox.offsetWidth||0;
+    const h = shadowBox.offsetHeight||0;
+    if(w<=0||h<=0) return;
+    shadowCtx.drawImage(shadowImg, x, y, w, h);
+  }
+
+  function initShadowModalForBox(box){
+    if(!shadowBox || !shadowToggle) return;
+    const enabled = shadowToggle.checked;
+
+    if(!enabled){
+      shadowBox.style.display = 'none';
+      shadowBox.setAttribute('aria-hidden','true');
+      if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      return;
+    }
+
+    shadowBox.style.display = 'block';
+    shadowBox.setAttribute('aria-hidden','false');
+
+    // Default size: 777x115 (or shrink to fit inner area if smaller)
+    const cw = eraseCanvas.width || 800;
+    const ch = eraseCanvas.height || 400;
+    const pad = EDIT_PADDING;
+    const innerW = Math.max(1, cw - pad*2);
+    const innerH = Math.max(1, ch - pad*2);
+    const boundPad = 0; // allow moving anywhere in modal canvas
+
+    const defW = 777, defH = 115;
+    let w = defW, h = defH;
+
+    // If inner area smaller than default, shrink
+    // scale down proportionally to fit
+    const fitScale = Math.min(1, innerW / defW, innerH / defH);
+    w = Math.round(defW * fitScale);
+    h = Math.round(defH * fitScale);
+
+    // Restore from dataset if available
+    const hasSaved = box?.dataset?.shadowW && box?.dataset?.shadowH;
+    if(hasSaved){
+      w = Number(box.dataset.shadowW)||w;
+      h = Number(box.dataset.shadowH)||h;
+    }
+
+    // Position: bottom center within inner area by default; restore if saved
+    let x = Math.round((cw - w) / 2);
+    let y = Math.round(ch - h - 8);
+    if(box?.dataset?.shadowX && box?.dataset?.shadowY){
+      x = Number(box.dataset.shadowX)||x;
+      y = Number(box.dataset.shadowY)||y;
+    }
+
+    // Clamp within full canvas bounds
+    x = clamp(x, boundPad, Math.max(boundPad, cw - boundPad - w));
+    y = clamp(y, boundPad, Math.max(boundPad, ch - boundPad - h));
+
+    shadowBox.style.width  = w + 'px';
+    shadowBox.style.height = h + 'px';
+    shadowBox.style.left   = x + 'px';
+    shadowBox.style.top    = y + 'px';
+    renderShadowPreview();
+  }
+
+  // Toggle shadow on/off
+  shadowToggle?.addEventListener('change', ()=>{
+    initShadowModalForBox(editingTargetBox);
+    if(!shadowToggle.checked && shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+    else { renderShadowPreview(); }
+  });
+
+  // Drag & resize in modal
+  (function bindShadowDragResize(){
+    if(!shadowBox || !shadowHandle) return;
+
+    let dragging=false, resizing=false;
+    let sx=0, sy=0, startL=0, startT=0, startW=0, startH=0;
+
+    const getCanvasRect = ()=> eraseCanvas.getBoundingClientRect();
+
+    shadowBox.addEventListener('mousedown', (e)=>{
+      if(shadowBox.style.display==='none') return;
+      if(e.target === shadowHandle) return; // handled by resize
+      e.preventDefault();
+      dragging=true;
+      sx=e.clientX; sy=e.clientY;
+      startL=parseFloat(shadowBox.style.left)||0;
+      startT=parseFloat(shadowBox.style.top)||0;
+    });
+
+    shadowHandle.addEventListener('mousedown', (e)=>{
+      if(shadowBox.style.display==='none') return;
+      e.preventDefault(); e.stopPropagation();
+      resizing=true;
+      sx=e.clientX; sy=e.clientY;
+      startL=parseFloat(shadowBox.style.left)||0;
+      startT=parseFloat(shadowBox.style.top)||0;
+      startW=shadowBox.offsetWidth;
+      startH=shadowBox.offsetHeight;
+    });
+
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging && !resizing) return;
+      const cw = eraseCanvas.width, ch = eraseCanvas.height;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+
+      if(dragging){
+        let nl = startL + dx;
+        let nt = startT + dy;
+        const w = shadowBox.offsetWidth, h = shadowBox.offsetHeight;
+        const pad2 = 0;
+        nl = clamp(nl, pad2, Math.max(pad2, cw - pad2 - w));
+        nt = clamp(nt, pad2, Math.max(pad2, ch - pad2 - h));
+        shadowBox.style.left = nl + 'px';
+        shadowBox.style.top  = nt + 'px';
+        renderShadowPreview();
+      } else if(resizing){
+        // Free resize within canvas bounds
+        const pad2 = 0;
+        const maxW = Math.max(20, (cw - pad2) - startL);
+        const maxH = Math.max(20, (ch - pad2) - startT);
+        let nw = clamp(startW + dx, 20, maxW);
+        let nh = clamp(startH + dy, 20, maxH);
+        shadowBox.style.width  = nw + 'px';
+        shadowBox.style.height = nh + 'px';
+        renderShadowPreview();
+      }
+    });
+
+    window.addEventListener('mouseup', ()=>{
+      dragging=false; resizing=false;
+    });
+  })();
 
   eraseCanvas.addEventListener('mousedown', (e)=>{
     if(!drawn) return;
@@ -1611,7 +1870,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     lastX = e.clientX - rect.left; lastY = e.clientY - rect.top;
     if(mode==='erase'){ drawing = true; }
     else if(mode==='select'){ floodSelect(Math.round(lastX), Math.round(lastY), Number(toleranceSlider.value)); }
-    else if(mode==='crop'){ cropping = true; cropStart = {x:lastX, y:lastY}; cropEnd = {x:lastY, y:lastY}; drawCropRect(); }
+    else if(mode==='crop'){ cropping = true; cropStart = {x:lastX, y:lastY}; cropEnd = {x:lastX, y:lastY}; drawCropRect(); }
   });
   window.addEventListener('mousemove', (e)=>{
     const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -1663,44 +1922,159 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     return tmp;
   }
   function applyCroppedToTarget(closeAfter){
-    if(!editingTargetImg) return;
-    const outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
-    const dataUrl = outCanvas.toDataURL('image/png');
+    if(!editingTargetImg || !editingTargetBox) return;
 
-const box = editingTargetBox;
+    const box = editingTargetBox;
 
-// Keep the SAME on-canvas display size as the moment you click "完成" (do not resize box)
-const keepW = box ? Math.max(1, box.clientWidth)  : null;
-const keepH = box ? Math.max(1, box.clientHeight) : null;
+    // 1) product-only output (erase/crop result)
+    let outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
+    let innerPadApplied = false;
 
-editingTargetImg.onload = ()=>{
-  if(box && keepW && keepH){
-    box.style.width  = keepW + 'px';
-    box.style.height = keepH + 'px';
-    box.dataset.fixedW = String(keepW);
-    box.dataset.fixedH = String(keepH);
-  }
-};
+    // If no explicit crop selection, export only inner area (remove 100px padding)
+    if(outCanvas === eraseCanvas){
+      const pad = EDIT_PADDING;
+      const cw = eraseCanvas.width, ch = eraseCanvas.height;
+      const ex = document.createElement('canvas');
+      ex.width = Math.max(1, cw - pad*2);
+      ex.height = Math.max(1, ch - pad*2);
+      const exCtx = ex.getContext('2d');
+      exCtx.drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+      outCanvas = ex;
+      innerPadApplied = true;
+    }
 
-editingTargetImg.style.objectFit = 'contain';
-editingTargetImg.src = dataUrl;
+    let productOnlyUrl = '';
+    try{
+      productOnlyUrl = outCanvas.toDataURL('image/png');
+    }catch(err){
+      console.error(err);
+      showToast?.('此圖片來源無法匯出（請使用本機上傳的圖片）','err',2600);
+      return;
+    }
 
+    
+    // Record base aspect ratio (product-only) to keep sizing consistent after shadow composite
+    try{ box.dataset.baseAspect = String(outCanvas.width / Math.max(1, outCanvas.height)); }catch{}
+// 2) composite with shadow if enabled
+    let finalW = outCanvas.width, finalH = outCanvas.height;
+    const shadowEnabled = (document.getElementById('toggleShadow')?.checked);
+    let finalUrl = productOnlyUrl;
 
-    if(closeAfter){
-      eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null;
+    if(shadowEnabled){
+      const x = parseFloat(document.getElementById('shadowModalBox')?.style.left)||0;
+      const y = parseFloat(document.getElementById('shadowModalBox')?.style.top)||0;
+      const w = document.getElementById('shadowModalBox')?.offsetWidth||777;
+      const h = document.getElementById('shadowModalBox')?.offsetHeight||115;
+
+      // store shadow params for next re-edit
+      box.dataset.shadowEnabled = '1';
+      box.dataset.shadowX = String(Math.round(x));
+      box.dataset.shadowY = String(Math.round(y));
+      box.dataset.shadowW = String(Math.round(w));
+      box.dataset.shadowH = String(Math.round(h));
+
+      const sImg = document.getElementById('shadowModalImg');
+      if(!(sImg && sImg.complete && sImg.naturalWidth>0)){
+        showToast?.('影子載入中，請再按一次完成','err',2000);
+        return;
+      }
+
+      // Convert modal shadow position to outCanvas coordinate space
+      const padAdj = innerPadApplied ? EDIT_PADDING : 0;
+      const sx = (x - padAdj);
+      const sy = (y - padAdj);
+
+      // Expand composite canvas so shadow won't be clipped
+      const minX = Math.min(0, sx);
+      const minY = Math.min(0, sy);
+      const maxX = Math.max(outCanvas.width, sx + w);
+      const maxY = Math.max(outCanvas.height, sy + h);
+
+      const comp = document.createElement('canvas');
+      comp.width  = Math.max(1, Math.round(maxX - minX));
+      comp.height = Math.max(1, Math.round(maxY - minY));
+      const cctx = comp.getContext('2d');
+
+      // draw shadow under product
+      cctx.drawImage(sImg, sx - minX, sy - minY, w, h);
+      // draw product on top
+      cctx.drawImage(outCanvas, 0 - minX, 0 - minY);
+
+      finalW = comp.width;
+      finalH = comp.height;
+
+      try{
+        finalUrl = comp.toDataURL('image/png');
+      }catch(err){
+        console.error(err);
+        showToast?.('合成影子失敗（請確認圖片為本機上傳）','err',2600);
+        return;
+      }
     }else{
+      box.dataset.shadowEnabled = '0';
+    }
+
+    // 3) Save base (no-shadow) for re-edit without double shadow
+    box.dataset.baseSrc = productOnlyUrl;
+
+    // 4) Apply to main editor image
+    const newW = finalW;
+    const newH = finalH;
+
+    // 4.1) Apply sizing rule same as upload: height = 70% canvas, width by aspect ratio
+    editingTargetImg.onload = ()=>{
+      const ratio = parseFloat(box.dataset.baseAspect || '') || ((newH>0) ? (newW / newH) : 1);
+      const targetH = Math.round(CANVAS_H * 0.7);
+      const targetW = Math.round(targetH * ratio);
+
+      // keep current center position to avoid jumping
+      const curW = parseFloat(box.style.width)||targetW;
+      const curH = parseFloat(box.style.height)||targetH;
+      const cx = (parseFloat(box.style.left)||0) + curW/2;
+      const cy = (parseFloat(box.style.top)||0) + curH/2;
+
+      box.style.width  = targetW + 'px';
+      box.style.height = targetH + 'px';
+
+      let left = Math.round(cx - targetW/2);
+      let top  = Math.round(cy - targetH/2);
+      // 允許商品圖超出畫布（比照 index_加入影子功能.html）。
+      // 背景維持原規則（若未來有背景進 Modal 才會套用 clamp）。
+      if(box.classList.contains('editor-bg')){
+        left = Math.max(0, Math.min(CANVAS_W - targetW, left));
+        top  = Math.max(0, Math.min(CANVAS_H - targetH, top));
+      }
+
+      box.style.left = left + 'px';
+      box.style.top  = top  + 'px';
+
+      // persist as fixed size so future src updates keep the rule
+      box.dataset.fixedW = String(targetW);
+      box.dataset.fixedH = String(targetH);
+    };
+    editingTargetImg.style.objectFit = 'contain';
+    editingTargetImg.src = finalUrl;
+
+    // 5) Close or keep editing
+    if(closeAfter){
+      eraseModal.classList.remove('show');
+      editingTargetImg = null; editingTargetBox = null;
+    }else{
+      // Update canvas with product-only result so further edits are on clean base
       const tmp = new Image();
       tmp.onload = ()=>{
         eraseCanvas.width  = Math.max(1, tmp.naturalWidth);
         eraseCanvas.height = Math.max(1, tmp.naturalHeight);
-        eCtx.clearRect(0,0,eraseCanvas.width,eraseCanvas.height);
+        eCtx.clearRect(0,0,eraseCanvas.width, eraseCanvas.height);
         eCtx.drawImage(tmp, 0, 0, eraseCanvas.width, eraseCanvas.height);
         cropStart = cropEnd = null;
+        // re-init shadow overlay position clamped to new canvas
+        initShadowModalForBox(box);
       };
-      tmp.src = dataUrl;
+      tmp.src = productOnlyUrl;
     }
   }
-  document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.add('show'); });
+document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.add('show'); });
   document.getElementById('nudgeClose').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.remove('show'); eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null; });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
@@ -1782,6 +2156,7 @@ editingTargetImg.src = dataUrl;
 
       img.onload = ()=>{
         const ratio = img.naturalWidth / img.naturalHeight;
+        if(!asBackground){ box.dataset.baseAspect = box.dataset.baseAspect || String(ratio); }
         if(asBackground){
           const s = fitCoverSize(img.naturalWidth, img.naturalHeight);
           box.style.width = s.w + 'px';
@@ -1806,19 +2181,12 @@ editingTargetImg.src = dataUrl;
             if(!box.style.left) box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (parseFloat(box.dataset.fixedW)/2)) + 'px';
             if(!box.style.top)  box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
           }else{
-            const targetW = CANVAS_W / 3;            // default: 1/3 canvas width
-            const targetH = targetW / ratio;          // keep aspect ratio
-            box.style.width  = targetW + 'px';
+            const targetH = CANVAS_H * 0.7;
+            const targetW = targetH * ratio;
+            box.style.width = targetW + 'px';
             box.style.height = targetH + 'px';
-
-            // Default placement: center of canvas (avoid falling to bottom-right due to inherited layout)
-            box.style.left = Math.round((CANVAS_W - targetW) / 2) + 'px';
-            box.style.top  = Math.round((CANVAS_H - targetH) / 2) + 'px';
-
-            // Ensure no right/bottom positioning interferes
-            box.style.right = 'auto';
-            box.style.bottom = 'auto';
-            box.style.transform = 'none';
+            box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (targetW/2)) + 'px';
+            box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
           }
           if(parseInt(box.style.zIndex,10) < 4){ box.style.zIndex = '4'; }
         }
@@ -2353,7 +2721,33 @@ backBtn.addEventListener('click', ()=>{
       logging: false,
       ignoreElements: exportIgnore,
       onclone: (doc)=>{
-        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.ctrl').forEach(el=>el?.remove());
+        // Ensure images with object-fit:contain render correctly in html2canvas by rasterizing them into canvases
+        doc.querySelectorAll('.editor-item img').forEach(img=>{
+          try{
+            const w = img.clientWidth || img.width;
+            const h = img.clientHeight || img.height;
+            const nw = img.naturalWidth || w || 1;
+            const nh = img.naturalHeight || h || 1;
+            const c = doc.createElement('canvas');
+            c.width = Math.max(1, Math.round(w||1));
+            c.height = Math.max(1, Math.round(h||1));
+            const ctx = c.getContext('2d');
+            const sc = Math.min(c.width / nw, c.height / nh);
+            const dw = nw * sc, dh = nh * sc;
+            const dx = (c.width - dw) / 2;
+            const dy = (c.height - dh) / 2;
+            ctx.clearRect(0,0,c.width,c.height);
+            ctx.drawImage(img, dx, dy, dw, dh);
+            // Keep sizing in layout
+            c.style.width = img.style.width || '100%';
+            c.style.height = img.style.height || '100%';
+            c.style.display = img.style.display || 'block';
+            c.style.pointerEvents = 'none';
+            img.replaceWith(c);
+          }catch(e){}
+        });
+
+        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove());
         doc.body.classList.add('export-clone');
       }
     };
@@ -2374,39 +2768,36 @@ backBtn.addEventListener('click', ()=>{
         return new Promise(res => outC.toBlob(b=>res(b), type, quality));
       }
 
-      // 1) 先嘗試 PNG（無壓縮、最高畫質）
-      let blob = await toBlob('image/png');
-      let outName = (filename || 'banner.png');
+      // Always export as JPG (≤145KB rule)
+      let outName = (filename || 'banner').replace(/\.png$/i,'').replace(/\.jpg$/i,'') + '.jpg';
 
-      if (blob && blob.size > 245*1024){
-        // 2) 若超過 245KB 才改為 JPEG 並逐步壓縮
-        outName = outName.replace(/\.png$/i, '') + '.jpg';
-        let quality = 1.0;
-        blob = await toBlob('image/jpeg', quality);
-        while (blob && blob.size > 245*1024 && quality > 0.4){
-          quality = Math.max(0.4, +(quality - 0.06).toFixed(2));
+      // First: full-quality JPG (no compression)
+      let quality = 1.0;
+      let blob = await toBlob('image/jpeg', quality);
+
+      // If larger than 145KB, progressively compress
+      if (blob && blob.size > 145*1024){
+        while (blob && blob.size > 145*1024 && quality > 0.4){
+          quality = Math.max(0.4, +(quality - 0.05).toFixed(2));
           blob = await toBlob('image/jpeg', quality);
         }
-        if(!blob){ throw new Error('產生圖檔失敗'); }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = outName;
-        document.body.appendChild(a);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
-        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
-        showToast(`已下載：${Math.round(blob.size/1024)}KB（JPEG 品質 ${typeof quality!=='undefined'?Math.round(quality*100):'--'}%；原 PNG 超過 245KB）`,'ok',3000);
-      } else {
-        // PNG 在 245KB 以內 → 直接下載（不壓縮）
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = outName;
-        document.body.appendChild(a);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
-        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
-        showToast(`已下載：${Math.round(blob.size/1024)}KB（PNG 無壓縮）`,'ok',2000);
       }
+
+      if(!blob){ throw new Error('產生圖檔失敗'); }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; 
+      a.download = outName;
+      document.body.appendChild(a);
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
+
+      a.remove(); 
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+
+      showToast(`已下載：${Math.round(blob.size/1024)}KB（JPG ${blob.size <= 145*1024 ? '未壓縮' : '已壓縮'}）`,'ok',2500);
     }
 
     try{
