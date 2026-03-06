@@ -161,7 +161,7 @@
 
   /* 左半遮罩（背景實色）與中央漸層（要輸出） */
   .bg-solid{position:absolute;left:0;top:0;width:600px;height: 360px;z-index:2;pointer-events:none;}
-  .bg-gradient{position:absolute;width:100px;height: 360px;left:599px; /* 1px overlap with solid */top:0;pointer-events:none;z-index:3;}
+  .bg-gradient{position:absolute;width:100px;height: 360px;left:597px; /* 1px overlap with solid */top:0;pointer-events:none;z-index:3;}
 
   /* PC 版位用（純視覺）：縮成 992x165 的遮罩尺寸 */
   .pc-canvas .bg-solid{width:500px;height:165px}
@@ -1803,6 +1803,7 @@ const minY = Math.min(prodB.minY, sh.y);
 const maxX = Math.max(prodB.maxX, sh.x + sh.w);
 const maxY = Math.max(prodB.maxY, sh.y + sh.h);
 
+
 // required half size around product center
 const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
 const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
@@ -1982,6 +1983,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
       const backBtn  = document.createElement('button'); backBtn.className='ctrl';  backBtn.title='圖層置後';  backBtn.textContent='▼';
       layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
+
 
       const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
 
