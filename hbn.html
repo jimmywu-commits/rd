@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>HBN製圖、審圖工具v2影子版</title>
+<title>HBN製圖、審圖工具</title>
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -161,12 +161,13 @@
 
   /* 左半遮罩（背景實色）與中央漸層（要輸出） */
   .bg-solid{position:absolute;left:0;top:0;width:600px;height: 360px;z-index:2;pointer-events:none;}
-  .bg-gradient{position:absolute;width:100px;height: 360px;left:601px; /* 1px overlap with solid */top:0;pointer-events:none;z-index:3;}
+  .bg-gradient{position:absolute;width:100px;height: 360px;left:598px; /* overlap 2px with solid */top:0;pointer-events:none;z-index:3;}
 
   /* PC 版位用（純視覺）：縮成 992x165 的遮罩尺寸 */
   .pc-canvas .bg-solid{width:500px;height:165px}
-  .pc-canvas .bg-gradient{height:165px;left:500px}
+  .pc-canvas .bg-gradient{height:165px;left:498px}
 
+  
   /* 掛標：整張覆蓋（1200×400 或 992×165），不攔截滑鼠事件 */
   .mall-tag{
     position:absolute;inset:0;z-index:8;
@@ -908,7 +909,7 @@
     if (isPc) {
       grad.style.removeProperty('left');
     } else {
-      grad.style.left = '600px';
+      grad.style.left = '598px';
     }
     grad.style.background = `linear-gradient(to right, ${color} 0%, ${hexToRgba(color,0)} 100%)`;
   }
@@ -1360,6 +1361,46 @@ redrawOriginal();
     shadowCtx.drawImage(shadowImg, x, y, w, h);
   }
 
+  function getShadowAspectRatio(){
+    if(shadowImg && shadowImg.complete && shadowImg.naturalWidth>0 && shadowImg.naturalHeight>0){
+      return shadowImg.naturalHeight / shadowImg.naturalWidth;
+    }
+    return 115 / 777;
+  }
+
+  function autoPlaceShadowByVisibleBounds(){
+    if(!shadowBox || !shadowToggle?.checked) return;
+    const bounds = getAlphaBounds(eraseCanvas, 1);
+    const cw = eraseCanvas.width || 800;
+    const ch = eraseCanvas.height || 400;
+    if(!bounds){
+      shadowBox.style.display = 'none';
+      shadowBox.setAttribute('aria-hidden','true');
+      if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      return;
+    }
+
+    shadowBox.style.display = 'block';
+    shadowBox.setAttribute('aria-hidden','false');
+
+    const ratio = getShadowAspectRatio();
+    const productWidth = Math.max(1, bounds.maxX - bounds.minX);
+    const shadowWidth = Math.max(20, Math.min(cw, productWidth * 1.5));
+    const shadowHeight = Math.max(8, shadowWidth * ratio);
+
+    let x = bounds.cx - shadowWidth / 2;
+    let y = bounds.maxY - shadowHeight * 0.35 - 4;
+
+    x = clamp(x, 0, Math.max(0, cw - shadowWidth));
+    y = clamp(y, 0, Math.max(0, ch - shadowHeight));
+
+    shadowBox.style.width  = Math.round(shadowWidth) + 'px';
+    shadowBox.style.height = Math.round(shadowHeight) + 'px';
+    shadowBox.style.left   = Math.round(x) + 'px';
+    shadowBox.style.top    = Math.round(y) + 'px';
+    renderShadowPreview();
+  }
+
   function initShadowModalForBox(box){
     if(!shadowBox || !shadowToggle) return;
     const enabled = shadowToggle.checked;
@@ -1373,55 +1414,14 @@ redrawOriginal();
 
     shadowBox.style.display = 'block';
     shadowBox.setAttribute('aria-hidden','false');
-
-    // Default size: 777x115 (or shrink to fit inner area if smaller)
-    const cw = eraseCanvas.width || 800;
-    const ch = eraseCanvas.height || 400;
-    const pad = EDIT_PADDING;
-    const innerW = Math.max(1, cw - pad*2);
-    const innerH = Math.max(1, ch - pad*2);
-    const boundPad = 0; // allow moving anywhere in modal canvas
-
-    const defW = 777, defH = 115;
-    let w = defW, h = defH;
-
-    // If inner area smaller than default, shrink
-    // scale down proportionally to fit
-    const fitScale = Math.min(1, innerW / defW, innerH / defH);
-    w = Math.round(defW * fitScale);
-    h = Math.round(defH * fitScale);
-
-    // Restore from dataset if available
-    const hasSaved = box?.dataset?.shadowW && box?.dataset?.shadowH;
-    if(hasSaved){
-      w = Number(box.dataset.shadowW)||w;
-      h = Number(box.dataset.shadowH)||h;
-    }
-
-    // Position: bottom center within inner area by default; restore if saved
-    let x = Math.round((cw - w) / 2);
-    let y = Math.round(ch - h - 8);
-    if(box?.dataset?.shadowX && box?.dataset?.shadowY){
-      x = Number(box.dataset.shadowX)||x;
-      y = Number(box.dataset.shadowY)||y;
-    }
-
-    // Clamp within full canvas bounds
-    x = clamp(x, boundPad, Math.max(boundPad, cw - boundPad - w));
-    y = clamp(y, boundPad, Math.max(boundPad, ch - boundPad - h));
-
-    shadowBox.style.width  = w + 'px';
-    shadowBox.style.height = h + 'px';
-    shadowBox.style.left   = x + 'px';
-    shadowBox.style.top    = y + 'px';
-    renderShadowPreview();
+    autoPlaceShadowByVisibleBounds();
   }
 
   // Toggle shadow on/off
   shadowToggle?.addEventListener('change', ()=>{
     initShadowModalForBox(editingTargetBox);
     if(!shadowToggle.checked && shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
-    else { renderShadowPreview(); }
+    else { autoPlaceShadowByVisibleBounds(); }
   });
 
   // Drag & resize in modal
@@ -1507,8 +1507,8 @@ redrawOriginal();
       lastX=x; lastY=y;
     }else if(mode==='crop' && cropping){ cropEnd = {x,y}; drawCropRect(); }
   });
-  window.addEventListener('mouseup', ()=>{ drawing=false; cropping=false; });
-  eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; });
+  window.addEventListener('mouseup', ()=>{ const wasDrawing = drawing; drawing=false; cropping=false; if(wasDrawing && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
+  eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
 
   function colorAt(data, w, x, y){ const i = (y*w + x)*4; return [data[i], data[i+1], data[i+2], data[i+3]]; }
   function withinTol(a,b,tol){ return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol; }
@@ -1531,6 +1531,7 @@ redrawOriginal();
       if(cy>0) q.push([cx,cy-1]); if(cy<h-1) q.push([cx,cy+1]);
     }
     eCtx.putImageData(img,0,0);
+    if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); }
   }
   function drawCropRect(){ redrawOriginal(); if(!(cropStart && cropEnd)) return; const x=Math.min(cropStart.x, cropEnd.x); const y=Math.min(cropStart.y, cropEnd.y); const w=Math.abs(cropEnd.x - cropStart.x); const h=Math.abs(cropEnd.y - cropStart.y); eCtx.save(); eCtx.strokeStyle='#00E5FF'; eCtx.lineWidth=2; eCtx.setLineDash([6,4]); eCtx.strokeRect(x,y,w,h); eCtx.restore(); }
   function getCroppedCanvasFromSelection(){
@@ -1774,28 +1775,27 @@ let productOnlyUrl = '';
         return;
       }
 
-      // Convert modal shadow position to outCanvas coordinate space
-let sx = x, sy = y;
+      // 方案 A（修正版）：影子依去背後「實際可見像素」的寬度與最下緣定位。
+      // 這裡的 prodB 來自 outCanvas 的 alpha bounds，所以抓到的是肉眼看到的物件底，不是圖片外框底。
+      const modalShadowRatio = (h > 0 && w > 0)
+        ? (h / w)
+        : ((sImg.naturalHeight > 0 && sImg.naturalWidth > 0) ? (sImg.naturalHeight / sImg.naturalWidth) : 0.148);
 
-if(innerPadApplied){
-  // removed inner padding (100px each side)
-  sx = x - EDIT_PADDING;
-  sy = y - EDIT_PADDING;
-}else if(cropStart && cropEnd){
-  // when user used crop selection, outCanvas is the selected rect of eraseCanvas
-  const cx0 = Math.max(0, Math.min(cropStart.x, cropEnd.x));
-  const cy0 = Math.max(0, Math.min(cropStart.y, cropEnd.y));
-  sx = x - cx0;
-  sy = y - cy0;
-}
+      const productWidth = Math.max(1, prodB.maxX - prodB.minX);
+      const shadowScaleRatio = 1.5;
+      const shadowOverlapRatio = 0.35;
+      const shadowWidth = Math.max(20, productWidth * shadowScaleRatio);
+      const shadowHeight = Math.max(8, shadowWidth * modalShadowRatio);
 
-      
+      let sx = prodB.cx - shadowWidth / 2;
+      let sy = prodB.maxY - shadowHeight * shadowOverlapRatio - 4;
+
 // Build a composite canvas that is symmetric around the PRODUCT center.
 // This guarantees that when the result image is centered on the main canvas, the product won't drift left/right.
 const outW0 = outCanvas.width, outH0 = outCanvas.height;
 
 // shadow rect in outCanvas coordinates
-const sh = {x:sx, y:sy, w:w, h:h};
+const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
 
 // extents (product bounds are in outCanvas coordinates)
 const minX = Math.min(prodB.minX, sh.x);
@@ -1906,7 +1906,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   document.getElementById('nudgeClose').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.remove('show'); eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null; });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
-  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); showToast('已套用裁切（可繼續編輯）','ok',1600); });
+  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
   /* 背景縮放 + 編輯器（APP） */
   async function sampleTopLeftColor(dataUrl){
