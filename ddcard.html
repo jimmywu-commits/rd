@@ -1736,6 +1736,46 @@ redrawOriginal();
     shadowCtx.drawImage(shadowImg, x, y, w, h);
   }
 
+  function getShadowAspectRatio(){
+    if(shadowImg && shadowImg.complete && shadowImg.naturalWidth>0 && shadowImg.naturalHeight>0){
+      return shadowImg.naturalHeight / shadowImg.naturalWidth;
+    }
+    return 115 / 777;
+  }
+
+  function autoPlaceShadowByVisibleBounds(){
+    if(!shadowBox || !shadowToggle?.checked) return;
+    const bounds = getAlphaBounds(eraseCanvas, 1);
+    const cw = eraseCanvas.width || 800;
+    const ch = eraseCanvas.height || 400;
+    if(!bounds){
+      shadowBox.style.display = 'none';
+      shadowBox.setAttribute('aria-hidden','true');
+      if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      return;
+    }
+
+    shadowBox.style.display = 'block';
+    shadowBox.setAttribute('aria-hidden','false');
+
+    const ratio = getShadowAspectRatio();
+    const productWidth = Math.max(1, bounds.maxX - bounds.minX);
+    const shadowWidth = Math.max(20, Math.min(cw, productWidth * 1.5));
+    const shadowHeight = Math.max(8, shadowWidth * ratio);
+
+    let x = bounds.cx - shadowWidth / 2;
+    let y = bounds.maxY - shadowHeight * 0.35 - 4;
+
+    x = clamp(x, 0, Math.max(0, cw - shadowWidth));
+    y = clamp(y, 0, Math.max(0, ch - shadowHeight));
+
+    shadowBox.style.width  = Math.round(shadowWidth) + 'px';
+    shadowBox.style.height = Math.round(shadowHeight) + 'px';
+    shadowBox.style.left   = Math.round(x) + 'px';
+    shadowBox.style.top    = Math.round(y) + 'px';
+    renderShadowPreview();
+  }
+
   function initShadowModalForBox(box){
     if(!shadowBox || !shadowToggle) return;
     const enabled = shadowToggle.checked;
@@ -1749,55 +1789,14 @@ redrawOriginal();
 
     shadowBox.style.display = 'block';
     shadowBox.setAttribute('aria-hidden','false');
-
-    // Default size: 777x115 (or shrink to fit inner area if smaller)
-    const cw = eraseCanvas.width || 800;
-    const ch = eraseCanvas.height || 400;
-    const pad = EDIT_PADDING;
-    const innerW = Math.max(1, cw - pad*2);
-    const innerH = Math.max(1, ch - pad*2);
-    const boundPad = 0; // allow moving anywhere in modal canvas
-
-    const defW = 777, defH = 115;
-    let w = defW, h = defH;
-
-    // If inner area smaller than default, shrink
-    // scale down proportionally to fit
-    const fitScale = Math.min(1, innerW / defW, innerH / defH);
-    w = Math.round(defW * fitScale);
-    h = Math.round(defH * fitScale);
-
-    // Restore from dataset if available
-    const hasSaved = box?.dataset?.shadowW && box?.dataset?.shadowH;
-    if(hasSaved){
-      w = Number(box.dataset.shadowW)||w;
-      h = Number(box.dataset.shadowH)||h;
-    }
-
-    // Position: bottom center within inner area by default; restore if saved
-    let x = Math.round((cw - w) / 2);
-    let y = Math.round(ch - h - 8);
-    if(box?.dataset?.shadowX && box?.dataset?.shadowY){
-      x = Number(box.dataset.shadowX)||x;
-      y = Number(box.dataset.shadowY)||y;
-    }
-
-    // Clamp within full canvas bounds
-    x = clamp(x, boundPad, Math.max(boundPad, cw - boundPad - w));
-    y = clamp(y, boundPad, Math.max(boundPad, ch - boundPad - h));
-
-    shadowBox.style.width  = w + 'px';
-    shadowBox.style.height = h + 'px';
-    shadowBox.style.left   = x + 'px';
-    shadowBox.style.top    = y + 'px';
-    renderShadowPreview();
+    autoPlaceShadowByVisibleBounds();
   }
 
   // Toggle shadow on/off
   shadowToggle?.addEventListener('change', ()=>{
     initShadowModalForBox(editingTargetBox);
     if(!shadowToggle.checked && shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
-    else { renderShadowPreview(); }
+    else { autoPlaceShadowByVisibleBounds(); }
   });
 
   // Drag & resize in modal
@@ -1883,8 +1882,8 @@ redrawOriginal();
       lastX=x; lastY=y;
     }else if(mode==='crop' && cropping){ cropEnd = {x,y}; drawCropRect(); }
   });
-  window.addEventListener('mouseup', ()=>{ drawing=false; cropping=false; });
-  eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; });
+  window.addEventListener('mouseup', ()=>{ const wasDrawing = drawing; drawing=false; cropping=false; if(wasDrawing && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
+  eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
 
   function colorAt(data, w, x, y){ const i = (y*w + x)*4; return [data[i], data[i+1], data[i+2], data[i+3]]; }
   function withinTol(a,b,tol){ return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol; }
@@ -1907,6 +1906,7 @@ redrawOriginal();
       if(cy>0) q.push([cx,cy-1]); if(cy<h-1) q.push([cx,cy+1]);
     }
     eCtx.putImageData(img,0,0);
+    if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); }
   }
   function drawCropRect(){ redrawOriginal(); if(!(cropStart && cropEnd)) return; const x=Math.min(cropStart.x, cropEnd.x); const y=Math.min(cropStart.y, cropEnd.y); const w=Math.abs(cropEnd.x - cropStart.x); const h=Math.abs(cropEnd.y - cropStart.y); eCtx.save(); eCtx.strokeStyle='#00E5FF'; eCtx.lineWidth=2; eCtx.setLineDash([6,4]); eCtx.strokeRect(x,y,w,h); eCtx.restore(); }
   function getCroppedCanvasFromSelection(){
@@ -1921,7 +1921,171 @@ redrawOriginal();
     const tctx = tmp.getContext('2d'); const cut = eCtx.getImageData(x,y,w,h); tctx.putImageData(cut, 0, 0);
     return tmp;
   }
-  function applyCroppedToTarget(closeAfter){
+  
+  function trimCanvasAlpha(srcCanvas, alphaThreshold=1, padding=2){
+    try{
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d');
+      const img = ctx.getImageData(0,0,w,h).data;
+      let minX=w, minY=h, maxX=-1, maxY=-1;
+      for(let y=0; y<h; y++){
+        for(let x=0; x<w; x++){
+          const a = img[(y*w + x)*4 + 3];
+          if(a > alphaThreshold){
+            if(x < minX) minX=x;
+            if(y < minY) minY=y;
+            if(x > maxX) maxX=x;
+            if(y > maxY) maxY=y;
+          }
+        }
+      }
+      if(maxX < minX || maxY < minY){
+        return srcCanvas; // fully transparent
+      }
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(w-1, maxX + padding);
+      maxY = Math.min(h-1, maxY + padding);
+      const tw = Math.max(1, maxX - minX + 1);
+      const th = Math.max(1, maxY - minY + 1);
+      const out = document.createElement('canvas');
+      out.width = tw; out.height = th;
+      out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+      return out;
+    }catch(e){
+      console.error(e);
+      return srcCanvas;
+    }
+  }
+
+  function trimCanvasAlphaCentered(srcCanvas, alphaThreshold=1, padding=2){
+    try{
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d');
+      const img = ctx.getImageData(0,0,w,h).data;
+      let minX=w, minY=h, maxX=-1, maxY=-1;
+      for(let y=0; y<h; y++){
+        for(let x=0; x<w; x++){
+          const a = img[(y*w + x)*4 + 3];
+          if(a > alphaThreshold){
+            if(x < minX) minX=x;
+            if(y < minY) minY=y;
+            if(x > maxX) maxX=x;
+            if(y > maxY) maxY=y;
+          }
+        }
+      }
+      if(maxX < minX || maxY < minY){
+        return srcCanvas; // fully transparent
+      }
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(w-1, maxX + padding);
+      maxY = Math.min(h-1, maxY + padding);
+      const tw = Math.max(1, maxX - minX + 1);
+      const th = Math.max(1, maxY - minY + 1);
+
+      // Preserve original canvas center so layout won't shift after trimming
+      const cx = w / 2;
+      const cy = h / 2;
+      const dx = cx - minX; // center position inside trimmed rect
+      const dy = cy - minY;
+
+      const newW = Math.ceil(2 * Math.max(dx, tw - dx));
+      const newH = Math.ceil(2 * Math.max(dy, th - dy));
+
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, newW);
+      out.height = Math.max(1, newH);
+      const octx = out.getContext('2d');
+
+      // Place trimmed region so that the old center maps to new center
+      const ox = Math.round(out.width/2 - dx);
+      const oy = Math.round(out.height/2 - dy);
+
+      octx.drawImage(srcCanvas, minX, minY, tw, th, ox, oy, tw, th);
+      return out;
+    }catch(e){
+      console.error(e);
+      return srcCanvas;
+    }
+  }
+
+  // Trim transparent edges, then pad so that (anchorX, anchorY) becomes the center of the output.
+  function trimAndCenterOnAnchor(srcCanvas, anchorX, anchorY, alphaThreshold=1, margin=2){
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const data = img.data;
+
+    let minX=w, minY=h, maxX=-1, maxY=-1;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x<minX) minX=x;
+          if(y<minY) minY=y;
+          if(x>maxX) maxX=x;
+          if(y>maxY) maxY=y;
+        }
+      }
+    }
+    // if fully transparent, return original
+    if(maxX<0 || maxY<0) return srcCanvas;
+
+    minX = Math.max(0, minX - margin);
+    minY = Math.max(0, minY - margin);
+    maxX = Math.min(w-1, maxX + margin);
+    maxY = Math.min(h-1, maxY + margin);
+
+    const bw = maxX - minX + 1;
+    const bh = maxY - minY + 1;
+
+    // Anchor location inside the trimmed box
+    const ax = anchorX - minX;
+    const ay = anchorY - minY;
+
+    // We want anchor to be centered: choose output size as 2*max(ax, bw-ax) etc.
+    const outW = Math.max(1, Math.ceil(2 * Math.max(ax, bw - ax)));
+    const outH = Math.max(1, Math.ceil(2 * Math.max(ay, bh - ay)));
+
+    const out = document.createElement('canvas');
+    out.width = outW;
+    out.height = outH;
+    const octx = out.getContext('2d');
+
+    const dx = Math.round(outW/2 - ax);
+    const dy = Math.round(outH/2 - ay);
+
+    octx.drawImage(srcCanvas, minX, minY, bw, bh, dx, dy, bw, bh);
+    return out;
+  }
+
+
+  
+  function getAlphaBounds(srcCanvas, alphaThreshold=1){
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d');
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX=w, minY=h, maxX=-1, maxY=-1;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x<minX) minX=x;
+          if(y<minY) minY=y;
+          if(x>maxX) maxX=x;
+          if(y>maxY) maxY=y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY){
+      return null;
+    }
+    return {minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2};
+  }
+
+function applyCroppedToTarget(closeAfter){
     if(!editingTargetImg || !editingTargetBox) return;
 
     const box = editingTargetBox;
@@ -1943,7 +2107,10 @@ redrawOriginal();
       innerPadApplied = true;
     }
 
-    let productOnlyUrl = '';
+        // Trim transparent edges so the product aspect ratio won't change after modal editing
+    // NOTE: do not trim product-only canvas before compositing; it would change the coordinate space.
+let productOnlyUrl = '';
+    const prodB = getAlphaBounds(outCanvas, 1) || {minX:0,minY:0,maxX:outCanvas.width-1,maxY:outCanvas.height-1,cx:outCanvas.width/2,cy:outCanvas.height/2};
     try{
       productOnlyUrl = outCanvas.toDataURL('image/png');
     }catch(err){
@@ -1952,19 +2119,23 @@ redrawOriginal();
       return;
     }
 
-    
-    // Record base aspect ratio (product-only) to keep sizing consistent after shadow composite
-    try{ box.dataset.baseAspect = String(outCanvas.width / Math.max(1, outCanvas.height)); }catch{}
-// 2) composite with shadow if enabled
+    // 2) composite with shadow if enabled
     let finalW = outCanvas.width, finalH = outCanvas.height;
     const shadowEnabled = (document.getElementById('toggleShadow')?.checked);
     let finalUrl = productOnlyUrl;
 
     if(shadowEnabled){
-      const x = parseFloat(document.getElementById('shadowModalBox')?.style.left)||0;
-      const y = parseFloat(document.getElementById('shadowModalBox')?.style.top)||0;
-      const w = document.getElementById('shadowModalBox')?.offsetWidth||777;
-      const h = document.getElementById('shadowModalBox')?.offsetHeight||115;
+      const sb = document.getElementById('shadowModalBox');
+      const cr = eraseCanvas.getBoundingClientRect();
+      const br = sb?.getBoundingClientRect();
+      const scaleX = eraseCanvas.width / cr.width;
+      const scaleY = eraseCanvas.height / cr.height;
+
+      // Shadow box coordinates in *canvas pixel* space (match what user sees in modal)
+      const x = br ? (br.left - cr.left) * scaleX : 0;
+      const y = br ? (br.top  - cr.top ) * scaleY : 0;
+      const w = br ? br.width  * scaleX : 777;
+      const h = br ? br.height * scaleY : 115;
 
       // store shadow params for next re-edit
       box.dataset.shadowEnabled = '1';
@@ -1979,32 +2150,61 @@ redrawOriginal();
         return;
       }
 
-      // Convert modal shadow position to outCanvas coordinate space
-      const padAdj = innerPadApplied ? EDIT_PADDING : 0;
-      const sx = (x - padAdj);
-      const sy = (y - padAdj);
+      // 方案 A（修正版）：影子依去背後「實際可見像素」的寬度與最下緣定位。
+      // 這裡的 prodB 來自 outCanvas 的 alpha bounds，所以抓到的是肉眼看到的物件底，不是圖片外框底。
+      const modalShadowRatio = (h > 0 && w > 0)
+        ? (h / w)
+        : ((sImg.naturalHeight > 0 && sImg.naturalWidth > 0) ? (sImg.naturalHeight / sImg.naturalWidth) : 0.148);
 
-      // Expand composite canvas so shadow won't be clipped
-      const minX = Math.min(0, sx);
-      const minY = Math.min(0, sy);
-      const maxX = Math.max(outCanvas.width, sx + w);
-      const maxY = Math.max(outCanvas.height, sy + h);
+      const productWidth = Math.max(1, prodB.maxX - prodB.minX);
+      const shadowScaleRatio = 1.5;
+      const shadowOverlapRatio = 0.35;
+      const shadowWidth = Math.max(20, productWidth * shadowScaleRatio);
+      const shadowHeight = Math.max(8, shadowWidth * modalShadowRatio);
 
-      const comp = document.createElement('canvas');
-      comp.width  = Math.max(1, Math.round(maxX - minX));
-      comp.height = Math.max(1, Math.round(maxY - minY));
-      const cctx = comp.getContext('2d');
+      let sx = prodB.cx - shadowWidth / 2;
+      let sy = prodB.maxY - shadowHeight * shadowOverlapRatio - 4;
 
-      // draw shadow under product
-      cctx.drawImage(sImg, sx - minX, sy - minY, w, h);
-      // draw product on top
-      cctx.drawImage(outCanvas, 0 - minX, 0 - minY);
+// Build a composite canvas that is symmetric around the PRODUCT center.
+// This guarantees that when the result image is centered on the main canvas, the product won't drift left/right.
+const outW0 = outCanvas.width, outH0 = outCanvas.height;
 
-      finalW = comp.width;
-      finalH = comp.height;
+// shadow rect in outCanvas coordinates
+const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
 
-      try{
-        finalUrl = comp.toDataURL('image/png');
+// extents (product bounds are in outCanvas coordinates)
+const minX = Math.min(prodB.minX, sh.x);
+const minY = Math.min(prodB.minY, sh.y);
+const maxX = Math.max(prodB.maxX, sh.x + sh.w);
+const maxY = Math.max(prodB.maxY, sh.y + sh.h);
+
+
+// required half size around product center
+const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
+const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
+
+const comp = document.createElement('canvas');
+comp.width = Math.max(1, halfW * 2);
+comp.height = Math.max(1, halfH * 2);
+const cctx = comp.getContext('2d');
+
+// shift so product center maps to canvas center
+const dx = Math.round(comp.width/2 - prodB.cx);
+const dy = Math.round(comp.height/2 - prodB.cy);
+
+// draw shadow under product
+cctx.drawImage(sImg, dx + sh.x, dy + sh.y, sh.w, sh.h);
+// draw product on top
+cctx.drawImage(outCanvas, dx, dy);
+
+// Finally, trim transparent edges but keep PRODUCT centered.
+const comp2 = trimAndCenterOnAnchor(comp, comp.width/2, comp.height/2, 1, 2);
+
+finalW = comp2.width;
+finalH = comp2.height;
+
+try{
+  finalUrl = comp2.toDataURL('image/png');
       }catch(err){
         console.error(err);
         showToast?.('合成影子失敗（請確認圖片為本機上傳）','err',2600);
@@ -2012,6 +2212,11 @@ redrawOriginal();
       }
     }else{
       box.dataset.shadowEnabled = '0';
+      // Even without shadow, trim transparent edges but keep PRODUCT centered to avoid visual shrink/shift.
+      const compNoShadow = trimAndCenterOnAnchor(outCanvas, prodB.cx, prodB.cy, 1, 2);
+      finalW = compNoShadow.width;
+      finalH = compNoShadow.height;
+      try{ finalUrl = compNoShadow.toDataURL('image/png'); }catch(err){ console.error(err); }
     }
 
     // 3) Save base (no-shadow) for re-edit without double shadow
@@ -2022,35 +2227,33 @@ redrawOriginal();
     const newH = finalH;
 
     // 4.1) Apply sizing rule same as upload: height = 70% canvas, width by aspect ratio
+    // Keep the box size/position exactly as-is to avoid any visual resize/compression after modal edit.
+    // Only if this element somehow has no explicit size yet, apply the standard "product image" sizing rule once.
+    const _boxHasSize = !!(box.style.width && box.style.height);
+    const _applyUploadRule = !!(document.getElementById('applyUploadSize')?.checked);
+    const _editorEl = box.parentElement;
+    const _canvasH = _editorEl ? _editorEl.clientHeight : CANVAS_H;
+
     editingTargetImg.onload = ()=>{
-      const ratio = parseFloat(box.dataset.baseAspect || '') || ((newH>0) ? (newW / newH) : 1);
-      const targetH = Math.round(CANVAS_H * 0.7);
-      const targetW = Math.round(targetH * ratio);
+      // Default: keep the box size exactly as-is.
+      // Optional: if checked, or box has no size yet, apply the same sizing rule as upload (H = 70% of canvas, W by aspect ratio),
+      // and keep the box center point stable (uniform scale, no distortion).
+      if(_applyUploadRule || !_boxHasSize){
+        const ratio = (finalH>0) ? (finalW / finalH) : 1;
+        const targetH = Math.round(_canvasH * 0.7);
+        const targetW = Math.max(1, Math.round(targetH * ratio));
 
-      // keep current center position to avoid jumping
-      const curW = parseFloat(box.style.width)||targetW;
-      const curH = parseFloat(box.style.height)||targetH;
-      const cx = (parseFloat(box.style.left)||0) + curW/2;
-      const cy = (parseFloat(box.style.top)||0) + curH/2;
+        const cx = (box.offsetLeft || 0) + (box.offsetWidth  || 0) / 2;
+        const cy = (box.offsetTop  || 0) + (box.offsetHeight || 0) / 2;
 
-      box.style.width  = targetW + 'px';
-      box.style.height = targetH + 'px';
+        box.style.width  = targetW + 'px';
+        box.style.height = targetH + 'px';
+        box.style.left   = Math.round(cx - targetW/2) + 'px';
+        box.style.top    = Math.round(cy - targetH/2) + 'px';
 
-      let left = Math.round(cx - targetW/2);
-      let top  = Math.round(cy - targetH/2);
-      // 允許商品圖超出畫布（比照 index_加入影子功能.html）。
-      // 背景維持原規則（若未來有背景進 Modal 才會套用 clamp）。
-      if(box.classList.contains('editor-bg')){
-        left = Math.max(0, Math.min(CANVAS_W - targetW, left));
-        top  = Math.max(0, Math.min(CANVAS_H - targetH, top));
+        box.dataset.fixedW = String(targetW);
+        box.dataset.fixedH = String(targetH);
       }
-
-      box.style.left = left + 'px';
-      box.style.top  = top  + 'px';
-
-      // persist as fixed size so future src updates keep the rule
-      box.dataset.fixedW = String(targetW);
-      box.dataset.fixedH = String(targetH);
     };
     editingTargetImg.style.objectFit = 'contain';
     editingTargetImg.src = finalUrl;
@@ -2078,7 +2281,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   document.getElementById('nudgeClose').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.remove('show'); eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null; });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
-  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); showToast('已套用裁切（可繼續編輯）','ok',1600); });
+  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
   /* 背景縮放 + 編輯器（APP） */
   async function sampleTopLeftColor(dataUrl){
