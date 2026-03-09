@@ -1,0 +1,2590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EDM Banners｜橫式＋方式（合併版｜含PC版位預覽）</title>
+
+<!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+  @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
+  @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
+  @font-face {font-family: "ShopeeNotoSans-Content-R"; src: url("字體/ShopeeNotoSans(content)-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap;}
+
+  :root{ --canvas-w:1200px; --canvas-h:400px; --cta-bg:#2176FF; --cta-fg:#ffffff; }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#fafafa;font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial,system-ui}
+.wrap{max-width:var(--canvas-w);margin:24px auto;padding:0 0 60px}
+	
+/* ====== 工具列（兩排）UI 只改樣式，其他不動 ====== */
+.toolbar{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  background:#fff; padding:10px;
+  border-radius:8px; border:1px solid #eaeaea;
+  box-shadow:0 2px 5px rgba(0,0,0,0.06);
+  margin-bottom:10px;
+}
+.toolbar label{
+  font-size:13px; color:#444; display:flex; align-items:center; gap:6px;
+  background:#fafafa; padding:6px 8px; border-radius:6px; border:1px solid #eee;
+}
+
+.toolbar input[type="color"]{
+  border:none; width:24px; height:24px; padding:0; background:none; cursor:pointer;
+}
+.toolbar input[type="file"]{ font-size:12px; }
+.toolbar button{
+  background:#2176FF; color:#fff; border:none; padding:8px 12px;
+  border-radius:6px; cursor:pointer; font-size:13px;
+  box-shadow:0 2px 4px rgba(33,118,255,0.2);
+}
+.toolbar button:hover{ background:#1b65db; }
+.note{ font-size:12px; color:#888; margin-left:5px; }
+
+  .hr{height:1px;background:#e5e5e5;margin:18px 0}
+
+  /* === APP 畫布（固定 1200x400、直角） === */
+  .canvas{position:relative;width:1200px;height:400px;overflow:hidden;border-radius:0;background:#c2dff3;}
+  .canvas .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+
+  /* === PC 版位（992x165，純前端預覽） === */
+  .pc-canvas{position:relative;width:992px;height:165px;overflow:hidden;border-radius:0;background:#c2dff3;margin:10px 0 4px}
+  .pc-canvas .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+
+  /* 橫式 Logo：最多 3 個，限高 50px、間距 15px、寬不限（.brand margin:0） */
+  #horiz .brand{position:absolute;left:88px;top:122px;display:flex;align-items:center;gap:15px;z-index:5;margin:0}
+  #horiz .brand img{max-height:50px;height:auto;width:auto;object-fit:contain}
+
+  /* 方形 Logo app設定：105 x 105 盒 */
+  #square .brand{position:absolute;left:53px;top:140px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
+  #square .logo-box{width:105px;height:105px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  #square .logo-box img{width:105px;height:105px;object-fit:contain}
+
+  /* 文字（固定 px、不允許換行） */
+  .h1, .h2, .date{
+    position:relative; z-index:5;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    outline-offset:0;
+  }
+  /* 防止 PC 預覽的 h2 被 flex 影響 */
+  #pcH .h2, #pcS .h2 { display:block; align-items:normal; }
+
+  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:53px;letter-spacing:0px;color:#1b5e7a;text-align:left; }
+  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:41px;letter-spacing:0px;color:#0b6c4a;text-align:left;height:62px;display:flex;align-items:center; }
+  .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:27px;line-height:49px;letter-spacing:0px;color:#306b8f;text-align:left; }
+
+  /* CTA（APP / SQUARE 預設） */
+  .cta{
+    position:absolute;right:22px;bottom:9px;
+    display:flex; align-items:center; justify-content:center;
+    width:144px; height:44px;
+    background:var(--cta-bg); color:var(--cta-fg);
+    border-radius:8px;
+    font-family:"ShopeeNotoSans-Content-R";
+    font-weight:400; font-size:27px;
+    line-height:1;
+    user-select:none; padding:0 22px; z-index:6;
+  }
+  .cta .text{ display:block; line-height:1;   transform: translateY(-1px) translateX(-6px);}
+  .cta .triangle{
+    position:absolute; right:18px; top:50%;
+    transform: translateY(-50%);
+    width:0; height:0; border-left:10px solid currentColor;
+    border-top:9.5px solid transparent; border-bottom:9.5px solid transparent;
+  }
+
+  /* 文案區（兩版皆固定） */
+  #horiz .stack{position:absolute;left:88px;top:170px;display:block;max-width:64%;}
+  #square .stack{position:absolute;left:172px;top:146px;display:block;max-width:64%;}
+
+  /* 鎖死：主/副/日期的座標（兩版各自固定數值） */
+  #horiz #h1-h{position:absolute;left:0;top:0;}
+  #horiz #h2-h{position:absolute;left:0;top:53px;}
+  #horiz #date-h{position:absolute;left:0;top:117px;}
+
+  #square #h1-s{position:absolute;left:0;top:-16.5px;}
+  #square #h2-s{position:absolute;left:0;top:36.5px;}
+  #square #date-s{position:absolute;left:0;top:100px;}
+
+  [contenteditable="true"]{outline:2px dashed rgba(255,255,255,.0);transition:outline-color .2s}
+  [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
+  .pill{font-size:11px;padding:2px 6px;border-radius:999px;background:#efefef;color:#444;margin-left:6px}
+
+  /* 控制面板（底部） */
+  .panel{
+    position:fixed;display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.6);color:#fff;padding:8px 10px;border-radius:10px;
+    font-size:12px;backdrop-filter:saturate(1.2) blur(3px);z-index:9997;
+  }
+  .panel button,.panel input[type="checkbox"]{cursor:pointer}
+  .panel button{border:0;outline:0;padding:4px 8px;background:#fff;color:#111;border-radius:6px;}
+  .panel .val{min-width:42px;display:inline-block;text-align:center;background:#222;color:#fff;padding:2px 6px;border-radius:6px}
+  .fs-panel{left:12px;bottom:12px;}
+  .lh-panel{left:12px;bottom:56px;}
+  .mg-panel{left:12px;bottom:100px;}
+  .ls-panel{left:12px;bottom:144px;}
+  .ux-panel{left:12px;bottom:188px;}
+
+  /* 審核提示與左側小計數器 */
+  .audit-tip{display:none;}
+  .counter{
+    position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;
+    background:#111;color:#fff;padding:2px 6px;border-radius:6px;
+    pointer-events:none;user-select:none;
+  }
+
+  /* 浮動字數小泡泡 */
+  .float-meter{
+    position:fixed; z-index:9999; background:#111; color:#fff; font-size:12px;
+    padding:4px 6px; border-radius:6px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+    pointer-events:none; opacity:.96; display:none;
+  }
+
+  /* 圖片編輯器（含四角工具） */
+  .editor{position:absolute;inset:0;z-index:2;}
+  .editor-item{position:absolute;cursor:move;}
+  .editor-item img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none; image-rendering:auto;}
+  .editor-bg{z-index:1;} /* 底圖層 */
+
+  /* 四角工具鍵樣式（背景層不顯示） */
+  .editor-item .ctrl{position:absolute;z-index:10;display:grid;place-items:center;width:28px;height:28px;border-radius:6px;background:rgba(17,17,17,.8);color:#fff;border:0;cursor:pointer;font-size:14px;line-height:1;box-shadow:0 4px 10px rgba(0,0,0,.25);} 
+  .editor-item .ctrl:hover{background:#111}
+  .editor-item .ctrl.del{left:6px;top:6px;}
+  .editor-item .ctrl.edit{left:6px;bottom:6px;}
+  .editor-item .layer-btns{position:absolute;right:6px;top:6px;display:flex;gap:6px;}
+  .editor-item .layer-btns .ctrl{width:26px;height:26px;border-radius:6px;}
+  .editor-item .ctrl.resize{right:6px;bottom:6px;transform:rotate(0deg);}
+
+  /* 左半遮罩（背景實色）與中央漸層（要輸出） */
+  .bg-solid{position:absolute;left:0;top:0;width:600px;height:400px;z-index:2;pointer-events:none;}
+  .bg-gradient{position:absolute;width:100px;height:400px;left:598px;top:0;pointer-events:none;z-index:3;}
+
+  /* PC 版位用（純視覺）：縮成 992x165 的遮罩尺寸 */
+  .pc-canvas .bg-solid{width:500px;height:165px}
+  .pc-canvas .bg-gradient{height:165px;left:498px}
+
+  /* 掛標：整張覆蓋（1200×400 或 992×165），不攔截滑鼠事件 */
+  .mall-tag{
+    position:absolute;inset:0;z-index:8;
+    width:100%;height:100%;object-fit:cover;pointer-events:none;
+  }
+  .toggle-tag{
+    position:absolute;left:3px;top:3px;z-index:9;
+    width:28px;height:28px;border-radius:999px;border:0;cursor:pointer;
+    background:#111;color:#fff;display:grid;place-items:center;font-size:16px;line-height:1;
+    box-shadow:0 4px 10px rgba(0,0,0,.25);
+  }
+
+  /* 背景縮放控制（APP & PC 都有） */
+  .bg-scale-panel{position:absolute;right:8px;top:8px;z-index:7;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
+  .bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px}
+  .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
+
+  /* Modal / Nudge / Toast */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9998;}
+  .modal.show{display:flex;}
+  .modal-panel{background:#111;border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);color:#fff;display:flex;flex-direction:column;gap:8px;min-width:820px}
+  .modal-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+  .modal-toolbar label{font-size:12px}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
+  .modal-actions button{border:0;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .btn-primary{background:#2ecc71;color:#111}
+  .btn-danger{background:#e74c3c;color:#fff}
+  .btn-ghost{background:#444;color:#fff}
+  .checkerboard{position:relative;display:inline-block;border-radius:8px;overflow:auto;background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0/20px 20px;padding:0;max-width:100%;max-height:60vh}
+  #eraseCanvas{display:block;background:transparent}
+  #eraseWrap{padding:0;border-radius:8px}
+
+  .nudge{position:fixed; inset:0; display:none; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.55);}
+  .nudge.show{display:flex;}
+  .nudge-box{position:relative; width:300px; height:200px; background:#0000; border-radius:10px; overflow:hidden; box-shadow:none;}
+  .nudge-box img{width:100%; height:100%; object-fit:cover; cursor:pointer; display:block;}
+  .nudge-close{position:absolute; right:6px; top:6px; width:28px; height:28px; border-radius:999px; background:#111; color:#fff; border:0; cursor:pointer; font-size:16px; line-height:28px; text-align:center;}
+
+  .toast{position:fixed;right:16px;top:16px;z-index:99999;background:#111;color:#fff;font-size:12px;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:.98;max-width:68ch}
+  .toast.ok{background:#16a34a}
+  .toast.err{background:#dc2626}
+
+  .is-exporting .panel,
+  .is-exporting .bg-scale-panel,
+  .is-exporting .toggle-tag,
+  .is-exporting .modal,
+  .is-exporting .nudge { display:none !important; }
+
+  .no-underlay .bg-solid, .no-underlay .bg-gradient{ display:none !important; }
+
+  .pending-underlay .bg-solid,
+  .pending-underlay .bg-gradient{ display:none !important; }
+
+  /* ======================= PC 預覽（橫式） ======================= */
+  #pcH .brand{
+    position:absolute; left:128px; top:38.8px;
+    width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
+  }
+  #pcH .brand img{width:100%;height:100%;object-fit:contain}
+  #pcH .stack{ position:absolute; left:227.7px; top:38.8px; max-width:66%; }
+  #pcH #ph1{ position:absolute; left:0; top:0; font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial; font-weight:500; font-size:27px; line-height:1; }
+  #pcH #ph2{ position:absolute; left:0; top:33px; font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial; font-weight:700; font-size:34px; line-height:1; }
+  #pcH #pdate{ position:absolute; left:0; top:75px; font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial; font-weight:500; font-size:21px; line-height:1; }
+  #pcH .cta{
+    position:absolute; right:11px; bottom:5px;
+    width:72px; height:22px; border-radius:6px;
+    font-family:"ShopeeNotoSans-Content-R"; font-weight:400; font-size:14px;
+    padding:0 18px; white-space:nowrap;
+  }
+  #pcH .cta .triangle{
+    right:10px; border-left:5px solid currentColor;
+    border-top:5px solid transparent; border-bottom:5px solid transparent; white-space:nowrap;
+  }
+
+  /* ======================= PC 預覽（方式） ======================= */
+  #pcS .brand{
+    position:absolute; left:128px; top:38.8px;
+    width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
+  }
+  #pcS .brand img{width:100%;height:100%;object-fit:contain}
+  #pcS .stack{ position:absolute; left:227.7px; top:38.8px; max-width:66%; }
+  #pcS #ps1{ position:absolute; left:0; top:0; font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial; font-weight:500; font-size:27px; line-height:1; }
+  #pcS #ps2{ position:absolute; left:0; top:35.8px; font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial; font-weight:700; font-size:34px; line-height:1; }
+  #pcS #psdate{ position:absolute; left:0; top:75.8px; font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial; font-weight:500; font-size:21px; line-height:1; }
+  #pcS .cta{
+    position:absolute; right:11px; bottom:5px;
+    width:72px; height:22px; border-radius:6px;
+    font-family:"ShopeeNotoSans-Content-R"; font-weight:400; font-size:14px;
+    padding:0 18px; white-space:nowrap;
+  }
+  #pcS .cta .triangle{
+    right:10px; border-left:5px solid currentColor;
+    border-top:5px solid transparent; border-bottom:5px solid transparent; white-space:nowrap;
+  }
+	/* 隱藏「圖層置前」那顆 ▲ */
+.editor-item .layer-btns .ctrl[title="圖層置前"]{
+  display: none !important;
+}
+/* 可選：兩顆變一顆時，縮小一點間距 */
+.editor-item .layer-btns{ gap: 0; }
+.editor-item .layer-btns .ctrl[title="圖層置後"]{
+  position: relative;
+  right: 0px;  /* 負值往右、正值往左 */
+}
+
+/* PC 版 ghost 商品圖的右下角縮放把手（與 APP 一致樣式） */
+.editor-item.ghost .ctrl.resize{ right:6px; bottom:6px; }
+
+
+/* Shadow editor inside modal */
+#shadowCanvas{position:absolute;left:0;top:0;z-index:0;pointer-events:none;}
+#eraseCanvas{position:relative;z-index:1;display:block;}
+.shadow-modal-box{
+  position:absolute;
+  left:10px; top:10px;
+  width:777px; height:115px;
+  cursor:move;
+  border:1px dashed rgba(255,255,255,.35);
+  border-radius:8px;
+  box-sizing:border-box;
+  z-index:3;
+}
+.shadow-modal-box img{
+  width:100%; height:100%;
+  object-fit:contain;
+  opacity:0;
+  mix-blend-mode:multiply;
+  pointer-events:none;
+  user-select:none;
+}
+.shadow-modal-handle{
+  position:absolute;
+  right:-6px; bottom:-6px;
+  width:14px; height:14px;
+  border-radius:4px;
+  background:#fff;
+  border:1px solid rgba(0,0,0,.4);
+  cursor:nwse-resize;
+}
+
+
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <h2>橫式LOGO SBA</h2>
+
+    <!-- 第一排：顏色 -->
+    <div class="toolbar">
+      <label>主標色：<input id="h1-color-horiz" type="color" value="#1b5e7a"></label>
+      <label>副標色：<input id="h2-color-horiz" type="color" value="#0b6c4a"></label>
+      <label>日期色：<input id="date-color-horiz" type="color" value="#306b8f"></label>
+      <label>CTA底色：<input id="cta-bg-h" type="color" value="#2176FF"></label>
+      <label>CTA字色：<input id="cta-fg-h" type="color" value="#ffffff"></label>
+      <label>背景色：<input id="bg-color-h" type="color" value="#c2dff3"></label>
+      <button id="dl-h" type="button" style="margin-left:auto;">下載APP版（≤200KB）</button> <button id="dl-h-pc" type="button">下載PC版（≤200KB）</button>
+    </div>
+
+    <!-- 第二排：上傳 -->
+    <div class="toolbar">
+      <label>LOGO（橫，最多 3）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <label>底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
+      <label>商品圖（最多3）：<input id="items-h" type="file" accept="image/*" multiple></label>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）</span>
+    </div>
+
+    <!-- APP 橫式 -->
+    <div id="horiz" class="canvas pending-underlay">
+      <img class="bg" id="bgH" src="程式檔案/橫BG-APP.png" alt="背景" />
+      <div class="editor" id="editorH">
+        <div class="bg-solid" id="solidH"></div>
+        <div class="bg-gradient" id="gradH"></div>
+      </div>
+
+      <img class="mall-tag" id="tagH" src="程式檔案/紅商城.PNG" alt="商城掛標">
+      <button class="toggle-tag" data-target="tagH" title="換色">🎨</button>
+
+      <div class="brand" id="brandH"></div>
+      <div class="stack">
+        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1">99購物節開跑<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-h" class="h2" contenteditable="true" data-limit="7" data-role="h2">滿$990享8折<span class="counter" aria-hidden="true"></span></div>
+        <div id="date-h" class="date" contenteditable="true" data-limit="14" data-role="date">9/9 - 9/11<span class="counter" aria-hidden="true"></span></div>
+      </div>
+      <div class="cta" id="cta-h"><span class="text">逛逛去</span><span class="triangle"></span></div>
+
+      <div class="bg-scale-panel" id="bgScaleH" hidden>
+        <span class="tag">背景圖尺寸</span>
+        <button type="button" data-step="-0.05">–</button>
+        <span id="bgScaleValH">100%</span>
+        <button type="button" data-step="0.05">+</button>
+      </div>
+    </div>
+
+    <!-- PC 橫式 -->
+    <h3 style="margin:10px 0 6px">PC 版位預覽（橫式）</h3>
+    <div id="pcH" class="pc-canvas pending-underlay" aria-hidden="false">
+      <img class="bg" id="bgPH" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
+      <div class="editor" id="editorPH">
+        <div class="bg-solid" id="solidPH"></div>
+        <div class="bg-gradient" id="gradPH"></div>
+      </div>
+      <img class="mall-tag" id="tagPH" src="程式檔案/紅商城掛標pc版.png" alt="商城掛標">
+      <button class="toggle-tag" data-target="tagPH" title="換色">🎨</button>
+
+      <div class="brand" id="brandPH"><img id="brandPHImg" /></div>
+
+      <div class="stack" style="max-width:66%">
+        <div id="ph1" class="h1">（PC）主標示意</div>
+        <div id="ph2" class="h2">（PC）副標示意</div>
+        <div id="pdate" class="date">09/01 - 09/30</div>
+      </div>
+
+      <div class="cta" id="cta-ph"><span class="text">逛逛去</span><span class="triangle"></span></div>
+
+      <!-- PC 縮放面板（新） -->
+      <div class="bg-scale-panel" id="bgScalePH" hidden>
+        <span class="tag">背景圖尺寸</span>
+        <button type="button" data-step="-0.05">–</button>
+        <span id="bgScaleValPH">100%</span>
+        <button type="button" data-step="0.05">+</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <h2>方式 Banner（圖二）</h2>
+
+    <!-- 第一排：顏色 -->
+    <div class="toolbar">
+      <label>主標色：<input id="h1-color-square" type="color" value="#1b5e7a"></label>
+      <label>副標色：<input id="h2-color-square" type="color" value="#0b6c4a"></label>
+      <label>日期色：<input id="date-color-square" type="color" value="#306b8f"></label>
+      <label>CTA底色：<input id="cta-bg-s" type="color" value="#2176FF"></label>
+      <label>CTA字色：<input id="cta-fg-s" type="color" value="#ffffff"></label>
+      <label>背景色：<input id="bg-color-s" type="color" value="#c2dff3"></label>
+      <button id="dl-s" type="button" style="margin-left:auto;">下載APP版（≤200KB）</button> <button id="dl-s-pc" type="button">下載PC版（≤200KB）</button>
+    </div>
+
+    <!-- 第二排：上傳 -->
+    <div class="toolbar">
+      <label>LOGO（方 120×120）：<input id="logo-square" type="file" accept="image/*"></label>
+      <label>底圖：<input id="bg-square" type="file" accept="image/*"></label>
+      <label>商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）</span>
+    </div>
+
+    <!-- APP 方形 -->
+    <div id="square" class="canvas pending-underlay">
+      <img class="bg" id="bgS" src="程式檔案/方BG-APP.png" alt="背景" />
+      <div class="editor" id="editorS">
+        <div class="bg-solid" id="solidS"></div>
+        <div class="bg-gradient" id="gradS"></div>
+      </div>
+
+      <img class="mall-tag" id="tagS" src="程式檔案/紅商城.PNG" alt="商城掛標">
+      <button class="toggle-tag"  data-target="tagS" title="換色">🎨</button>
+
+      <div class="brand"><div class="logo-box"><img id="brandImgS" /></div></div>
+      <div class="stack">
+        <div id="h1-s" class="h1" contenteditable="true" data-limit="8" data-role="h1">指定商務品滿8千<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
+        <div id="date-s" class="date" contenteditable="true" data-limit="14" data-role="date">9/1 - 9/30<span class="counter" aria-hidden="true"></span></div>
+      </div>
+      <div class="cta" id="cta-s"><span class="text">逛逛去</span><span class="triangle"></span></div>
+
+      <div class="bg-scale-panel" id="bgScaleS" hidden>
+        <span class="tag">背景圖尺寸</span>
+        <button type="button" data-step="-0.05">–</button>
+        <span id="bgScaleValS">100%</span>
+        <button type="button" data-step="0.05">+</button>
+      </div>
+    </div>
+
+    <!-- PC 方式 -->
+    <h3 style="margin:10px 0 6px">PC 版位預覽（方式）</h3>
+    <div id="pcS" class="pc-canvas pending-underlay" aria-hidden="false">
+      <img class="bg" id="bgPS" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
+      <div class="editor" id="editorPS">
+        <div class="bg-solid" id="solidPS"></div>
+        <div class="bg-gradient" id="gradPS"></div>
+      </div>
+      <img class="mall-tag" id="tagPS" src="程式檔案/紅商城掛標pc版.png" alt="商城掛標">
+      <button class="toggle-tag" data-target="tagPS" title="換色">🎨</button>
+
+      <div class="brand" id="brandPS"><img id="brandPSImg" /></div>
+
+      <div class="stack" style="max-width:66%">
+        <div id="ps1" class="h1">（PC）主標示意</div>
+        <div id="ps2" class="h2">（PC）副標示意</div>
+        <div id="psdate" class="date">09/01 - 09/30</div>
+      </div>
+
+      <div class="cta" id="cta-ps"><span class="text">逛逛去</span><span class="triangle"></span></div>
+
+      <!-- PC 縮放面板（新） -->
+      <div class="bg-scale-panel" id="bgScalePS" hidden>
+        <span class="tag">背景圖尺寸</span>
+        <button type="button" data-step="-0.05">–</button>
+        <span id="bgScaleValPS">100%</span>
+        <button type="button" data-step="0.05">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部控制面板（保留） -->
+  <div class="fs-panel panel" id="fsPanel">字級
+    <button type="button" class="fs-btn" data-delta="-1">–</button>
+    <span class="val fs-val">--</span>
+    <button type="button" class="fs-btn" data-delta="1">+</button>
+    <span class="note" style="color:#fff;opacity:.8">選取可編輯文字後調整</span>
+  </div>
+  <div class="lh-panel panel" id="lhPanel">行距
+    <button type="button" class="lh-btn" data-delta="-1">–</button>
+    <span class="val lh-val">--</span>
+    <button type="button" class="lh-btn" data-delta="1">+</button>
+    <span class="note" style="color:#fff;opacity:.8">可為負值</span>
+  </div>
+  <div class="mg-panel panel" id="mgPanel">間距
+    <button type="button" class="mg-btn" data-delta="-1">–</button>
+    <span class="val mg-val">--</span>
+    <button type="button" class="mg-btn" data-delta="1">+</button>
+    <span class="note" style="color:#fff;opacity:.8">段落間距（margin-top，可為負值）</span>
+  </div>
+  <div class="ls-panel panel" id="lsPanel">字距
+    <button type="button" class="ls-btn" data-delta="-1">–</button>
+    <span class="val ls-val">--</span>
+    <button type="button" class="ls-btn" data-delta="1">+</button>
+    <span class="note" style="color:#fff;opacity:.8">字的間距（letter-spacing）</span>
+  </div>
+
+  <!-- 關閉文案底圖 -->
+  <div class="ux-panel panel" id="uxPanel">
+    <label style="display:flex;align-items:center;gap:6px">
+      <input id="toggleUnderlayH" type="checkbox" />
+      關閉《橫式》文案底圖
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin-left:10px">
+      <input id="toggleUnderlayS" type="checkbox" />
+      關閉《方式》文案底圖
+    </label>
+  </div>
+
+  <!-- 去背/裁切 Modal（保留） -->
+  <div class="modal" id="eraseModal" aria-hidden="true">
+    <div class="modal-panel">
+      <div class="modal-toolbar">
+        <label><input type="radio" name="mode" value="erase" checked> 擦除</label>
+        <label><input type="radio" name="mode" value="select"> 智慧選取</label>
+        <label><input type="radio" name="mode" value="crop"> 裁切</label>
+        <label>筆刷：<input id="brushSize" type="range" min="5" max="120" value="40"></label>
+        <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
+        <span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
+        <label style="margin-left:auto;display:flex;align-items:center;gap:6px"><input type="checkbox" id="toggleShadow"> 增加影子</label>
+        <input type="checkbox" id="applyUploadSize" checked style="display:none">
+      </div>
+      <div id="eraseWrap" class="checkerboard">
+        <canvas id="shadowCanvas" width="800" height="400"></canvas>
+        <canvas id="eraseCanvas" width="800" height="400"></canvas>
+        <div id="shadowModalBox" class="shadow-modal-box" aria-hidden="true" style="display:none;">
+          <img id="shadowModalImg" src="bg.png" alt="shadow" draggable="false">
+          <div class="shadow-modal-handle" title="縮放"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="eraseReset" type="button">重作</button>
+        <button class="btn-primary" id="cropConfirm" type="button" title="只套用裁切，不關閉視窗">確定裁切</button>
+        <button class="btn-primary" id="eraseApply" type="button">完成</button>
+        <button class="btn-danger" id="eraseCancel" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 取消提示小視窗 -->
+  <div class="nudge" id="cancelNudge" aria-hidden="true">
+    <div class="nudge-box">
+      <button class="nudge-close" id="nudgeClose" aria-label="關閉">✖</button>
+      <img id="nudgeImg" src="程式檔案/跳出.png" alt="跳出提示">
+    </div>
+  </div>
+
+  <!-- 浮動字數小泡泡 -->
+  <div id="floatMeter" class="float-meter"></div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" style="display:none"></div>
+
+<script>
+  /* ========== Toast（可比照浮動字數泡泡定位） ========== */
+  function showToast(msg, type='ok', ms=2000, targetEl=null){
+    const t = document.getElementById('toast');
+    if(!t) return;
+    t.textContent = msg;
+    t.className = 'toast ' + (type==='ok' ? 'ok' : 'err');
+
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      // 放在目標元素右上方，稍微外推
+      t.style.left = (rect.right + 8) + 'px';
+      t.style.top  = (rect.top - 8) + 'px';
+      t.style.right = 'auto';
+    } else {
+      // 保留原本右上角預設
+      t.style.right = '16px';
+      t.style.top   = '16px';
+      t.style.left  = 'auto';
+    }
+
+    t.style.display = 'block';
+    clearTimeout(showToast._tid);
+    showToast._tid = setTimeout(()=>{ t.style.display='none'; }, ms);
+  }
+
+  /* ========== 檔案上傳 ========= */
+  function readAsDataURL(file){
+    return new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onload=()=>resolve(fr.result);
+      fr.onerror=reject;
+      fr.readAsDataURL(file);
+    });
+  }
+  function bindUpload(inputId,targetSelector){
+    const input=document.getElementById(inputId);
+    if(!input) return;
+    input.addEventListener('change',async e=>{
+      const file=e.target.files?.[0];if(!file)return;
+      const url=await readAsDataURL(file);
+      const el=document.querySelector(targetSelector);
+      if(el) el.src=url;
+    });
+  }
+  function bindUploadMultiple(inputId, containerSelector, max=3){
+    const input=document.getElementById(inputId);
+    const container=document.querySelector(containerSelector);
+    if(!input || !container) return;
+    input.addEventListener('change', async e=>{
+      const files = Array.from(e.target.files || []).slice(0, max);
+      container.innerHTML = '';
+      for(const file of files){
+        const url = await readAsDataURL(file);
+        const img = document.createElement('img');
+        img.src = url; img.alt = 'Logo';
+        container.appendChild(img);
+      }
+      /* 同步 PC 橫式 logo 使用第一張（若存在） */
+      const pcLogo = document.getElementById('brandPHImg');
+      const first = container.querySelector('img');
+      if(pcLogo && first){ pcLogo.src = first.src; }
+    });
+  }
+/* ===========================================================
+     修復版：背景上傳綁定 (含自動吸色 + PC 同步)
+     =========================================================== */
+  
+  // 輔助函式：吸取圖片左上角顏色並同步
+  function autoSyncBackground(imgElement, type) {
+    // 1. 建立 Canvas 吸色
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1; canvas.height = 1;
+    ctx.drawImage(imgElement, 0, 0, 1, 1, 0, 0, 1, 1);
+    
+    // 2. 轉換成 Hex 色碼
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    const hex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    
+    // 3. 呼叫原本寫好的 setBgFor 同步底色 (這會同時變更 APP 與 PC 的底色/漸層)
+    setBgFor(type, hex);
+
+    // 4. (額外修復) 同步將 PC 版的「背景圖」也換成這張圖
+    if (type === 'H') {
+      const pcImg = document.getElementById('bgPH');
+      if(pcImg) pcImg.src = imgElement.src;
+    } else {
+      const pcImg = document.getElementById('bgPS');
+      if(pcImg) pcImg.src = imgElement.src;
+    }
+
+    // 5. 提示使用者
+    if(typeof showToast === 'function') showToast(`已同步 PC 底色與圖片：${hex}`);
+  }
+
+  // 綁定橫式背景 (上傳 -> 載入 -> 觸發同步)
+  bindUpload('bg-horiz', '#bgH');
+  document.getElementById('bgH').onload = function() {
+    // 確保圖片有來源才執行 (避免初始載入空圖報錯)
+    if(this.src && this.src.startsWith('data:')) {
+      autoSyncBackground(this, 'H');
+    }
+  };
+
+  // 綁定方形背景 (上傳 -> 載入 -> 觸發同步)
+  bindUpload('bg-square', '#bgS');
+  document.getElementById('bgS').onload = function() {
+    if(this.src && this.src.startsWith('data:')) {
+      autoSyncBackground(this, 'S');
+    }
+  };
+  /* =========================================================== */
+	  
+  bindUploadMultiple('logo-horiz','#brandH',3);
+  bindUpload('logo-square','#brandImgS');
+  /* 同步：APP 方形 logo → PC 方式 logo */
+  document.getElementById('logo-square')?.addEventListener('change', async e=>{
+    const f=e.target.files?.[0]; if(!f) return;
+    const url=await readAsDataURL(f);
+    const el=document.getElementById('brandPSImg'); if(el) el.src=url;
+  });
+
+  /* ========== 顏色工具 ========= */
+  function hexToRgb(hex){ const h = hex.replace('#',''); const b = h.length===3 ? h.split('').map(c=>c+c).join('') : h; return { r:parseInt(b.slice(0,2),16), g:parseInt(b.slice(2,4),16), b:parseInt(b.slice(4,6),16) }; }
+  function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
+  function rgbToHsl(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){ h=s=0; } else { const d=max-min; s=l>0.5? d/(2-max-min) : d/(max+min); switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; case b: h=(r-g)/d+4; break; } h*=60; } return {h,s,l}; }
+  function hslToRgb(h,s,l){ h/=360; let r,g,b; if(s===0){ r=g=b=l; } else { const hue2rgb=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6) return p+(q-p)*6*t; if(t<1/2) return q; if(t<2/3) return p+(q-p)*(2/3 - t)*6; return p; }; const q=l<.5 ? l*(1+s) : l+s - l*s; const p=2*l - q; r=hue2rgb(p,q,h+1/3); g=hue2rgb(p,q,h); b=hue2rgb(p,q,h-1/3); } return {r:Math.round(r*255), g:Math.round(g*255), b:Math.round(b*255)}; }
+  function hexToHsl(hex){ const {r,g,b}=hexToRgb(hex); return rgbToHsl(r,g,b); }
+  function hslToHex(h,s,l){ const {r,g,b}=hslToRgb(h,s,l); return rgbToHex(r,g,b); }
+  function hexToRgba(hex, a){ const {r,g,b}=hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+  function splitComplement(baseHex){ const {h,s,l} = hexToHsl(baseHex); const comp = (h+180)%360; const a = (comp+30)%360; const b = (comp+330)%360; const L = Math.max(0.28, Math.min(0.72, l)); const S = Math.max(0.45, s); return { a: hslToHex(a, S, L), b: hslToHex(b, S, L) }; }
+  function hueShift(hex, deg){ const {h,s,l} = hexToHsl(hex); return hslToHex((h+deg+360)%360, s, l); }
+  function updateSolid(editor, color){ const solid = editor.querySelector('.bg-solid'); if(solid) solid.style.background = color; }
+  function updateGradient(editor, color){
+    const grad = editor.querySelector('.bg-gradient');
+    if(!grad) return;
+    const isPc = !!editor.closest('.pc-canvas');
+    grad.style.width = '100px';
+    if (isPc) {
+      grad.style.left = '498px';
+    } else {
+      grad.style.left = '598px';
+    }
+    grad.style.background = `linear-gradient(to right, ${color} 0%, ${hexToRgba(color,0)} 100%)`;
+  }
+
+  function applySplitToTexts(scopeId, baseHex){
+    const pair = splitComplement(baseHex);
+    const h1Color = hueShift(pair.b, 50);
+    const others = pair.a;
+    const root = document.getElementById(scopeId);
+    if(!root) return;
+    const h1 = root.querySelector('.h1'); const h2 = root.querySelector('.h2'); const date = root.querySelector('.date');
+    if(h1) h1.style.color = h1Color;
+    if(h2) h2.style.color = others;
+    if(date) date.style.color = others;
+    if(scopeId==='horiz'){
+      document.getElementById('h1-color-horiz').value = h1Color;
+      document.getElementById('h2-color-horiz').value = others;
+      document.getElementById('date-color-horiz').value = others;
+      document.getElementById('ph1').style.color = h1Color;
+      document.getElementById('ph2').style.color = others;
+      document.getElementById('pdate').style.color = others;
+    }else{
+      document.getElementById('h1-color-square').value = h1Color;
+      document.getElementById('h2-color-square').value = others;
+      document.getElementById('date-color-square').value = others;
+      document.getElementById('ps1').style.color = h1Color;
+      document.getElementById('ps2').style.color = others;
+      document.getElementById('psdate').style.color = others;
+    }
+  }
+function setBgFor(app, hex){
+  const map = app === 'H'
+    ? { appCanvas:'horiz', appEditor:'editorH', pcCanvas:'pcH', pcEditor:'editorPH', input:'bg-color-h' }
+    : { appCanvas:'square', appEditor:'editorS', pcCanvas:'pcS', pcEditor:'editorPS', input:'bg-color-s' };
+
+  // 寫回 input（注意：程式設值不會觸發 input 事件）
+  const inp = document.getElementById(map.input);
+  if (inp) inp.value = hex;
+
+  // APP 畫布底色 & 遮罩
+  const appCanvas = document.getElementById(map.appCanvas);
+  const appEditor = document.getElementById(map.appEditor);
+  if (appCanvas) appCanvas.style.backgroundColor = hex;
+  if (appEditor){ updateSolid(appEditor, hex); updateGradient(appEditor, hex); }
+
+  // PC 畫布底色 & 遮罩
+  const pcCanvas = document.getElementById(map.pcCanvas);
+  const pcEditor = document.getElementById(map.pcEditor);
+  if (pcCanvas){
+    pcCanvas.style.backgroundColor = hex;
+    pcCanvas.classList.remove('pending-underlay');
+  }
+  if (pcEditor){ updateSolid(pcEditor, hex); updateGradient(pcEditor, hex); }
+}
+
+	  
+	  
+  function bindColor(inputId, selector, styleProp, extra){
+    const inp=document.getElementById(inputId);
+    if(!inp) return;
+    const apply=(val)=>{ document.querySelectorAll(selector).forEach(el=>{ el.style[styleProp]=val; }); if(typeof extra === 'function') extra(val); };
+    inp.addEventListener('input', e=>apply(e.target.value));
+    apply(inp.value);
+  }
+  /* 橫式色彩與 PC 橫式同步 */
+  bindColor('h1-color-horiz','#h1-h','color', v=>document.getElementById('ph1').style.color=v);
+  bindColor('h2-color-horiz','#h2-h','color', v=>document.getElementById('ph2').style.color=v);
+  bindColor('date-color-horiz','#date-h','color', v=>document.getElementById('pdate').style.color=v);
+  bindColor('cta-bg-h','#horiz .cta','backgroundColor', v=>document.querySelector('#pcH .cta').style.backgroundColor=v);
+  bindColor('cta-fg-h','#horiz .cta','color', v=>document.querySelector('#pcH .cta').style.color=v);
+  
+bindColor('bg-color-h','#horiz','backgroundColor', (val)=>{
+  updateSolid(document.getElementById('editorH'), val);
+  updateGradient(document.getElementById('editorH'), val);
+  updateSolid(document.getElementById('editorPH'), val);
+  updateGradient(document.getElementById('editorPH'), val);
+
+  // ✅ 同步到 PC 橫式的畫布底色，並解除 pending
+  const pcCanvasH = document.getElementById('pcH');
+  if (pcCanvasH) {
+    pcCanvasH.style.backgroundColor = val;
+    pcCanvasH.classList.remove('pending-underlay');
+  }
+
+  applySplitToTexts('horiz', val);
+});
+
+
+  /* 方形色彩與 PC 方式同步 */
+  bindColor('h1-color-square','#h1-s','color', v=>document.getElementById('ps1').style.color=v);
+  bindColor('h2-color-square','#h2-s','color', v=>document.getElementById('ps2').style.color=v);
+  bindColor('date-color-square','#date-s','color', v=>document.getElementById('psdate').style.color=v);
+  bindColor('cta-bg-s','#square .cta','backgroundColor', v=>document.querySelector('#pcS .cta').style.backgroundColor=v);
+  bindColor('cta-fg-s','#square .cta','color', v=>document.querySelector('#pcS .cta').style.color=v);
+ 
+bindColor('bg-color-s','#square','backgroundColor', (val)=>{
+  updateSolid(document.getElementById('editorS'), val);
+  updateGradient(document.getElementById('editorS'), val);
+  updateSolid(document.getElementById('editorPS'), val);
+  updateGradient(document.getElementById('editorPS'), val);
+  const pcCanvasS = document.getElementById('pcS');
+  if (pcCanvasS) pcCanvasS.style.backgroundColor = val;
+  applySplitToTexts('square', val);
+});
+
+  /* ========== 控制面板（保留） ========= */
+  let activeEl = null;
+  const fsPanel = document.getElementById('fsPanel');
+  const lhPanel = document.getElementById('lhPanel');
+  const mgPanel = document.getElementById('mgPanel');
+  const lsPanel = document.getElementById('lsPanel');
+
+  function updateFs(){ const val = activeEl ? Math.round(parseFloat(getComputedStyle(activeEl).fontSize)) + 'px' : '--'; fsPanel.querySelector('.fs-val').textContent = val; }
+  function updateLh(){ const cs = activeEl ? getComputedStyle(activeEl) : null; lhPanel.querySelector('.lh-val').textContent = cs ? Math.round(parseFloat(cs.lineHeight || (1.2*parseFloat(cs.fontSize)))) + 'px' : '--'; }
+  function updateMg(){ const mt = activeEl ? getComputedStyle(activeEl).marginTop : null; mgPanel.querySelector('.mg-val').textContent = activeEl ? Math.round(parseFloat(mt || '0')) + 'px' : '--'; }
+  function updateLs(){ if(!activeEl){ lsPanel.querySelector('.ls-val').textContent='--'; return; } let ls = getComputedStyle(activeEl).letterSpacing; if(ls==='normal'||!ls) ls='0px'; lsPanel.querySelector('.ls-val').textContent = Math.round(parseFloat(ls)) + 'px'; }
+
+  const floatMeter = document.getElementById('floatMeter');
+  function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\n/g,''); }
+  const hanRegex = /\p{Script=Han}/u;
+  function calcUnits(str){ let units = 0; for(const ch of str){ units += hanRegex.test(ch) ? 1 : 0.5; } return units; }
+  const limits = new Map([ ['h1',8], ['h2',7], ['date',14] ]);
+
+  function showFloatMeter(el){
+    const rect = el.getBoundingClientRect();
+    const raw = getRawText(el);
+    const units = calcUnits(raw);
+    const limit = limits.get(el.dataset.role) ?? '∞';
+    floatMeter.textContent = `字數：${Math.round(units*10)/10} / ${limit}`;
+    floatMeter.style.left = (rect.left + 6) + 'px';
+    floatMeter.style.top  = (rect.top - 32) + 'px';
+    floatMeter.style.display = 'block';
+  }
+  function hideFloatMeter(){ floatMeter.style.display = 'none'; }
+
+  document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+    el.addEventListener('focus', ()=>{ activeEl = el; updateFs(); updateLh(); updateMg(); updateLs(); showFloatMeter(el); });
+    el.addEventListener('input', ()=>{ if(activeEl===el){ updateFs(); updateLh(); updateMg(); updateLs(); showFloatMeter(el); }});
+    el.addEventListener('blur', ()=>{ if(activeEl===el){ updateFs(); updateLh(); updateMg(); updateLs(); hideFloatMeter(); }});
+  });
+
+  function isCTA(el){ return el && el.closest('.cta'); }
+
+  fsPanel.querySelectorAll('.fs-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
+      const delta = Number(btn.dataset.delta||0);
+      const cur = parseFloat(getComputedStyle(activeEl).fontSize)||36;
+      const next = Math.max(8, Math.min(200, cur + delta));
+      activeEl.style.fontSize = next + 'px';
+      updateFs(); updateLh(); showFloatMeter(activeEl);
+    });
+  });
+  lhPanel.querySelectorAll('.lh-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
+      const delta = Number(btn.dataset.delta||0);
+      const cs = getComputedStyle(activeEl);
+      const cur = parseFloat(cs.lineHeight) || (1.2 * parseFloat(cs.fontSize));
+      const next = Math.max(-320, Math.min(320, cur + delta));
+      activeEl.style.lineHeight = next + 'px';
+      updateLh(); showFloatMeter(activeEl);
+    });
+  });
+  mgPanel.querySelectorAll('.mg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
+      const delta = Number(btn.dataset.delta||0);
+      const cur = parseFloat(getComputedStyle(activeEl).marginTop)||0;
+      const next = Math.max(-200, Math.min(200, cur + delta));
+      activeEl.style.marginTop = next + 'px';
+      updateMg(); showFloatMeter(activeEl);
+    });
+  });
+  lsPanel.querySelectorAll('.ls-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
+      const delta = Number(btn.dataset.delta||0);
+      let cur = getComputedStyle(activeEl).letterSpacing;
+      if(cur === 'normal' || !cur) cur = '0px';
+      const next = Math.max(-20, Math.min(80, (parseFloat(cur)||0) + delta));
+      activeEl.style.letterSpacing = next + 'px';
+      updateLs(); showFloatMeter(activeEl);
+    });
+  });
+
+  /* 關閉文案底圖開關 */
+  document.getElementById('toggleUnderlayH').addEventListener('change', (e)=>{
+    document.getElementById('horiz').classList.toggle('no-underlay', e.target.checked);
+    document.getElementById('pcH')?.classList.toggle('no-underlay', e.target.checked);
+  });
+  document.getElementById('toggleUnderlayS').addEventListener('change', (e)=>{
+    document.getElementById('square').classList.toggle('no-underlay', e.target.checked);
+    document.getElementById('pcS')?.classList.toggle('no-underlay', e.target.checked);
+  });
+
+  /* ===== 禁用/替換與字數（保留，並讓 toast 貼在編輯元素） ===== */
+  const replaceRules = [
+    { re:/撒/g, to:'灑', toast:'偵測到「撒」，已自動改為「灑」' },
+    { re:/購物金|抵用券|折價券|蝦皮券|蝦幣券|折扣券/g, to:'優惠券', toast:'票券稱呼已統一為「優惠券」' },
+    { re:/\bup\b/gi, to:'起', toast:'偵測到 up，已改為「起」' },
+    { re:/專屬|VIP/gi, to:'屬於、限定', toast:'「專屬 / VIP」已統一為「屬於、限定」' },
+    { re:/拚/g, to:'拼' },
+    { re:/卷/g, to:'券' },
+    { re:/周/g, to:'週', toast:'「周」請改用「週」' },
+    { re:/[－—–−]/g, to:'-' },
+    { re:/[～]/g, to:'~' },
+    { re:/(^|[^-])\s*-\s*(?!-)/g, to:'$1 - ' },
+    { re:/~+/g, to:' - ', toast:'「~」已改為「-」' },
+    { re:/最強|最便宜|最低價|最優惠|最大牌|最佳|最大品牌|效果最好|年度最強|競網最便宜/g, to:'超', toast:'避免使用「最」字，無法證明最高級，已改為「超」' },
+    { re:/(\d+)\s*倍(?=\s*蝦幣)/g, to:'$1% ', toast:'蝦幣不用「倍」呈現，已改為「%」' },
+  ];
+  const BLOCK = (msg)=>({type:'block', msg});
+  const blockRules = [
+    { re:/\$+\s*蝦幣/g, ...BLOCK('蝦幣前勿放 $ 符號') },
+    { re:/蝦幣\s*[\d０-９,.，．]+\s*元/g, ...BLOCK('蝦幣後勿加「元」') },
+    { re:/[\d０-９,.，．]+\s*元\s*蝦幣/g, ...BLOCK('勿使用「元」搭配蝦幣，金額請使用「$」符號取代') },
+    { re:/元/g, ...BLOCK('避免使用「元」，金額請用「$」符號即可') },
+    { re:/賺取|賣蝦幣|賺/g, ...BLOCK('避免使用任何可能使蝦幣看起來有金錢價值的用語') },
+    { re:/商城狂購節|蝦皮吃貨節|蝦皮中元節|蝦皮時尚週|超級品牌日/g, ...BLOCK('避免使用蝦皮站上活動名稱') },
+    { re:/18號|25號|18節|25節/g, ...BLOCK('避免使用蝦皮站上活動名稱') },
+    { re:/獨家/g, ...BLOCK('需確認僅蝦皮獨家，避免法務及客訴疑慮') },
+    { re:/第一|No1|NO\.?1|N0\.?1|No\.?1/gi, ...BLOCK('避免使用 No.1 / 第一名 等無法證實之詞，需廠商提供可證明資料') },
+    { re:/[!]/g, ...BLOCK('請勿使用 ! 符號') },
+    { re:/[?]/g, ...BLOCK('請勿使用 ? 符號') },
+    { re:/[+]/g, ...BLOCK('請勿使用 + 符號') },
+    { re:/[.]/g, ...BLOCK('請勿使用 . 符號') },
+    { re:/["]/g, ...BLOCK('請勿使用 " 符號') },
+    { re:/[一二三四五六七八九十兩]/g, ...BLOCK('請以阿拉伯數字呈現，避免中文數字') },
+    { re:/千|仟|百/g, ...BLOCK('「千 / 仟 / 百」請改用阿拉伯數字呈現') },
+  ];
+  const leadingZeroRe = /\b0(\d)\b/g;
+  function stripLeadingZeros(text){ return text.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10))); }
+  function formatThousandsAll(text){ return text.replace(/\b\d{4,}\b/g, (m)=> m.replace(/\B(?=(\d{3})+(?!\d))/g, ',')); }
+
+  document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+    el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); }});
+  });
+  function ensureCounter(el){ let c = el.querySelector('.counter'); if(!c){ c = document.createElement('span'); c.className='counter'; c.setAttribute('aria-hidden','true'); el.appendChild(c); } return c; }
+  function updateCounter(el){ const raw=getRawText(el); const units=calcUnits(raw); const limit=limits.get(el.dataset.role)||Infinity; ensureCounter(el).textContent=`（${Math.round(units*10)/10} / ${limit}）`; }
+
+  document.querySelectorAll('[contenteditable="true"]').forEach(el=>{ ensureCounter(el); updateCounter(el); });
+
+  document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+    const role = el.dataset.role;
+    if(role==='h1') el.style.lineHeight='53px';
+    if(role==='h2') el.style.lineHeight='41px';
+    if(role==='date') el.style.lineHeight='49px';
+
+    el.addEventListener('beforeinput', (e)=>{
+      if(e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak'){ e.preventDefault(); return; }
+      const limit = limits.get(el.dataset.role);
+      if(!limit) return;
+
+      let base = getRawText(el);
+      const sel = window.getSelection();
+      if(sel && sel.rangeCount){
+        const r = sel.getRangeAt(0);
+        if(r && r.toString()){ base = base.replace(r.toString(),''); }
+      }
+      if(e.inputType === 'insertFromPaste'){ return; }
+
+      if(e.inputType.startsWith('insert')){
+        const incoming = (e.data ?? '');
+        if(calcUnits(base + incoming) > limit){
+          e.preventDefault();
+          showToast(`超出上限（${limit}）`, 'err', 1800, el); // 🔴 改：貼在目標元素旁
+          return;
+        }
+      }
+    });
+
+    el.addEventListener('paste', (e)=>{
+      e.preventDefault();
+      const text = (e.clipboardData?.getData('text/plain')||'')
+        .replace(/[\u00A0\u2000-\u200B\u3000]/g,' ')
+        .replace(/[\r\n]+/g,' ')
+        .replace(/\s{2,}/g,' ')
+        .trim();
+      const limit = limits.get(el.dataset.role) ?? Infinity;
+      const base = getRawText(el);
+      if(calcUnits(base + text) > limit){ showToast(`超出上限（${limit}）`, 'err', 1800, el); return; } // 🔴 改：貼在目標元素旁
+      document.execCommand('insertText', false, text);
+      updateCounter(el); showFloatMeter(el);
+    });
+
+    el.addEventListener('blur', ()=>{
+      let txt = getRawText(el);
+      txt = txt.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10)));
+      txt = formatThousandsAll(txt);
+      el.textContent = txt; ensureCounter(el);
+
+      enforceBlocks(el);
+      applyReplaces(el);
+
+      txt = getRawText(el);
+      txt = txt.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10)));
+      txt = formatThousandsAll(txt);
+      el.textContent = txt; ensureCounter(el);
+
+      if(role==='h1') el.style.lineHeight='53px';
+      if(role==='h2') el.style.lineHeight='41px';
+      if(role==='date') el.style.lineHeight='49px';
+
+      updateCounter(el);
+
+      /* 同步 PC 預覽文案 */
+      syncPcText();
+      syncPcSText();
+    });
+  });
+
+  function enforceBlocks(el){
+    let txt = getRawText(el);
+    let changed = false, hit = null;
+    for(const rule of blockRules){
+      if(rule.re.test(txt)){
+        txt = txt.replace(rule.re, ()=>{ changed = true; hit = rule.msg; return ''; });
+      }
+    }
+    if(changed){
+      el.textContent = txt; ensureCounter(el);
+      showToast(hit || '含禁用語，已移除', 'err', 2400, el); // 🔴 改：貼在目標元素旁
+    }
+  }
+  function applyReplaces(el){
+    const before = getRawText(el);
+    let txt = before;
+    const toasts = [];
+
+    for (const rule of replaceRules){
+      if (rule.re.test(txt)){
+        txt = txt.replace(rule.re, rule.to);
+        if (rule.toast) toasts.push(rule.toast);
+      }
+    }
+
+    if (txt !== before){
+      el.textContent = txt;
+      ensureCounter(el);
+    }
+    if (toasts.length){
+      showToast([...new Set(toasts)].join('；'), 'err', 2300, el); // 🔴 改：貼在目標元素旁
+    }
+  }
+
+  /* ========== 去背/裁切（保留） ========= */
+  const eraseModal = document.getElementById('eraseModal');
+  const eraseCanvas = document.getElementById('eraseCanvas');
+  const eCtx = eraseCanvas.getContext('2d', { willReadFrequently:true });
+  const EDIT_PADDING = 100;
+  const brushSize = document.getElementById('brushSize');
+  const toleranceSlider = document.getElementById('tolerance');
+  const eraseReset = document.getElementById('eraseReset');
+  const eraseApply = document.getElementById('eraseApply');
+  const eraseCancel = document.getElementById('eraseCancel');
+  const cropConfirm = document.getElementById('cropConfirm');
+
+  let editingTargetImg = null;
+  let editingTargetBox = null;
+  let originalImg = null;
+  let drawn = false;
+  let lastX=0, lastY=0, drawing=false;
+
+  let cropStart=null, cropEnd=null, cropping=false;
+
+  function openEraseEditor(imgEl){
+    editingTargetImg = imgEl;
+    editingTargetBox = imgEl.closest('.editor-item');
+
+    // Prefer storing a "base (no-shadow)" source so re-edit won't double-shadow
+    const box = editingTargetBox;
+    const baseSrc = box?.dataset?.baseSrc || imgEl.src;
+
+    // Setup shadow UI state from dataset
+    const shadowEnabled = (box?.dataset?.shadowEnabled === '1');
+    const toggle = document.getElementById('toggleShadow');
+    if(toggle) toggle.checked = shadowEnabled;
+
+    // Load image into canvas
+    originalImg = new Image();
+    originalImg.onload = ()=>{
+      // Ensure modal canvas is large enough to leave 100px safe padding on all sides.
+// For very small uploads, we expand the edit canvas so the image won't become a 1px dot.
+const pad = EDIT_PADDING;
+const minW = 800, minH = 600; // visual floor for comfortable editing
+eraseCanvas.width  = Math.max(minW, Math.round(originalImg.naturalWidth) + pad*2);
+eraseCanvas.height = Math.max(minH, Math.round(originalImg.naturalHeight) + pad*2);
+    if(shadowCanvas){ shadowCanvas.width = eraseCanvas.width; shadowCanvas.height = eraseCanvas.height; }
+
+// Draw with 100px safe padding (visual editing space)
+redrawOriginal();
+      drawn = true;
+      cropStart = cropEnd = null; cropping=false;
+
+      // Show modal
+      eraseModal.classList.add('show');
+
+      // Init / restore shadow overlay in modal
+      initShadowModalForBox(box);
+    };
+    originalImg.src = baseSrc;
+  }
+  function redrawOriginal(){
+    if(!originalImg) return;
+    const cw = eraseCanvas.width, ch = eraseCanvas.height;
+    const pad = EDIT_PADDING;
+
+    // inner editable area
+    const innerW = Math.max(1, cw - pad*2);
+    const innerH = Math.max(1, ch - pad*2);
+
+    // keep aspect ratio, center inside inner area
+    const scale = Math.min(innerW / originalImg.naturalWidth, innerH / originalImg.naturalHeight);
+    const w = Math.max(1, Math.round(originalImg.naturalWidth * scale));
+    const h = Math.max(1, Math.round(originalImg.naturalHeight * scale));
+    const x = Math.round(pad + (innerW - w)/2);
+    const y = Math.round(pad + (innerH - h)/2);
+
+    eCtx.clearRect(0,0,cw,ch);
+    eCtx.drawImage(originalImg, x, y, w, h);
+
+    // store last known center for tools that rely on lastX/lastY
+    lastX = x + w/2;
+    lastY = y + h/2;
+  }
+
+  // ===== Shadow overlay inside modal =====
+  const shadowCanvas = document.getElementById('shadowCanvas');
+  const shadowCtx = shadowCanvas ? shadowCanvas.getContext('2d') : null;
+  const shadowBox = document.getElementById('shadowModalBox');
+  const shadowImg = document.getElementById('shadowModalImg');
+  const shadowHandle = shadowBox?.querySelector('.shadow-modal-handle');
+  const shadowToggle = document.getElementById('toggleShadow');
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function renderShadowPreview(){
+    if(!shadowCtx || !shadowCanvas) return;
+    shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height);
+    if(!shadowToggle?.checked) return;
+    if(!shadowImg || !shadowImg.complete || shadowImg.naturalWidth<=0) return;
+    const x = parseFloat(shadowBox.style.left)||0;
+    const y = parseFloat(shadowBox.style.top)||0;
+    const w = shadowBox.offsetWidth||0;
+    const h = shadowBox.offsetHeight||0;
+    if(w<=0||h<=0) return;
+    shadowCtx.drawImage(shadowImg, x, y, w, h);
+  }
+
+  function getShadowAspectRatio(){
+    if(shadowImg && shadowImg.complete && shadowImg.naturalWidth>0 && shadowImg.naturalHeight>0){
+      return shadowImg.naturalHeight / shadowImg.naturalWidth;
+    }
+    return 115 / 777;
+  }
+
+  function autoPlaceShadowByVisibleBounds(){
+    if(!shadowBox || !shadowToggle?.checked) return;
+    const bounds = getAlphaBounds(eraseCanvas, 1);
+    const cw = eraseCanvas.width || 800;
+    const ch = eraseCanvas.height || 400;
+    if(!bounds){
+      shadowBox.style.display = 'none';
+      shadowBox.setAttribute('aria-hidden','true');
+      if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      return;
+    }
+
+    shadowBox.style.display = 'block';
+    shadowBox.setAttribute('aria-hidden','false');
+
+    const ratio = getShadowAspectRatio();
+    const productWidth = Math.max(1, bounds.maxX - bounds.minX);
+    const shadowWidth = Math.max(20, Math.min(cw, productWidth * 1.5));
+    const shadowHeight = Math.max(8, shadowWidth * ratio);
+
+    let x = bounds.cx - shadowWidth / 2;
+    let y = bounds.maxY - shadowHeight * 0.35 - 4;
+
+    x = clamp(x, 0, Math.max(0, cw - shadowWidth));
+    y = clamp(y, 0, Math.max(0, ch - shadowHeight));
+
+    shadowBox.style.width  = Math.round(shadowWidth) + 'px';
+    shadowBox.style.height = Math.round(shadowHeight) + 'px';
+    shadowBox.style.left   = Math.round(x) + 'px';
+    shadowBox.style.top    = Math.round(y) + 'px';
+    renderShadowPreview();
+  }
+
+  function initShadowModalForBox(box){
+    if(!shadowBox || !shadowToggle) return;
+    const enabled = shadowToggle.checked;
+
+    if(!enabled){
+      shadowBox.style.display = 'none';
+      shadowBox.setAttribute('aria-hidden','true');
+      if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      return;
+    }
+
+    shadowBox.style.display = 'block';
+    shadowBox.setAttribute('aria-hidden','false');
+    autoPlaceShadowByVisibleBounds();
+  }
+
+  // Toggle shadow on/off
+  shadowToggle?.addEventListener('change', ()=>{
+    initShadowModalForBox(editingTargetBox);
+    if(!shadowToggle.checked && shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+    else { autoPlaceShadowByVisibleBounds(); }
+  });
+
+  // Drag & resize in modal
+  (function bindShadowDragResize(){
+    if(!shadowBox || !shadowHandle) return;
+
+    let dragging=false, resizing=false;
+    let sx=0, sy=0, startL=0, startT=0, startW=0, startH=0;
+
+    const getCanvasRect = ()=> eraseCanvas.getBoundingClientRect();
+
+    shadowBox.addEventListener('mousedown', (e)=>{
+      if(shadowBox.style.display==='none') return;
+      if(e.target === shadowHandle) return; // handled by resize
+      e.preventDefault();
+      dragging=true;
+      sx=e.clientX; sy=e.clientY;
+      startL=parseFloat(shadowBox.style.left)||0;
+      startT=parseFloat(shadowBox.style.top)||0;
+    });
+
+    shadowHandle.addEventListener('mousedown', (e)=>{
+      if(shadowBox.style.display==='none') return;
+      e.preventDefault(); e.stopPropagation();
+      resizing=true;
+      sx=e.clientX; sy=e.clientY;
+      startL=parseFloat(shadowBox.style.left)||0;
+      startT=parseFloat(shadowBox.style.top)||0;
+      startW=shadowBox.offsetWidth;
+      startH=shadowBox.offsetHeight;
+    });
+
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging && !resizing) return;
+      const cw = eraseCanvas.width, ch = eraseCanvas.height;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+
+      if(dragging){
+        let nl = startL + dx;
+        let nt = startT + dy;
+        const w = shadowBox.offsetWidth, h = shadowBox.offsetHeight;
+        const pad2 = 0;
+        nl = clamp(nl, pad2, Math.max(pad2, cw - pad2 - w));
+        nt = clamp(nt, pad2, Math.max(pad2, ch - pad2 - h));
+        shadowBox.style.left = nl + 'px';
+        shadowBox.style.top  = nt + 'px';
+        renderShadowPreview();
+      } else if(resizing){
+        // Free resize within canvas bounds
+        const pad2 = 0;
+        const maxW = Math.max(20, (cw - pad2) - startL);
+        const maxH = Math.max(20, (ch - pad2) - startT);
+        let nw = clamp(startW + dx, 20, maxW);
+        let nh = clamp(startH + dy, 20, maxH);
+        shadowBox.style.width  = nw + 'px';
+        shadowBox.style.height = nh + 'px';
+        renderShadowPreview();
+      }
+    });
+
+    window.addEventListener('mouseup', ()=>{
+      dragging=false; resizing=false;
+    });
+  })();
+
+  eraseCanvas.addEventListener('mousedown', (e)=>{
+    if(!drawn) return;
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const rect = eraseCanvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left; lastY = e.clientY - rect.top;
+    if(mode==='erase'){ drawing = true; }
+    else if(mode==='select'){ floodSelect(Math.round(lastX), Math.round(lastY), Number(toleranceSlider.value)); }
+    else if(mode==='crop'){ cropping = true; cropStart = {x:lastX, y:lastY}; cropEnd = {x:lastX, y:lastY}; drawCropRect(); }
+  });
+  window.addEventListener('mousemove', (e)=>{
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const rect = eraseCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+    if(mode==='erase' && drawing){
+      eCtx.save(); eCtx.globalCompositeOperation = 'destination-out';
+      eCtx.beginPath(); eCtx.lineCap = 'round'; eCtx.lineJoin = 'round';
+      eCtx.lineWidth = Number(brushSize.value); eCtx.moveTo(lastX,lastY); eCtx.lineTo(x,y); eCtx.stroke(); eCtx.restore();
+      lastX=x; lastY=y;
+    }else if(mode==='crop' && cropping){ cropEnd = {x,y}; drawCropRect(); }
+  });
+  window.addEventListener('mouseup', ()=>{ const wasDrawing = drawing; drawing=false; cropping=false; if(wasDrawing && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
+  eraseReset.addEventListener('click', ()=>{ redrawOriginal(); cropStart=cropEnd=null; if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } });
+
+  function colorAt(data, w, x, y){ const i = (y*w + x)*4; return [data[i], data[i+1], data[i+2], data[i+3]]; }
+  function withinTol(a,b,tol){ return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol; }
+  function floodSelect(sx, sy, tol=20){
+    const x = Math.max(0, Math.min(eraseCanvas.width-1, Math.round(sx)));
+    const y = Math.max(0, Math.min(eraseCanvas.height-1, Math.round(sy)));
+    const img = eCtx.getImageData(0,0,eraseCanvas.width,eraseCanvas.height);
+    const {data, width:w, height:h} = img;
+    const seed = colorAt(data, w, x, y);
+    const q = [[x,y]]; const visited = new Uint8Array(w*h);
+    const setTransparent = (px,py)=>{ const i = (py*w+px)*4; data[i+3] = 0; };
+    while(q.length){
+      const [cx,cy] = q.pop(); const idx = cy*w+cx;
+      if(visited[idx]) continue;
+      visited[idx]=1;
+      const col = colorAt(data,w,cx,cy);
+      if(!withinTol(col, seed, tol)) continue;
+      setTransparent(cx,cy);
+      if(cx>0) q.push([cx-1,cy]); if(cx<w-1) q.push([cx+1,cy]);
+      if(cy>0) q.push([cx,cy-1]); if(cy<h-1) q.push([cx,cy+1]);
+    }
+    eCtx.putImageData(img,0,0);
+    if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); }
+  }
+  function drawCropRect(){ redrawOriginal(); if(!(cropStart && cropEnd)) return; const x=Math.min(cropStart.x, cropEnd.x); const y=Math.min(cropStart.y, cropEnd.y); const w=Math.abs(cropEnd.x - cropStart.x); const h=Math.abs(cropEnd.y - cropStart.y); eCtx.save(); eCtx.strokeStyle='#00E5FF'; eCtx.lineWidth=2; eCtx.setLineDash([6,4]); eCtx.strokeRect(x,y,w,h); eCtx.restore(); }
+  function getCroppedCanvasFromSelection(){
+    if(!(cropStart && cropEnd)) return null;
+    redrawOriginal();
+    const x = Math.max(0, Math.min(cropStart.x, cropEnd.x));
+    const y = Math.max(0, Math.min(cropStart.y, cropEnd.y));
+    const w = Math.min(eraseCanvas.width - x, Math.abs(cropEnd.x - cropStart.x));
+    const h = Math.min(eraseCanvas.height - y, Math.abs(cropEnd.y - cropStart.y));
+    if(w<=2 || h<=2) return null;
+    const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
+    const tctx = tmp.getContext('2d'); const cut = eCtx.getImageData(x,y,w,h); tctx.putImageData(cut, 0, 0);
+    return tmp;
+  }
+  
+  function trimCanvasAlpha(srcCanvas, alphaThreshold=1, padding=2){
+    try{
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d');
+      const img = ctx.getImageData(0,0,w,h).data;
+      let minX=w, minY=h, maxX=-1, maxY=-1;
+      for(let y=0; y<h; y++){
+        for(let x=0; x<w; x++){
+          const a = img[(y*w + x)*4 + 3];
+          if(a > alphaThreshold){
+            if(x < minX) minX=x;
+            if(y < minY) minY=y;
+            if(x > maxX) maxX=x;
+            if(y > maxY) maxY=y;
+          }
+        }
+      }
+      if(maxX < minX || maxY < minY){
+        return srcCanvas; // fully transparent
+      }
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(w-1, maxX + padding);
+      maxY = Math.min(h-1, maxY + padding);
+      const tw = Math.max(1, maxX - minX + 1);
+      const th = Math.max(1, maxY - minY + 1);
+      const out = document.createElement('canvas');
+      out.width = tw; out.height = th;
+      out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+      return out;
+    }catch(e){
+      console.error(e);
+      return srcCanvas;
+    }
+  }
+
+  function trimCanvasAlphaCentered(srcCanvas, alphaThreshold=1, padding=2){
+    try{
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const ctx = srcCanvas.getContext('2d');
+      const img = ctx.getImageData(0,0,w,h).data;
+      let minX=w, minY=h, maxX=-1, maxY=-1;
+      for(let y=0; y<h; y++){
+        for(let x=0; x<w; x++){
+          const a = img[(y*w + x)*4 + 3];
+          if(a > alphaThreshold){
+            if(x < minX) minX=x;
+            if(y < minY) minY=y;
+            if(x > maxX) maxX=x;
+            if(y > maxY) maxY=y;
+          }
+        }
+      }
+      if(maxX < minX || maxY < minY){
+        return srcCanvas; // fully transparent
+      }
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(w-1, maxX + padding);
+      maxY = Math.min(h-1, maxY + padding);
+      const tw = Math.max(1, maxX - minX + 1);
+      const th = Math.max(1, maxY - minY + 1);
+
+      // Preserve original canvas center so layout won't shift after trimming
+      const cx = w / 2;
+      const cy = h / 2;
+      const dx = cx - minX; // center position inside trimmed rect
+      const dy = cy - minY;
+
+      const newW = Math.ceil(2 * Math.max(dx, tw - dx));
+      const newH = Math.ceil(2 * Math.max(dy, th - dy));
+
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, newW);
+      out.height = Math.max(1, newH);
+      const octx = out.getContext('2d');
+
+      // Place trimmed region so that the old center maps to new center
+      const ox = Math.round(out.width/2 - dx);
+      const oy = Math.round(out.height/2 - dy);
+
+      octx.drawImage(srcCanvas, minX, minY, tw, th, ox, oy, tw, th);
+      return out;
+    }catch(e){
+      console.error(e);
+      return srcCanvas;
+    }
+  }
+
+  // Trim transparent edges, then pad so that (anchorX, anchorY) becomes the center of the output.
+  function trimAndCenterOnAnchor(srcCanvas, anchorX, anchorY, alphaThreshold=1, margin=2){
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const data = img.data;
+
+    let minX=w, minY=h, maxX=-1, maxY=-1;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x<minX) minX=x;
+          if(y<minY) minY=y;
+          if(x>maxX) maxX=x;
+          if(y>maxY) maxY=y;
+        }
+      }
+    }
+    // if fully transparent, return original
+    if(maxX<0 || maxY<0) return srcCanvas;
+
+    minX = Math.max(0, minX - margin);
+    minY = Math.max(0, minY - margin);
+    maxX = Math.min(w-1, maxX + margin);
+    maxY = Math.min(h-1, maxY + margin);
+
+    const bw = maxX - minX + 1;
+    const bh = maxY - minY + 1;
+
+    // Anchor location inside the trimmed box
+    const ax = anchorX - minX;
+    const ay = anchorY - minY;
+
+    // We want anchor to be centered: choose output size as 2*max(ax, bw-ax) etc.
+    const outW = Math.max(1, Math.ceil(2 * Math.max(ax, bw - ax)));
+    const outH = Math.max(1, Math.ceil(2 * Math.max(ay, bh - ay)));
+
+    const out = document.createElement('canvas');
+    out.width = outW;
+    out.height = outH;
+    const octx = out.getContext('2d');
+
+    const dx = Math.round(outW/2 - ax);
+    const dy = Math.round(outH/2 - ay);
+
+    octx.drawImage(srcCanvas, minX, minY, bw, bh, dx, dy, bw, bh);
+    return out;
+  }
+
+
+  
+  function getAlphaBounds(srcCanvas, alphaThreshold=1){
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d');
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX=w, minY=h, maxX=-1, maxY=-1;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x<minX) minX=x;
+          if(y<minY) minY=y;
+          if(x>maxX) maxX=x;
+          if(y>maxY) maxY=y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY){
+      return null;
+    }
+    return {minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2};
+  }
+
+function applyCroppedToTarget(closeAfter){
+    if(!editingTargetImg || !editingTargetBox) return;
+
+    const box = editingTargetBox;
+
+    // 1) product-only output (erase/crop result)
+    let outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
+    let innerPadApplied = false;
+
+    // If no explicit crop selection, export only inner area (remove 100px padding)
+    if(outCanvas === eraseCanvas){
+      const pad = EDIT_PADDING;
+      const cw = eraseCanvas.width, ch = eraseCanvas.height;
+      const ex = document.createElement('canvas');
+      ex.width = Math.max(1, cw - pad*2);
+      ex.height = Math.max(1, ch - pad*2);
+      const exCtx = ex.getContext('2d');
+      exCtx.drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+      outCanvas = ex;
+      innerPadApplied = true;
+    }
+
+        // Trim transparent edges so the product aspect ratio won't change after modal editing
+    // NOTE: do not trim product-only canvas before compositing; it would change the coordinate space.
+let productOnlyUrl = '';
+    const prodB = getAlphaBounds(outCanvas, 1) || {minX:0,minY:0,maxX:outCanvas.width-1,maxY:outCanvas.height-1,cx:outCanvas.width/2,cy:outCanvas.height/2};
+    try{
+      productOnlyUrl = outCanvas.toDataURL('image/png');
+    }catch(err){
+      console.error(err);
+      showToast?.('此圖片來源無法匯出（請使用本機上傳的圖片）','err',2600);
+      return;
+    }
+
+    // 2) composite with shadow if enabled
+    let finalW = outCanvas.width, finalH = outCanvas.height;
+    const shadowEnabled = (document.getElementById('toggleShadow')?.checked);
+    let finalUrl = productOnlyUrl;
+
+    if(shadowEnabled){
+      const sb = document.getElementById('shadowModalBox');
+      const cr = eraseCanvas.getBoundingClientRect();
+      const br = sb?.getBoundingClientRect();
+      const scaleX = eraseCanvas.width / cr.width;
+      const scaleY = eraseCanvas.height / cr.height;
+
+      // Shadow box coordinates in *canvas pixel* space (match what user sees in modal)
+      const x = br ? (br.left - cr.left) * scaleX : 0;
+      const y = br ? (br.top  - cr.top ) * scaleY : 0;
+      const w = br ? br.width  * scaleX : 777;
+      const h = br ? br.height * scaleY : 115;
+
+      // store shadow params for next re-edit
+      box.dataset.shadowEnabled = '1';
+      box.dataset.shadowX = String(Math.round(x));
+      box.dataset.shadowY = String(Math.round(y));
+      box.dataset.shadowW = String(Math.round(w));
+      box.dataset.shadowH = String(Math.round(h));
+
+      const sImg = document.getElementById('shadowModalImg');
+      if(!(sImg && sImg.complete && sImg.naturalWidth>0)){
+        showToast?.('影子載入中，請再按一次完成','err',2000);
+        return;
+      }
+
+      // 方案 A（修正版）：影子依去背後「實際可見像素」的寬度與最下緣定位。
+      // 這裡的 prodB 來自 outCanvas 的 alpha bounds，所以抓到的是肉眼看到的物件底，不是圖片外框底。
+      const modalShadowRatio = (h > 0 && w > 0)
+        ? (h / w)
+        : ((sImg.naturalHeight > 0 && sImg.naturalWidth > 0) ? (sImg.naturalHeight / sImg.naturalWidth) : 0.148);
+
+      const productWidth = Math.max(1, prodB.maxX - prodB.minX);
+      const shadowScaleRatio = 1.5;
+      const shadowOverlapRatio = 0.35;
+      const shadowWidth = Math.max(20, productWidth * shadowScaleRatio);
+      const shadowHeight = Math.max(8, shadowWidth * modalShadowRatio);
+
+      let sx = prodB.cx - shadowWidth / 2;
+      let sy = prodB.maxY - shadowHeight * shadowOverlapRatio - 4;
+
+// Build a composite canvas that is symmetric around the PRODUCT center.
+// This guarantees that when the result image is centered on the main canvas, the product won't drift left/right.
+const outW0 = outCanvas.width, outH0 = outCanvas.height;
+
+// shadow rect in outCanvas coordinates
+const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
+
+// extents (product bounds are in outCanvas coordinates)
+const minX = Math.min(prodB.minX, sh.x);
+const minY = Math.min(prodB.minY, sh.y);
+const maxX = Math.max(prodB.maxX, sh.x + sh.w);
+const maxY = Math.max(prodB.maxY, sh.y + sh.h);
+
+
+// required half size around product center
+const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
+const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
+
+const comp = document.createElement('canvas');
+comp.width = Math.max(1, halfW * 2);
+comp.height = Math.max(1, halfH * 2);
+const cctx = comp.getContext('2d');
+
+// shift so product center maps to canvas center
+const dx = Math.round(comp.width/2 - prodB.cx);
+const dy = Math.round(comp.height/2 - prodB.cy);
+
+// draw shadow under product
+cctx.drawImage(sImg, dx + sh.x, dy + sh.y, sh.w, sh.h);
+// draw product on top
+cctx.drawImage(outCanvas, dx, dy);
+
+// Finally, trim transparent edges but keep PRODUCT centered.
+const comp2 = trimAndCenterOnAnchor(comp, comp.width/2, comp.height/2, 1, 2);
+
+finalW = comp2.width;
+finalH = comp2.height;
+
+try{
+  finalUrl = comp2.toDataURL('image/png');
+      }catch(err){
+        console.error(err);
+        showToast?.('合成影子失敗（請確認圖片為本機上傳）','err',2600);
+        return;
+      }
+    }else{
+      box.dataset.shadowEnabled = '0';
+      // Even without shadow, trim transparent edges but keep PRODUCT centered to avoid visual shrink/shift.
+      const compNoShadow = trimAndCenterOnAnchor(outCanvas, prodB.cx, prodB.cy, 1, 2);
+      finalW = compNoShadow.width;
+      finalH = compNoShadow.height;
+      try{ finalUrl = compNoShadow.toDataURL('image/png'); }catch(err){ console.error(err); }
+    }
+
+    // 3) Save base (no-shadow) for re-edit without double shadow
+    box.dataset.baseSrc = productOnlyUrl;
+
+    // 4) Apply to main editor image
+    const newW = finalW;
+    const newH = finalH;
+
+    // 4.1) Apply sizing rule same as upload: height = 70% canvas, width by aspect ratio
+    // Keep the box size/position exactly as-is to avoid any visual resize/compression after modal edit.
+    // Only if this element somehow has no explicit size yet, apply the standard "product image" sizing rule once.
+    const _boxHasSize = !!(box.style.width && box.style.height);
+    const _applyUploadRule = !!(document.getElementById('applyUploadSize')?.checked);
+    const _editorEl = box.parentElement;
+    const _canvasH = _editorEl ? _editorEl.clientHeight : CANVAS_H;
+
+    editingTargetImg.onload = ()=>{
+      // Default: keep the box size exactly as-is.
+      // Optional: if checked, or box has no size yet, apply the same sizing rule as upload (H = 70% of canvas, W by aspect ratio),
+      // and keep the box center point stable (uniform scale, no distortion).
+      if(_applyUploadRule || !_boxHasSize){
+        const ratio = (finalH>0) ? (finalW / finalH) : 1;
+        const targetH = Math.round(_canvasH * 0.7);
+        const targetW = Math.max(1, Math.round(targetH * ratio));
+
+        const cx = (box.offsetLeft || 0) + (box.offsetWidth  || 0) / 2;
+        const cy = (box.offsetTop  || 0) + (box.offsetHeight || 0) / 2;
+
+        box.style.width  = targetW + 'px';
+        box.style.height = targetH + 'px';
+        box.style.left   = Math.round(cx - targetW/2) + 'px';
+        box.style.top    = Math.round(cy - targetH/2) + 'px';
+
+        box.dataset.fixedW = String(targetW);
+        box.dataset.fixedH = String(targetH);
+      }
+    };
+    editingTargetImg.style.objectFit = 'contain';
+    editingTargetImg.src = finalUrl;
+
+    // 5) Close or keep editing
+    if(closeAfter){
+      eraseModal.classList.remove('show');
+      editingTargetImg = null; editingTargetBox = null;
+    }else{
+      // Update canvas with product-only result so further edits are on clean base
+      const tmp = new Image();
+      tmp.onload = ()=>{
+        eraseCanvas.width  = Math.max(1, tmp.naturalWidth);
+        eraseCanvas.height = Math.max(1, tmp.naturalHeight);
+        eCtx.clearRect(0,0,eraseCanvas.width, eraseCanvas.height);
+        eCtx.drawImage(tmp, 0, 0, eraseCanvas.width, eraseCanvas.height);
+        cropStart = cropEnd = null;
+        // re-init shadow overlay position clamped to new canvas
+        initShadowModalForBox(box);
+      };
+      tmp.src = productOnlyUrl;
+    }
+  }
+document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.add('show'); });
+  document.getElementById('nudgeClose').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.remove('show'); eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null; });
+  document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
+  document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
+  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
+
+  /* 背景縮放 + 編輯器（APP） */
+  async function sampleTopLeftColor(dataUrl){
+    return new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const oc = document.createElement('canvas'); oc.width = img.naturalWidth; oc.height = img.naturalHeight;
+        const ctx = oc.getContext('2d'); ctx.drawImage(img, 0, 0);
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const sx = 0, sy = 0, sw = Math.min(5, w), sh = Math.min(5, h);
+        const data = ctx.getImageData(sx, sy, sw, sh).data;
+        let r=0,g=0,b=0,c=0;
+        for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; c++; }
+        r=Math.round(r/c); g=Math.round(g/c); b=Math.round(b/c);
+        resolve(rgbToHex(r,g,b));
+      };
+      img.src = dataUrl;
+    });
+  }
+
+  function setupEditor(canvasId, editorId, productsInputId, bgInputId, bgColorInputId, scalePanelId, scaleValId){
+    const canvas = document.getElementById(canvasId);
+    const editor = document.getElementById(editorId);
+    const productsInput = document.getElementById(productsInputId);
+    const bgInput = document.getElementById(bgInputId);
+    const bgColorInput = document.getElementById(bgColorInputId);
+    const scalePanel = document.getElementById(scalePanelId);
+    const scaleVal = document.getElementById(scaleValId);
+    if(!canvas || !editor) return;
+
+    const CANVAS_W = canvas.clientWidth;
+    const CANVAS_H = canvas.clientHeight;
+    let zCounter = 10;
+
+    function fitCoverSize(nw, nh){
+      const ratio = nw/nh;
+      const cr = CANVAS_W/CANVAS_H;
+      let w,h;
+      if(ratio > cr){ h = CANVAS_H; w = h * ratio; }
+      else{ w = CANVAS_W; h = w / ratio; }
+      return {w, h};
+    }
+
+    function makeItem({url, asBackground=false, idx=0}){
+      const box = document.createElement('div');
+      box.className = 'editor-item' + (asBackground ? ' editor-bg' : '');
+      box.style.zIndex = asBackground ? '1' : String(zCounter++);
+
+      // ★★★ 新增：穩定 ID，供 APP↔PC 對應（只在商品圖上）
+      if (!asBackground) {
+        box.dataset.pid = 'p_' + Math.random().toString(36).slice(2);
+      }
+
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.objectFit = 'contain';
+
+      const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='✖';
+      const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切';  editBtn.textContent='✎';
+      const layerBox = document.createElement('div'); layerBox.className='layer-btns';
+      const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
+      const backBtn  = document.createElement('button'); backBtn.className='ctrl';  backBtn.title='圖層置後';  backBtn.textContent='▼';
+      layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
+
+      const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+
+      box.appendChild(img);
+      if(!asBackground){
+        box.appendChild(delBtn);
+        box.appendChild(editBtn);
+        box.appendChild(layerBox);
+        box.appendChild(resizeBtn);
+      }
+      editor.appendChild(box);
+
+      img.onload = ()=>{
+        const ratio = img.naturalWidth / img.naturalHeight;
+        if(asBackground){
+          const s = fitCoverSize(img.naturalWidth, img.naturalHeight);
+          box.style.width = s.w + 'px';
+          box.style.height = s.h + 'px';
+          box.style.left = ((CANVAS_W - s.w)/2) + 'px';
+          box.style.top  = ((CANVAS_H - s.h)/2) + 'px';
+          box.dataset.baseW = String(s.w);
+          box.dataset.baseH = String(s.h);
+          box.dataset.scale = '1';
+          const bgEl = canvas.querySelector('.bg');
+          if(bgEl) bgEl.style.visibility = 'hidden';
+          if(scalePanel){ scalePanel.hidden = false; scaleVal.textContent = '100%'; }
+          const curBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
+          updateSolid(editor, curBg);
+          updateGradient(editor, curBg);
+          applySplitToTexts(canvasId, curBg);
+          canvas.classList.remove('pending-underlay');
+        }else{
+          if(box.dataset.fixedW && box.dataset.fixedH){
+            box.style.width  = box.dataset.fixedW + 'px';
+            box.style.height = box.dataset.fixedH + 'px';
+            if(!box.style.left) box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (parseFloat(box.dataset.fixedW)/2)) + 'px';
+            if(!box.style.top)  box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
+          }else{
+            const targetH = CANVAS_H * 0.7;
+            const targetW = targetH * ratio;
+            box.style.width = targetW + 'px';
+            box.style.height = targetH + 'px';
+            box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (targetW/2)) + 'px';
+            box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
+          }
+          if(parseInt(box.style.zIndex,10) < 4){ box.style.zIndex = '4'; }
+        }
+      };
+
+      /* 拖拉 */
+      let dragging=false, startX=0, startY=0, origLeft=0, origTop=0;
+      box.addEventListener('mousedown', (e)=>{
+        if(e.target.classList.contains('ctrl') || e.target.tagName === 'BUTTON') return;
+        dragging = true;
+        startX = e.clientX; startY = e.clientY;
+        origLeft = parseFloat(box.style.left)||0;
+        origTop  = parseFloat(box.style.top)||0;
+        e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        box.style.left = (origLeft + dx) + 'px';
+        box.style.top  = (origTop  + dy) + 'px';
+      });
+      window.addEventListener('mouseup', ()=> dragging=false);
+
+      /* 等比縮放（右下 ↗） */
+      let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
+      resizeBtn.addEventListener('mousedown', (e)=>{
+        resizing = true;
+        startRX = e.clientX; startRY = e.clientY;
+        startW = box.clientWidth; startH = box.clientHeight; aspect = startW / startH;
+        e.stopPropagation(); e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!resizing) return;
+        const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
+        let newW = Math.max(20, startW + delta);
+        let newH = Math.max(20, newW / aspect);
+        box.style.width = newW + 'px';
+        box.style.height = newH + 'px';
+        box.dataset.fixedW = String(Math.round(newW));
+        box.dataset.fixedH = String(Math.round(newH));
+      });
+      window.addEventListener('mouseup', ()=> resizing=false);
+
+      if(!asBackground){
+        delBtn.addEventListener('click', ()=>{ box.remove(); });
+        editBtn.addEventListener('click', ()=>{ openEraseEditor(img); });
+        frontBtn.addEventListener('click', ()=>{ box.style.zIndex = String(++zCounter); });
+// 改版：置後 → 送到底層商品群（維持 z=4，覆蓋遮罩）
+backBtn.addEventListener('click', ()=>{
+  const parent = box.parentElement;
+  if(!parent) return;
+  const items = Array.from(parent.querySelectorAll('.editor-item:not(.editor-bg)'));
+  const first = items[0];
+  if (first && first !== box) parent.insertBefore(box, first);
+  box.style.zIndex = '4';
+});
+}
+
+      return box;
+    }
+
+    function scaleBackground(step){
+      const bgBox = editor.querySelector('.editor-bg');
+      if(!bgBox) return;
+      const baseW = parseFloat(bgBox.dataset.baseW||bgBox.clientWidth);
+      const baseH = parseFloat(bgBox.dataset.baseH||bgBox.clientHeight);
+      let scale = parseFloat(bgBox.dataset.scale||'1');
+      scale = Math.max(0.1, Math.min(5, scale + step));
+      const centerX = (parseFloat(bgBox.style.left)||0) + bgBox.clientWidth/2;
+      const centerY = (parseFloat(bgBox.style.top)||0)  + bgBox.clientHeight/2;
+      const newW = baseW * scale; const newH = baseH * scale;
+      bgBox.style.width = newW + 'px'; bgBox.style.height = newH + 'px';
+      bgBox.style.left = (centerX - newW/2) + 'px';
+      bgBox.style.top  = (centerY - newH/2) + 'px';
+      bgBox.dataset.scale = String(scale);
+      if(scaleVal) scaleVal.textContent = Math.round(scale*100) + '%';
+    }
+    if(scalePanel){
+      scalePanel.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button'); if(!btn) return;
+        const step = Number(btn.dataset.step||0);
+        scaleBackground(step);
+      });
+    }
+
+    /* 商品圖（APP 編輯器載入） */
+    if(productsInput){
+      productsInput.addEventListener('change', async e=>{
+        const files = Array.from(e.target.files || []).slice(0, 3);
+        files.forEach(async (f, idx)=>{
+          const url = await readAsDataURL(f);
+          makeItem({url, asBackground:false, idx});
+        });
+      });
+    }
+
+    /* 底圖（APP 編輯器載入） */
+    if(bgInput){
+      bgInput.addEventListener('change', async e=>{
+        const f = e.target.files?.[0]; if(!f) return;
+        const url = await readAsDataURL(f);
+        const hex = await sampleTopLeftColor(url).catch(()=>null);
+        if(hex){
+          if(bgColorInput){ bgColorInput.value = hex; }
+          canvas.style.backgroundColor = hex;
+          updateSolid(editor, hex);
+          updateGradient(editor, hex);
+          applySplitToTexts(canvasId, hex);
+        }else{
+          const cur = (bgColorInput && bgColorInput.value) || '#c2dff3';
+          updateSolid(editor, cur); updateGradient(editor, cur);
+        }
+        const prev = editor.querySelector('.editor-bg'); if(prev) prev.remove();
+        makeItem({url, asBackground:true});
+      });
+    }
+
+    const initBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
+    updateSolid(editor, initBg);
+    updateGradient(editor, initBg);
+    applySplitToTexts(canvasId, initBg);
+  }
+
+  // 啟用兩個 APP 編輯器
+  setupEditor('horiz',  'editorH', 'items-h', 'bg-horiz', 'bg-color-h', 'bgScaleH', 'bgScaleValH');
+  setupEditor('square', 'editorS', 'items-s', 'bg-square', 'bg-color-s', 'bgScaleS', 'bgScaleValS');
+
+  /* ======== PC Mirror：讓 PC 也有「背景層 + 縮放/拖拉」功能（由 APP 上傳觸發） ======== */
+  function setupPcMirror(pcCanvasId, pcEditorId, pcScalePanelId, pcScaleValId){
+    const pcCanvas = document.getElementById(pcCanvasId);
+    const pcEditor = document.getElementById(pcEditorId);
+    const scalePanel = document.getElementById(pcScalePanelId);
+    const scaleVal = document.getElementById(pcScaleValId);
+    if(!pcCanvas || !pcEditor) return { mirrorBackground: ()=>{} };
+
+    const PC_W = pcCanvas.clientWidth;
+    const PC_H = pcCanvas.clientHeight;
+
+    function fitCover(nw, nh){
+      const r = nw/nh, cr = PC_W/PC_H;
+      let w,h;
+      if(r>cr){ h=PC_H; w=h*r; } else { w=PC_W; h=w/r; }
+      return {w,h};
+    }
+
+    function attachDrag(box){
+      let dragging=false, sx=0, sy=0, ol=0, ot=0;
+      box.addEventListener('mousedown', (e)=>{
+        if(e.target.closest('.ctrl')) return;
+        dragging=true; sx=e.clientX; sy=e.clientY; ol=parseFloat(box.style.left)||0; ot=parseFloat(box.style.top)||0; e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!dragging) return;
+        const dx=e.clientX-sx, dy=e.clientY-sy;
+        box.style.left = (ol+dx)+'px';
+        box.style.top  = (ot+dy)+'px';
+      });
+      window.addEventListener('mouseup', ()=> dragging=false);
+    }
+
+    function bindScale(box){
+      if(!scalePanel) return;
+      scalePanel.hidden = false; scaleVal.textContent = '100%';
+      function doScale(step){
+        const baseW = parseFloat(box.dataset.baseW||box.clientWidth);
+        const baseH = parseFloat(box.dataset.baseH||box.clientHeight);
+        let sc = parseFloat(box.dataset.scale||'1');
+        sc = Math.max(0.1, Math.min(5, sc + step));
+        const cx = (parseFloat(box.style.left)||0) + box.clientWidth/2;
+        const cy = (parseFloat(box.style.top)||0)  + box.clientHeight/2;
+        const nw = baseW*sc, nh = baseH*sc;
+        box.style.width = nw+'px'; box.style.height = nh+'px';
+        box.style.left = (cx - nw/2)+'px';
+        box.style.top  = (cy - nh/2)+'px';
+        box.dataset.scale = String(sc);
+        scaleVal.textContent = Math.round(sc*100)+'%';
+      }
+      scalePanel.addEventListener('click', (e)=>{
+        const btn=e.target.closest('button'); if(!btn) return;
+        doScale(Number(btn.dataset.step||0));
+      });
+    }
+
+    return {
+      mirrorBackground: (url, hex)=>{
+        pcEditor.querySelectorAll('.editor-bg').forEach(n=>n.remove());
+        const box = document.createElement('div');
+        box.className = 'editor-item editor-bg';
+        box.style.zIndex = '1';
+        const img = document.createElement('img');
+        img.src = url; img.style.objectFit='contain';
+        box.appendChild(img);
+        pcEditor.appendChild(box);
+
+        img.onload = ()=>{
+          const s = fitCover(img.naturalWidth, img.naturalHeight);
+          box.style.width = s.w+'px';
+          box.style.height = s.h+'px';
+          box.style.left = ((PC_W - s.w)/2)+'px';
+          box.style.top  = ((PC_H - s.h)/2)+'px';
+          box.dataset.baseW = String(s.w);
+          box.dataset.baseH = String(s.h);
+          box.dataset.scale = '1';
+
+          const bgEl = pcCanvas.querySelector('.bg');
+          if(bgEl) bgEl.style.visibility = 'hidden';
+
+          updateSolid(pcEditor, hex);
+          updateGradient(pcEditor, hex);
+          if (hex) pcCanvas.style.backgroundColor = hex;
+
+          attachDrag(box);
+          bindScale(box);
+
+          pcCanvas.classList.remove('pending-underlay');
+        };
+      }
+    };
+  }
+
+  const mirrorH = setupPcMirror('pcH','editorPH','bgScalePH','bgScaleValPH');
+  const mirrorS = setupPcMirror('pcS','editorPS','bgScalePS','bgScaleValPS');
+
+  /* ===== APP→PC 同步背景：建立 PC 的 editor-bg，可拖拉/縮放 ===== */
+  document.getElementById('bg-horiz')?.addEventListener('change', async (e)=>{
+    const f = e.target.files?.[0]; if(!f) return;
+    const url = await readAsDataURL(f);
+    const hex = (document.getElementById('bg-color-h')?.value) || '#c2dff3';
+    mirrorH.mirrorBackground(url, hex);
+    const pcCanvasH = document.getElementById('pcH');
+    if (pcCanvasH) {
+      pcCanvasH.style.backgroundColor = hex;
+      pcCanvasH.classList.remove('pending-underlay');
+    }
+  });
+
+  document.getElementById('bg-square')?.addEventListener('change', async (e)=>{
+    const f = e.target.files?.[0]; if(!f) return;
+    const url = await readAsDataURL(f);
+    const hex = (document.getElementById('bg-color-s')?.value) || '#c2dff3';
+    mirrorS.mirrorBackground(url, hex);
+    const pcCanvasS = document.getElementById('pcS');
+    if (pcCanvasS) {
+      pcCanvasS.style.backgroundColor = hex;
+      pcCanvasS.classList.remove('pending-underlay');
+    }
+  });
+
+  /* ================== ★★★ 關鍵改版區：商品圖 APP→PC 同步（不鏡射移動/縮放） ================== */
+  (function(){
+    function px(n){ return (isNaN(n) ? 0 : n) + 'px'; }
+    function num(v){ const x = parseFloat(v); return isNaN(x) ? 0 : x; }
+
+    // 取代舊版：只在新增/刪除 / src 變更時同步；忽略 style 改變
+    function syncProductGhosts(appEditorId, pcEditorId){
+      const app = document.getElementById(appEditorId);
+      const pc  = document.getElementById(pcEditorId);
+      if(!app || !pc) return;
+
+      // 版面尺寸（換算比例用）— 只在「首次建立 ghost」時計算一次
+      const appCanvas = app.closest('.canvas');
+      const pcCanvas  = pc.closest('.pc-canvas');
+      const AW = appCanvas?.clientWidth  || 1200;
+      const AH = appCanvas?.clientHeight || 400;
+      const PW = pcCanvas?.clientWidth   || 992;
+      const PH = pcCanvas?.clientHeight  || 165;
+      const sx = PW / AW, sy = PH / AH;
+
+      // APP 現有商品與 PC 既有 ghost 對照
+      const appItems = Array.from(app.querySelectorAll('.editor-item:not(.editor-bg)'));
+      const appPids  = new Set(appItems.map(b => b.dataset.pid).filter(Boolean));
+      const pcGhosts = new Map(
+        Array.from(pc.querySelectorAll('.editor-item.ghost')).map(g => [g.dataset.pid, g])
+      );
+
+      // 新增或更新（只更新 src，不覆蓋位置/尺寸）
+      appItems.forEach((box, i) => {
+        const pid = box.dataset.pid;
+        if(!pid) return;
+
+        const img = box.querySelector('img');
+        if(!img) return;
+
+        let ghost = pcGhosts.get(pid);
+        if(!ghost){
+          // 初次建立：依 APP 當下狀態計一次初始位置/大小（之後不再變）
+          const g = document.createElement('div');
+          g.className = 'editor-item ghost';
+          g.dataset.pid = pid;
+          g.style.cursor = 'default';
+          g.style.zIndex = '4';
+
+          const gimg = document.createElement('img');
+          gimg.alt = 'ghost';
+          gimg.src = img.src;
+          gimg.style.objectFit = 'contain';
+          g.appendChild(gimg);
+
+          const w = num(box.style.width  || box.dataset.fixedW)  || box.clientWidth;
+          const h = num(box.style.height || box.dataset.fixedH)  || box.clientHeight;
+          const l = num(box.style.left);
+          const t = num(box.style.top);
+
+          g.style.width  = px(w * sx);
+          g.style.height = px(h * sy);
+          g.style.left   = px(l * sx);
+          g.style.top    = px(t * sy);
+
+          pc.appendChild(g);
+          pcGhosts.set(pid, g);
+        
+          // 右下角縮放把手（僅 PC ghost，與 APP 控制作法一致）
+          const resizeBtn = document.createElement('button');
+          resizeBtn.className = 'ctrl resize';
+          resizeBtn.title = '拉大/拉小';
+          resizeBtn.textContent = '↗';
+          g.appendChild(resizeBtn);
+
+          // 拖拉（僅 ghost 自己，與 APP 無關）
+          (function attachDrag(box){
+            let dragging=false, sx=0, sy=0, ol=0, ot=0;
+            box.addEventListener('mousedown', (e)=>{
+              if(e.target.classList.contains('ctrl') || e.target.tagName==='BUTTON') return;
+              dragging=true; sx=e.clientX; sy=e.clientY;
+              ol=parseFloat(box.style.left)||0; ot=parseFloat(box.style.top)||0;
+              e.preventDefault();
+            });
+            window.addEventListener('mousemove', (e)=>{
+              if(!dragging) return;
+              const dx=e.clientX-sx, dy=e.clientY-sy;
+              box.style.left = (ol+dx)+'px';
+              box.style.top  = (ot+dy)+'px';
+            });
+            window.addEventListener('mouseup', ()=> dragging=false);
+          })(g);
+
+          // 等比縮放（右下角 ↗），僅影響 PC，不回傳 APP
+          (function attachResize(handle, box){
+            let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
+            handle.addEventListener('mousedown', (e)=>{
+              resizing=true;
+              startRX = e.clientX; startRY = e.clientY;
+              startW = box.clientWidth; startH = box.clientHeight; aspect = startW / Math.max(1, startH);
+              e.stopPropagation(); e.preventDefault();
+            });
+            window.addEventListener('mousemove', (e)=>{
+              if(!resizing) return;
+              const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
+              let newW = Math.max(20, startW + delta);
+              let newH = Math.max(20, newW / aspect);
+              box.style.width = newW + 'px';
+              box.style.height = newH + 'px';
+            });
+            window.addEventListener('mouseup', ()=> resizing=false);
+          })(resizeBtn, g);
+}else{
+          // 已存在：只更新圖檔，不動 left/top/width/height
+          const gimg = ghost.querySelector('img');
+          if(gimg && gimg.src !== img.src){
+            gimg.src = img.src;
+          }
+        }
+      });
+
+      // 移除在 APP 不存在的 ghost
+      pcGhosts.forEach((g, pid) => {
+        if(!appPids.has(pid)) g.remove();
+      });
+    }
+
+    // 簡單的 debounce
+    function debounce(fn, wait=80){
+      let t=null; return function(){ clearTimeout(t); t=setTimeout(()=>fn.apply(this, arguments), wait); };
+    }
+
+    // 僅監聽：childList（新增/刪除）與 img[src]（圖檔變更）；忽略 style
+    function observeContinuous(appEditorId, pcEditorId){
+      const app = document.getElementById(appEditorId);
+      if(!app) return;
+      const run = debounce(()=>syncProductGhosts(appEditorId, pcEditorId));
+
+      // 初次同步
+      run();
+
+      const mo = new MutationObserver((muts)=>{
+        for(const m of muts){
+          if(m.type === 'childList'){ run(); break; }
+          if(m.type === 'attributes' && m.attributeName === 'src' && m.target.tagName === 'IMG'){ run(); break; }
+          // 不處理 style 改變（調整位置/大小），因此 APP 的拖拉/縮放不影響 PC
+        }
+      });
+      mo.observe(app, { 
+        childList:true, 
+        subtree:true, 
+        attributes:true, 
+        attributeFilter:['src'] 
+      });
+
+      document.getElementById(appEditorId === 'editorH' ? 'items-h' : 'items-s')
+        ?.addEventListener('change', run);
+    }
+
+    // 啟用兩組持續同步（橫式、方式）
+    observeContinuous('editorH','editorPH');
+    observeContinuous('editorS','editorPS');
+  })();
+
+  /* ===== APP→PC 既有同步（文字/CTA） ===== */
+  function syncPcText(){
+    const h1 = document.getElementById('h1-h');
+    const h2 = document.getElementById('h2-h');
+    const date = document.getElementById('date-h');
+    if(h1) document.getElementById('ph1').textContent = h1.textContent.replace(/（.*?）$/, '');
+    if(h2) document.getElementById('ph2').textContent = h2.textContent.replace(/（.*?）$/, '');
+    if(date) document.getElementById('pdate').textContent = date.textContent.replace(/（.*?）$/, '');
+  }
+  syncPcText();
+  ['h1-h','h2-h','date-h'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.addEventListener('input', syncPcText);
+      el.addEventListener('blur', syncPcText);
+    }
+  });
+
+  const ctaH = document.getElementById('cta-h');
+  const ctaPH = document.getElementById('cta-ph');
+  function syncCta(){
+    if(!ctaH || !ctaPH) return;
+    const textH = ctaH.querySelector('.text')?.textContent || '逛逛去';
+    ctaPH.querySelector('.text').textContent = textH;
+    ctaPH.style.backgroundColor = getComputedStyle(ctaH).backgroundColor;
+    ctaPH.style.color = getComputedStyle(ctaH).color;
+  }
+  syncCta();
+
+  function syncPcSText(){
+    const h1 = document.getElementById('h1-s');
+    const h2 = document.getElementById('h2-s');
+    const date = document.getElementById('date-s');
+    if(h1) document.getElementById('ps1').textContent = h1.textContent.replace(/（.*?）$/, '');
+    if(h2) document.getElementById('ps2').textContent = h2.textContent.replace(/（.*?）$/, '');
+    if(date) document.getElementById('psdate').textContent = date.textContent.replace(/（.*?）$/, '');
+  }
+  syncPcSText();
+  ['h1-s','h2-s','date-s'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){
+      el.addEventListener('input', syncPcSText);
+      el.addEventListener('blur', syncPcSText);
+    }
+  });
+
+  const ctaS = document.getElementById('cta-s');
+  const ctaPS = document.getElementById('cta-ps');
+  function syncCtaS(){
+    if(!ctaS || !ctaPS) return;
+    const text = ctaS.querySelector('.text')?.textContent || '逛逛去';
+    ctaPS.querySelector('.text').textContent = text;
+    ctaPS.style.backgroundColor = getComputedStyle(ctaS).backgroundColor;
+    ctaPS.style.color = getComputedStyle(ctaS).color;
+  }
+  syncCtaS();
+
+  /* ===== 匯出 ===== */
+  if (!HTMLCanvasElement.prototype.toBlob) {
+    HTMLCanvasElement.prototype.toBlob = function (cb, type, quality) {
+      const bin = atob(this.toDataURL(type, quality).split(',')[1]);
+      const len = bin.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+      cb(new Blob([arr], { type: type || 'image/png' }));
+    };
+  }
+
+  function withExporting(node, fn){
+    node.classList.add('is-exporting');
+    document.body.dataset.exporting = '1';
+    return Promise.resolve().then(fn).finally(()=>{
+      node.classList.remove('is-exporting');
+      delete document.body.dataset.exporting;
+    });
+  }
+  function exportIgnore(el){
+    if(!el || !el.classList) return false;
+    return el.classList.contains('bg-scale-panel') ||
+           el.classList.contains('panel') ||
+           el.classList.contains('float-meter') ||
+           el.classList.contains('modal') ||
+           el.classList.contains('nudge') ||
+           el.classList.contains('toggle-tag') ||
+           el.getAttribute('aria-hidden') === 'true' ||
+           el.classList.contains('ctrl');
+  }
+
+  async function downloadJpgFor(canvasId, bgColorInputId, filename){
+    const node = document.getElementById(canvasId);
+    if(!node){ showToast('找不到畫布', 'err', 2000); return; }
+
+    const isFileProto = location.protocol === 'file:';
+    if(isFileProto){
+      showToast('偵測到以檔案方式開啟（file://）。若圖片非上傳來源，輸出可能失敗，建議用本機伺服器開啟。', 'err', 3800);
+    }
+
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch{}
+
+    const scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const baseOptions = {
+      backgroundColor: null,
+      scale,
+      useCORS: true,
+      allowTaint: false,
+      removeContainer: true,
+      letterRendering: true,
+      logging: false,
+      ignoreElements: exportIgnore,
+      onclone: (doc)=>{
+        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove());
+        doc.body.classList.add('export-clone');
+      }
+    };
+
+    async function tryRender(options){ return await html2canvas(node, options); }
+
+    async function exportFrom(snap){
+      const outC = document.createElement('canvas');
+      outC.width = snap.width; outC.height = snap.height;
+      const ctx = outC.getContext('2d');
+      const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+      const {r,g,b} = hexToRgb(bgHex);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0,0,outC.width,outC.height);
+      ctx.drawImage(snap, 0, 0);
+
+      function toBlob(type, quality){
+        return new Promise(res => outC.toBlob(b=>res(b), type, quality));
+      }
+
+      // 1) 先嘗試 PNG（無壓縮、最高畫質）
+      let blob = await toBlob('image/png');
+      let outName = (filename || 'banner.png');
+
+      if (blob && blob.size > 200*1024){
+        // 2) 若超過 200KB 才改為 JPEG 並逐步壓縮
+        outName = outName.replace(/\.png$/i, '') + '.jpg';
+        let quality = 1.0;
+        blob = await toBlob('image/jpeg', quality);
+        while (blob && blob.size > 200*1024 && quality > 0.4){
+          quality = Math.max(0.4, +(quality - 0.06).toFixed(2));
+          blob = await toBlob('image/jpeg', quality);
+        }
+        if(!blob){ throw new Error('產生圖檔失敗'); }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = outName;
+        document.body.appendChild(a);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
+        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        showToast(`已下載：${Math.round(blob.size/1024)}KB（JPEG 品質 ${typeof quality!=='undefined'?Math.round(quality*100):'--'}%；原 PNG 超過 200KB）`,'ok',3000);
+      } else {
+        // PNG 在 200KB 以內 → 直接下載（不壓縮）
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = outName;
+        document.body.appendChild(a);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if(isIOS){ window.open(url, '_blank'); } else { a.click(); }
+        a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        showToast(`已下載：${Math.round(blob.size/1024)}KB（PNG 無壓縮）`,'ok',2000);
+      }
+    }
+
+    try{
+      await withExporting(node, async ()=>{
+        try{
+          const snap = await tryRender(baseOptions);
+          await exportFrom(snap);
+        }catch(err1){
+          const msg = (err1?.message||'');
+          if(/tainted canvas/i.test(msg)){
+            showToast('偵測到跨來源圖片，啟動「安全模式」重試（不安全圖片將不輸出）', 'err', 3200);
+            const unsafe = [];
+            node.querySelectorAll('img').forEach(img=>{
+              const src = img.getAttribute('src')||'';
+              const isSafe = src.startsWith('data:') || src.startsWith('blob:');
+              if(!isSafe){ img.dataset._exportHidden = '1'; img.style.visibility = 'hidden'; unsafe.push(img); }
+            });
+            try{
+              const snap2 = await tryRender({...baseOptions, allowTaint:true, useCORS:false});
+              await exportFrom(snap2);
+            }catch(err2){
+              console.error(err2);
+              showToast('下載失敗：跨來源圖片造成限制。請以本機伺服器開啟或將圖片改為上傳來源（dataURL）。', 'err', 5200);
+            }finally{
+              unsafe.forEach(img=>{ if(img.dataset._exportHidden==='1'){ img.style.visibility=''; delete img.dataset._exportHidden; } });
+            }
+          }else{
+            console.error(err1);
+            showToast('下載失敗：' + msg, 'err', 3000);
+          }
+        }
+      });
+    }catch(err){
+      console.error(err);
+      showToast('下載失敗：' + (err?.message || err), 'err', 3000);
+    }
+  }
+
+  document.getElementById('dl-h').addEventListener('click', ()=>downloadJpgFor('horiz','bg-color-h','horiz.jpg'));
+  document.getElementById('dl-h-pc').addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
+  document.getElementById('dl-s').addEventListener('click', ()=>downloadJpgFor('square','bg-color-s','square.jpg'));
+  document.getElementById('dl-s-pc').addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
+// ========== 掛標紅／白切換（APP 與 PC 同步） ==========
+(function(){
+  const GROUPS = {
+    tagH:  ['tagH','tagPH'], // 橫式組：APP + PC
+    tagPH: ['tagH','tagPH'],
+    tagS:  ['tagS','tagPS'], // 方形組：APP + PC
+    tagPS: ['tagS','tagPS']
+  };
+
+  function toggleTag(btn){
+    const id = btn.getAttribute('data-target');
+    const group = GROUPS[id] || [id];
+    const imgs = group.map(g=>document.getElementById(g)).filter(Boolean);
+    if(!imgs.length) return;
+
+    imgs.forEach(img=>{
+      let cur = img.getAttribute('src') || '';
+      let next = cur;
+
+      // 判斷 APP 或 PC
+      if(cur.includes('掛標pc版')) {
+        // PC 版：紅商城掛標pc版.png ↔ 白商城掛標pc版.png
+        next = cur.includes('紅商城掛標pc版')
+          ? cur.replace('紅商城掛標pc版', '白商城掛標pc版')
+          : cur.replace('白商城掛標pc版', '紅商城掛標pc版');
+      } else {
+        // APP 版：紅商城.PNG ↔ 白商城.PNG
+        next = cur.includes('紅商城')
+          ? cur.replace('紅商城', '白商城')
+          : cur.replace('白商城', '紅商城');
+      }
+      img.src = next;
+    });
+
+    const nowIsWhite = imgs[0].src.includes('白商城');
+    showToast(`掛標切換：${nowIsWhite ? '白' : '紅'}`, 'ok', 1000);
+  }
+
+  document.querySelectorAll('.toggle-tag').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleTag(btn));
+    btn.title = '切換掛標（紅／白，同步 APP 與 PC）';
+  });
+})();
+
+/* ===========================================================
+   【強力修復版】背景上傳同步邏輯 (含強制 PC 刷新)
+   =========================================================== */
+
+// 重新定義：設定顏色的函式（確保能正確移除 PC 遮罩）
+function setBgFor(app, hex) {
+  const map = app === 'H'
+    ? { appCanvas:'horiz', appEditor:'editorH', pcCanvas:'pcH', pcEditor:'editorPH', input:'bg-color-h' }
+    : { appCanvas:'square', appEditor:'editorS', pcCanvas:'pcS', pcEditor:'editorPS', input:'bg-color-s' };
+
+  const inp = document.getElementById(map.input);
+  if (inp) inp.value = hex;
+
+  const appCanvas = document.getElementById(map.appCanvas);
+  const appEditor = document.getElementById(map.appEditor);
+  if (appCanvas) appCanvas.style.backgroundColor = hex;
+  if (appEditor) { updateSolid(appEditor, hex); updateGradient(appEditor, hex); }
+
+  const pcCanvas = document.getElementById(map.pcCanvas);
+  const pcEditor = document.getElementById(map.pcEditor);
+  if (pcCanvas) {
+    pcCanvas.style.backgroundColor = hex;
+    pcCanvas.classList.remove('pending-underlay');
+  }
+  if (pcEditor) { updateSolid(pcEditor, hex); updateGradient(pcEditor, hex); }
+}
+
+// 圖片同步與吸色主程式（含 PC 圖片同步）
+function syncBackgroundAndImage(fileInputId, appBgId, type) {
+  const input = document.getElementById(fileInputId);
+  const appImg = document.getElementById(appBgId);
+  const pcImgId = (type === 'H') ? 'bgPH' : 'bgPS'; 
+  const pcImg = document.getElementById(pcImgId);
+
+  if (!input || !appImg) return;
+
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await readAsDataURL(file);
+    appImg.src = url;
+    if (pcImg) pcImg.src = url;
+
+    appImg.onload = function() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 1; canvas.height = 1;
+      ctx.drawImage(appImg, 0, 0, 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+      const hex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+      setBgFor(type, hex);
+      if(typeof showToast === 'function') showToast(`背景同步完成：${hex}`);
+    };
+  });
+}
+
+// 綁定背景上傳（避免重複呼叫 bindUpload）
+syncBackgroundAndImage('bg-horiz', 'bgH', 'H');
+syncBackgroundAndImage('bg-square', 'bgS', 'S');
+
+
+/* ================== Logo Drag-and-Drop Sorting (APP ↔ PC First Logo Sync) ================== */
+(function enableLogoDragSort(){
+  const container = document.getElementById('brandH');
+  if (!container) return;
+  const pcLogo = document.getElementById('brandPHImg');
+
+  function refreshPc() {
+    if (!pcLogo) return;
+    const first = container.querySelector('img');
+    if (first && first.src) pcLogo.src = first.src;
+  }
+
+  function setupImg(img){
+    if (!img || img.dataset.dndReady === '1') return;
+    img.dataset.dndReady = '1';
+    img.setAttribute('draggable','true');
+    img.style.cursor = 'grab';
+
+    img.addEventListener('dragstart', (e)=>{
+      img.classList.add('dragging');
+      // Needed for Firefox to initiate a drag
+      try { e.dataTransfer.setData('text/plain', ''); } catch {}
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    img.addEventListener('dragend', ()=>{
+      img.classList.remove('dragging');
+      refreshPc();
+    });
+  }
+
+  function getDragAfterElement(container, x){
+    const imgs = Array.from(container.querySelectorAll('img:not(.dragging)'));
+    let closest = { offset: Number.NEGATIVE_INFINITY, element: null };
+    for (const child of imgs){
+      const rect = child.getBoundingClientRect();
+      const offset = x - (rect.left + rect.width/2);
+      if (offset < 0 && offset > closest.offset){
+        closest = { offset, element: child };
+      }
+    }
+    return closest.element;
+  }
+
+  container.addEventListener('dragover', (e)=>{
+    const dragging = container.querySelector('img.dragging');
+    if (!dragging) return;
+    e.preventDefault();
+    const after = getDragAfterElement(container, e.clientX);
+    if (after == null) container.appendChild(dragging);
+    else container.insertBefore(dragging, after);
+  });
+
+  // Initialize existing imgs (if any)
+  Array.from(container.querySelectorAll('img')).forEach(setupImg);
+
+  // Watch for new logos added via upload and keep PC preview synced to first logo
+  const mo = new MutationObserver((muts)=>{
+    let changed = false;
+    for (const m of muts){
+      if (m.type === 'childList'){
+        Array.from(container.querySelectorAll('img')).forEach(setupImg);
+        changed = true;
+      }
+    }
+    if (changed) refreshPc();
+  });
+  mo.observe(container, { childList: true });
+
+  // Initial sync (in case images already present)
+  refreshPc();
+})();
+
+</script>
+</body>
+</html>
