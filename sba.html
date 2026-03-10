@@ -2068,6 +2068,8 @@ backBtn.addEventListener('click', ()=>{
       const PW = pcCanvas?.clientWidth   || 992;
       const PH = pcCanvas?.clientHeight  || 165;
       const sx = PW / AW, sy = PH / AH;
+      // PC 版位只換算座標，商品圖尺寸必須維持等比，避免下載時被橫向/縱向分別縮放而變形
+      const productScale = Math.min(sx, sy);
 
       // APP 現有商品與 PC 既有 ghost 對照
       const appItems = Array.from(app.querySelectorAll('.editor-item:not(.editor-bg)'));
@@ -2104,8 +2106,8 @@ backBtn.addEventListener('click', ()=>{
           const l = num(box.style.left);
           const t = num(box.style.top);
 
-          g.style.width  = px(w * sx);
-          g.style.height = px(h * sy);
+          g.style.width  = px(w * productScale);
+          g.style.height = px(h * productScale);
           g.style.left   = px(l * sx);
           g.style.top    = px(t * sy);
 
