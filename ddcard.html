@@ -7,6 +7,7 @@
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="./banwords-engine-hbn.js"></script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
   @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
@@ -1482,57 +1483,33 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     document.getElementById('pcS')?.classList.toggle('no-underlay', e.target.checked);
   });
 
-  /* ===== 禁用/替換與字數（保留，並讓 toast 貼在編輯元素） ===== */
-  const replaceRules = [
-    { re:/撒/g, to:'灑', toast:'偵測到「撒」，已自動改為「灑」' },
-    { re:/購物金|抵用券|折價券|蝦皮券|蝦幣券|折扣券/g, to:'優惠券', toast:'票券稱呼已統一為「優惠券」' },
-    { re:/\bup\b/gi, to:'起', toast:'偵測到 up，已改為「起」' },
-    { re:/專屬|VIP/gi, to:'屬於、限定', toast:'「專屬 / VIP」已統一為「屬於、限定」' },
-    { re:/拚/g, to:'拼' },
-    { re:/卷/g, to:'券' },
-    { re:/周/g, to:'週', toast:'「周」請改用「週」' },
-    { re:/[－—–−]/g, to:'-' },
-    { re:/[～]/g, to:'~' },
-    { re:/(^|[^-])\s*-\s*(?!-)/g, to:'$1 - ' },
-    { re:/~+/g, to:' - ', toast:'「~」已改為「-」' },
-    { re:/最強|最便宜|最低價|最優惠|最大牌|最佳|最大品牌|效果最好|年度最強|競網最便宜/g, to:'超', toast:'避免使用「最」字，無法證明最高級，已改為「超」' },
-    { re:/(\d+)\s*倍(?=\s*蝦幣)/g, to:'$1% ', toast:'蝦幣不用「倍」呈現，已改為「%」' },
-  ];
-  const BLOCK = (msg)=>({type:'block', msg});
-  const blockRules = [
-    { re:/\$+\s*蝦幣/g, ...BLOCK('蝦幣前勿放 $ 符號') },
-    { re:/蝦幣\s*[\d０-９,.，．]+\s*元/g, ...BLOCK('蝦幣後勿加「元」') },
-    { re:/[\d０-９,.，．]+\s*元\s*蝦幣/g, ...BLOCK('勿使用「元」搭配蝦幣，金額請使用「$」符號取代') },
-    { re:/元/g, ...BLOCK('避免使用「元」，金額請用「$」符號即可') },
-    { re:/賺取|賣蝦幣|賺/g, ...BLOCK('避免使用任何可能使蝦幣看起來有金錢價值的用語') },
-    { re:/商城狂購節|蝦皮吃貨節|蝦皮中元節|蝦皮時尚週|超級品牌日/g, ...BLOCK('避免使用蝦皮站上活動名稱') },
-    { re:/18號|25號|18節|25節/g, ...BLOCK('避免使用蝦皮站上活動名稱') },
-    { re:/獨家/g, ...BLOCK('需確認僅蝦皮獨家，避免法務及客訴疑慮') },
-    { re:/第一|No1|NO\.?1|N0\.?1|No\.?1/gi, ...BLOCK('避免使用 No.1 / 第一名 等無法證實之詞，需廠商提供可證明資料') },
-    { re:/[!]/g, ...BLOCK('請勿使用 ! 符號') },
-    { re:/[?]/g, ...BLOCK('請勿使用 ? 符號') },
-    { re:/[+]/g, ...BLOCK('請勿使用 + 符號') },
-    { re:/[.]/g, ...BLOCK('請勿使用 . 符號') },
-    { re:/["]/g, ...BLOCK('請勿使用 " 符號') },
-    { re:/[一二三四五六七八九十兩]/g, ...BLOCK('請以阿拉伯數字呈現，避免中文數字') },
-    { re:/千|仟|百/g, ...BLOCK('「千 / 仟 / 百」請改用阿拉伯數字呈現') },
-  ];
-  const leadingZeroRe = /\b0(\d)\b/g;
-  function stripLeadingZeros(text){ return text.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10))); }
-  function formatThousandsAll(text){ return text.replace(/\b\d{4,}\b/g, (m)=> m.replace(/\B(?=(\d{3})+(?!\d))/g, ',')); }
-
+  
+  /* ===== 禁用/替換與字數（由 banwords-engine.js 接手；保留 blur 才處理） ===== */
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); }});
   });
   function ensureCounter(el){ let c = el.querySelector('.counter'); if(!c){ c = document.createElement('span'); c.className='counter'; c.setAttribute('aria-hidden','true'); el.appendChild(c); } return c; }
   function updateCounter(el){ const raw=getRawText(el); const units=calcUnits(raw); const limit=limits.get(el.dataset.role)||Infinity; ensureCounter(el).textContent=`（${Math.round(units*10)/10} / ${limit}）`; }
 
+  function processBanwordElement(el){
+    if(!window.banwordEngine || typeof window.banwordEngine.applyToElement !== 'function') return;
+    const result = window.banwordEngine.applyToElement(el, {
+      role: el?.dataset?.role || '',
+      getText: getRawText
+    });
+    ensureCounter(el);
+    updateCounter(el);
+    if(result && result.message){
+      showToast(result.message, 'err', 2300, el);
+    }
+  }
+
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{ ensureCounter(el); updateCounter(el); });
 
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     const role = el.dataset.role;
     if(role==='h1') el.style.lineHeight='53px';
-    if(role==='h2') el.style.lineHeight='68px';
+    if(role==='h2') el.style.lineHeight='40px';
     if(role==='date') el.style.lineHeight='49px';
 
     el.addEventListener('beforeinput', (e)=>{
@@ -1552,7 +1529,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         const incoming = (e.data ?? '');
         if(calcUnits(base + incoming) > limit){
           e.preventDefault();
-          showToast(`超出上限（${limit}）`, 'err', 1800, el); // 🔴 改：貼在目標元素旁
+          showToast(`超出上限（${limit}）`, 'err', 1800, el);
           return;
         }
       }
@@ -1567,72 +1544,26 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         .trim();
       const limit = limits.get(el.dataset.role) ?? Infinity;
       const base = getRawText(el);
-      if(calcUnits(base + text) > limit){ showToast(`超出上限（${limit}）`, 'err', 1800, el); return; } // 🔴 改：貼在目標元素旁
+      if(calcUnits(base + text) > limit){ showToast(`超出上限（${limit}）`, 'err', 1800, el); return; }
       document.execCommand('insertText', false, text);
       updateCounter(el); showFloatMeter(el);
     });
 
     el.addEventListener('blur', ()=>{
-      let txt = getRawText(el);
-      txt = txt.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10)));
-      txt = formatThousandsAll(txt);
-      el.textContent = txt; ensureCounter(el);
-
-      enforceBlocks(el);
-      applyReplaces(el);
-
-      txt = getRawText(el);
-      txt = txt.replace(leadingZeroRe, (_, d)=> String(parseInt(d,10)));
-      txt = formatThousandsAll(txt);
-      el.textContent = txt; ensureCounter(el);
+      processBanwordElement(el);
 
       if(role==='h1') el.style.lineHeight='53px';
-      if(role==='h2') el.style.lineHeight='68px';
+      if(role==='h2') el.style.lineHeight='40px';
       if(role==='date') el.style.lineHeight='49px';
 
       updateCounter(el);
-
-      /* 同步 PC 預覽文案 */
       syncPcText();
       syncPcSText();
     });
   });
 
-  function enforceBlocks(el){
-    let txt = getRawText(el);
-    let changed = false, hit = null;
-    for(const rule of blockRules){
-      if(rule.re.test(txt)){
-        txt = txt.replace(rule.re, ()=>{ changed = true; hit = rule.msg; return ''; });
-      }
-    }
-    if(changed){
-      el.textContent = txt; ensureCounter(el);
-      showToast(hit || '含禁用語，已移除', 'err', 2400, el); // 🔴 改：貼在目標元素旁
-    }
-  }
-  function applyReplaces(el){
-    const before = getRawText(el);
-    let txt = before;
-    const toasts = [];
-
-    for (const rule of replaceRules){
-      if (rule.re.test(txt)){
-        txt = txt.replace(rule.re, rule.to);
-        if (rule.toast) toasts.push(rule.toast);
-      }
-    }
-
-    if (txt !== before){
-      el.textContent = txt;
-      ensureCounter(el);
-    }
-    if (toasts.length){
-      showToast([...new Set(toasts)].join('；'), 'err', 2300, el); // 🔴 改：貼在目標元素旁
-    }
-  }
-
   /* ========== 去背/裁切（保留） ========= */
+
   const eraseModal = document.getElementById('eraseModal');
   const eraseCanvas = document.getElementById('eraseCanvas');
   const eCtx = eraseCanvas.getContext('2d', { willReadFrequently:true });
