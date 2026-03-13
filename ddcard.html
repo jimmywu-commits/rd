@@ -148,7 +148,9 @@
   }
 
   /* 圖片編輯器（含四角工具） */
-  .editor{position:absolute;inset:0;z-index:10;}
+  .editor{position:absolute;inset:0;z-index:auto;}
+  /* 背景裁切層：讓上傳背景圖只顯示在畫布範圍內 */
+  .bg-layer{position:absolute;inset:0;overflow:hidden;z-index:0;}
   .editor{pointer-events:none;}
   .editor-item, .editor-item .ctrl, .editor-item .layer-btns{pointer-events:auto;}
   .editor-item{pointer-events:auto;}
@@ -256,6 +258,14 @@
 
   .pending-underlay .bg-solid,
   .pending-underlay .bg-gradient{ display:none !important; }
+
+/* User requested: DDCard layout should not use color blocks or gradients; uploaded background stays as the bottom-most visual layer inside the canvas */
+#horiz .bg-solid, #horiz .bg-gradient,
+#square .bg-solid, #square .bg-gradient,
+#pcH .bg-solid, #pcH .bg-gradient,
+#pcS .bg-solid, #pcS .bg-gradient{display:none !important;}
+#editorH .bg-layer, #editorS .bg-layer, #editorPH .bg-layer, #editorPS .bg-layer{z-index:0 !important;}
+#editorH .editor-bg, #editorS .editor-bg, #editorPH .editor-bg, #editorPS .editor-bg{z-index:0 !important;}
 
   /* ======================= PC 預覽（橫式） ======================= */
   #pcH .brand{
@@ -932,6 +942,7 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
     <div id="horiz" class="canvas pending-underlay">
       <img class="bg" id="bgH" src="程式檔案/mask-ddcard.png" alt="背景" />
       <div class="editor" id="editorH">
+        <div class="bg-layer"></div>
         <div class="bg-solid" id="solidH"></div>
         <div class="bg-gradient" id="gradH"></div>
       </div>
@@ -960,6 +971,7 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
     <div id="pcH" class="pc-canvas pending-underlay" aria-hidden="false">
       <img class="bg" id="bgPH" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
       <div class="editor" id="editorPH">
+        <div class="bg-layer"></div>
         <div class="bg-solid" id="solidPH"></div>
         <div class="bg-gradient" id="gradPH"></div>
       </div>
@@ -1012,6 +1024,7 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
     <div id="square" class="canvas pending-underlay">
       <img class="bg" id="bgS" src="程式檔案/方BG-APP.png" alt="背景" />
       <div class="editor" id="editorS">
+        <div class="bg-layer"></div>
         <div class="bg-solid" id="solidS"></div>
         <div class="bg-gradient" id="gradS"></div>
       </div>
@@ -1040,6 +1053,7 @@ h2:nth-of-type(2) + .toolbar + .toolbar,
     <div id="pcS" class="pc-canvas pending-underlay" aria-hidden="false">
       <img class="bg" id="bgPS" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
       <div class="editor" id="editorPS">
+        <div class="bg-layer"></div>
         <div class="bg-solid" id="solidPS"></div>
         <div class="bg-gradient" id="gradPS"></div>
       </div>
@@ -2286,7 +2300,8 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         box.appendChild(layerBox);
         box.appendChild(resizeBtn);
       }
-      editor.appendChild(box);
+      const bgLayer = editor.querySelector('.bg-layer') || editor;
+      (asBackground ? bgLayer : editor).appendChild(box);
 
       img.onload = ()=>{
         const ratio = img.naturalWidth / img.naturalHeight;
@@ -2434,7 +2449,7 @@ backBtn.addEventListener('click', ()=>{
           const cur = (bgColorInput && bgColorInput.value) || '#c2dff3';
           updateSolid(editor, cur); updateGradient(editor, cur);
         }
-        const prev = editor.querySelector('.editor-bg'); if(prev) prev.remove();
+        const prev = (editor.querySelector('.bg-layer') || editor).querySelector('.editor-bg'); if(prev) prev.remove();
         makeItem({url, asBackground:true});
       });
     }
@@ -2507,14 +2522,15 @@ backBtn.addEventListener('click', ()=>{
 
     return {
       mirrorBackground: (url, hex)=>{
-        pcEditor.querySelectorAll('.editor-bg').forEach(n=>n.remove());
+        (pcEditor.querySelector('.bg-layer') || pcEditor).querySelectorAll('.editor-bg').forEach(n=>n.remove());
         const box = document.createElement('div');
         box.className = 'editor-item editor-bg';
         box.style.zIndex = '1';
         const img = document.createElement('img');
         img.src = url; img.style.objectFit='contain';
         box.appendChild(img);
-        pcEditor.appendChild(box);
+        const bgLayer = pcEditor.querySelector('.bg-layer') || pcEditor;
+        bgLayer.appendChild(box);
 
         img.onload = ()=>{
           const s = fitCover(img.naturalWidth, img.naturalHeight);
