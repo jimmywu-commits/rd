@@ -182,7 +182,7 @@
   }
 
   /* 背景縮放控制（APP & PC 都有） */
-  .bg-scale-panel{position:absolute;right:0;top:-46px;z-index:7;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
+  .bg-scale-panel{position:absolute;right:8px;top:8px;z-index:7;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
   .bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px}
   .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
 
@@ -525,6 +525,52 @@
 .manual-icon{position:fixed;top:20px;right:20px;width:100px;text-align:center;cursor:pointer;z-index:9999}
 .manual-icon img{width:100px;height:100px;display:block}
 .manual-icon span{display:block;font-size:10px;line-height:1.2}
+</style>
+
+
+<style id="jimmy-cta-final-fix">
+  /* Final fix: make top CTA text/arrow positioning identical to bottom CTA */
+  #cta-h,
+  #cta-s {
+    width: 238px !important;
+    height: 44px !important;
+    right: 22px !important;
+    bottom: 25.5px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding: 0 16px !important;
+    font-size: 29px !important;
+    line-height: 1 !important;
+    border-radius: 8px !important;
+  }
+
+  #cta-h .text,
+  #cta-s .text {
+    display: inline-block !important;
+    position: relative !important;
+    top: -2px !important;
+    right: auto !important;
+    left: auto !important;
+    transform: none !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+  }
+
+  #cta-h .triangle,
+  #cta-s .triangle {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    transform: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left-width: 10px !important;
+    border-top-width: 9.5px !important;
+    border-bottom-width: 9.5px !important;
+    flex: 0 0 auto !important;
+  }
 </style>
 
 </head>
@@ -1352,26 +1398,6 @@ redrawOriginal();
 
     shadowBox.style.display = 'block';
     shadowBox.setAttribute('aria-hidden','false');
-
-    const hasSavedShadow = box && box.dataset && box.dataset.shadowEnabled === '1' &&
-      box.dataset.shadowX != null && box.dataset.shadowY != null &&
-      box.dataset.shadowW != null && box.dataset.shadowH != null;
-
-    if(hasSavedShadow){
-      const cw = eraseCanvas.width || 800;
-      const ch = eraseCanvas.height || 400;
-      const w = clamp(parseFloat(box.dataset.shadowW) || 0, 20, cw);
-      const h = clamp(parseFloat(box.dataset.shadowH) || 0, 20, ch);
-      const x = clamp(parseFloat(box.dataset.shadowX) || 0, 0, Math.max(0, cw - w));
-      const y = clamp(parseFloat(box.dataset.shadowY) || 0, 0, Math.max(0, ch - h));
-      shadowBox.style.width = Math.round(w) + 'px';
-      shadowBox.style.height = Math.round(h) + 'px';
-      shadowBox.style.left = Math.round(x) + 'px';
-      shadowBox.style.top = Math.round(y) + 'px';
-      renderShadowPreview();
-      return;
-    }
-
     autoPlaceShadowByVisibleBounds();
   }
 
@@ -1674,15 +1700,8 @@ function applyCroppedToTarget(closeAfter){
     const box = editingTargetBox;
 
     // 1) product-only output (erase/crop result)
-    const selectedCanvas = getCroppedCanvasFromSelection();
-    let outCanvas = selectedCanvas || eraseCanvas;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    if(selectedCanvas && cropStart && cropEnd){
-      offsetX = Math.max(0, Math.min(cropStart.x, cropEnd.x));
-      offsetY = Math.max(0, Math.min(cropStart.y, cropEnd.y));
-    }
+    let outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
+    let innerPadApplied = false;
 
     // If no explicit crop selection, export only inner area (remove 100px padding)
     if(outCanvas === eraseCanvas){
@@ -1694,11 +1713,12 @@ function applyCroppedToTarget(closeAfter){
       const exCtx = ex.getContext('2d');
       exCtx.drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
       outCanvas = ex;
-      offsetX = pad;
-      offsetY = pad;
+      innerPadApplied = true;
     }
 
-    let productOnlyUrl = '';
+        // Trim transparent edges so the product aspect ratio won't change after modal editing
+    // NOTE: do not trim product-only canvas before compositing; it would change the coordinate space.
+let productOnlyUrl = '';
     const prodB = getAlphaBounds(outCanvas, 1) || {minX:0,minY:0,maxX:outCanvas.width-1,maxY:outCanvas.height-1,cx:outCanvas.width/2,cy:outCanvas.height/2};
     try{
       productOnlyUrl = outCanvas.toDataURL('image/png');
@@ -1720,20 +1740,16 @@ function applyCroppedToTarget(closeAfter){
       const scaleX = eraseCanvas.width / cr.width;
       const scaleY = eraseCanvas.height / cr.height;
 
-      // Shadow box coordinates in eraseCanvas pixel space (match what user sees in modal)
-      const xOnEraseCanvas = br ? (br.left - cr.left) * scaleX : 0;
-      const yOnEraseCanvas = br ? (br.top  - cr.top ) * scaleY : 0;
+      // Shadow box coordinates in *canvas pixel* space (match what user sees in modal)
+      const x = br ? (br.left - cr.left) * scaleX : 0;
+      const y = br ? (br.top  - cr.top ) * scaleY : 0;
       const w = br ? br.width  * scaleX : 777;
       const h = br ? br.height * scaleY : 115;
 
-      // Translate to the exported outCanvas coordinate space so preview === final result
-      const shadowX = xOnEraseCanvas - offsetX;
-      const shadowY = yOnEraseCanvas - offsetY;
-
       // store shadow params for next re-edit
       box.dataset.shadowEnabled = '1';
-      box.dataset.shadowX = String(Math.round(shadowX));
-      box.dataset.shadowY = String(Math.round(shadowY));
+      box.dataset.shadowX = String(Math.round(x));
+      box.dataset.shadowY = String(Math.round(y));
       box.dataset.shadowW = String(Math.round(w));
       box.dataset.shadowH = String(Math.round(h));
 
@@ -1743,31 +1759,61 @@ function applyCroppedToTarget(closeAfter){
         return;
       }
 
-      // Keep the shadow exactly where/what size the editor shows.
-      const minX = Math.min(0, shadowX);
-      const minY = Math.min(0, shadowY);
-      const maxX = Math.max(outCanvas.width, shadowX + w);
-      const maxY = Math.max(outCanvas.height, shadowY + h);
+      // 方案 A（修正版）：影子依去背後「實際可見像素」的寬度與最下緣定位。
+      // 這裡的 prodB 來自 outCanvas 的 alpha bounds，所以抓到的是肉眼看到的物件底，不是圖片外框底。
+      const modalShadowRatio = (h > 0 && w > 0)
+        ? (h / w)
+        : ((sImg.naturalHeight > 0 && sImg.naturalWidth > 0) ? (sImg.naturalHeight / sImg.naturalWidth) : 0.148);
 
-      const comp = document.createElement('canvas');
-      comp.width = Math.max(1, Math.ceil(maxX - minX));
-      comp.height = Math.max(1, Math.ceil(maxY - minY));
-      const cctx = comp.getContext('2d');
+      const productWidth = Math.max(1, prodB.maxX - prodB.minX);
+      const shadowScaleRatio = 1.5;
+      const shadowOverlapRatio = 0.35;
+      const shadowWidth = Math.max(20, productWidth * shadowScaleRatio);
+      const shadowHeight = Math.max(8, shadowWidth * modalShadowRatio);
 
-      const dx = -minX;
-      const dy = -minY;
+      let sx = prodB.cx - shadowWidth / 2;
+      let sy = prodB.maxY - shadowHeight * shadowOverlapRatio - 4;
 
-      cctx.drawImage(sImg, dx + shadowX, dy + shadowY, w, h);
-      cctx.drawImage(outCanvas, dx, dy);
+// Build a composite canvas that is symmetric around the PRODUCT center.
+// This guarantees that when the result image is centered on the main canvas, the product won't drift left/right.
+const outW0 = outCanvas.width, outH0 = outCanvas.height;
 
-      // Keep product center stable after trimming, but preserve exact shadow offset/size.
-      const comp2 = trimAndCenterOnAnchor(comp, dx + prodB.cx, dy + prodB.cy, 1, 2);
+// shadow rect in outCanvas coordinates
+const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
 
-      finalW = comp2.width;
-      finalH = comp2.height;
+// extents (product bounds are in outCanvas coordinates)
+const minX = Math.min(prodB.minX, sh.x);
+const minY = Math.min(prodB.minY, sh.y);
+const maxX = Math.max(prodB.maxX, sh.x + sh.w);
+const maxY = Math.max(prodB.maxY, sh.y + sh.h);
 
-      try{
-        finalUrl = comp2.toDataURL('image/png');
+
+// required half size around product center
+const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
+const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
+
+const comp = document.createElement('canvas');
+comp.width = Math.max(1, halfW * 2);
+comp.height = Math.max(1, halfH * 2);
+const cctx = comp.getContext('2d');
+
+// shift so product center maps to canvas center
+const dx = Math.round(comp.width/2 - prodB.cx);
+const dy = Math.round(comp.height/2 - prodB.cy);
+
+// draw shadow under product
+cctx.drawImage(sImg, dx + sh.x, dy + sh.y, sh.w, sh.h);
+// draw product on top
+cctx.drawImage(outCanvas, dx, dy);
+
+// Finally, trim transparent edges but keep PRODUCT centered.
+const comp2 = trimAndCenterOnAnchor(comp, comp.width/2, comp.height/2, 1, 2);
+
+finalW = comp2.width;
+finalH = comp2.height;
+
+try{
+  finalUrl = comp2.toDataURL('image/png');
       }catch(err){
         console.error(err);
         showToast?.('合成影子失敗（請確認圖片為本機上傳）','err',2600);
@@ -1798,6 +1844,9 @@ function applyCroppedToTarget(closeAfter){
     const _canvasH = _editorEl ? _editorEl.clientHeight : CANVAS_H;
 
     editingTargetImg.onload = ()=>{
+      // Default: keep the box size exactly as-is.
+      // Optional: if checked, or box has no size yet, apply the same sizing rule as upload (H = 70% of canvas, W by aspect ratio),
+      // and keep the box center point stable (uniform scale, no distortion).
       if(_applyUploadRule || !_boxHasSize){
         const ratio = (finalH>0) ? (finalW / finalH) : 1;
         const targetH = Math.round(_canvasH * 0.7);
@@ -2605,45 +2654,14 @@ backBtn.addEventListener('click', ()=>{
   const _dlHPc=document.getElementById('dl-h-pc'); if(_dlHPc) _dlHPc.addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
   const _dlS=document.getElementById('dl-s'); if(_dlS) _dlS.addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
   const _dlSPc=document.getElementById('dl-s-pc'); if(_dlSPc) _dlSPc.addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
-// ========== 掛標紅／白／無掛標 切換（APP 與 PC 同步） ==========
+// ========== 掛標紅／白切換（APP 與 PC 同步） ==========
 (function(){
   const GROUPS = {
-    tagH:  ['tagH','tagPH'],
+    tagH:  ['tagH','tagPH'], // 橫式組：APP + PC
     tagPH: ['tagH','tagPH'],
-    tagS:  ['tagS','tagPS'],
+    tagS:  ['tagS','tagPS'], // 方形組：APP + PC
     tagPS: ['tagS','tagPS']
   };
-  const ORDER = ['red','white','none'];
-
-  function normalizeState(img){
-    if(!img) return 'red';
-    if(img.style.visibility === 'hidden' || img.style.display === 'none') return 'none';
-    const cur = img.getAttribute('src') || '';
-    return cur.includes('白商城') ? 'white' : 'red';
-  }
-
-  function setTagState(img, state){
-    if(!img) return;
-    let cur = img.getAttribute('src') || '';
-    const isPc = cur.includes('掛標pc版');
-
-    if(state === 'none'){
-      img.style.visibility = 'hidden';
-      return;
-    }
-
-    img.style.visibility = 'visible';
-    if(isPc){
-      cur = cur
-        .replace('紅商城掛標pc版', state === 'white' ? '白商城掛標pc版' : '紅商城掛標pc版')
-        .replace('白商城掛標pc版', state === 'white' ? '白商城掛標pc版' : '紅商城掛標pc版');
-    }else{
-      cur = cur
-        .replace('紅商城', state === 'white' ? '白商城' : '紅商城')
-        .replace('白商城', state === 'white' ? '白商城' : '紅商城');
-    }
-    img.src = cur;
-  }
 
   function toggleTag(btn){
     const id = btn.getAttribute('data-target');
@@ -2651,17 +2669,32 @@ backBtn.addEventListener('click', ()=>{
     const imgs = group.map(g=>document.getElementById(g)).filter(Boolean);
     if(!imgs.length) return;
 
-    const current = normalizeState(imgs[0]);
-    const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
-    imgs.forEach(img => setTagState(img, next));
+    imgs.forEach(img=>{
+      let cur = img.getAttribute('src') || '';
+      let next = cur;
 
-    const label = next === 'none' ? '無掛標' : (next === 'white' ? '白' : '紅');
-    showToast(`掛標切換：${label}`, 'ok', 1000);
+      // 判斷 APP 或 PC
+      if(cur.includes('掛標pc版')) {
+        // PC 版：紅商城掛標pc版.png ↔ 白商城掛標pc版.png
+        next = cur.includes('紅商城掛標pc版')
+          ? cur.replace('紅商城掛標pc版', '白商城掛標pc版')
+          : cur.replace('白商城掛標pc版', '紅商城掛標pc版');
+      } else {
+        // APP 版：紅商城.PNG ↔ 白商城.PNG
+        next = cur.includes('紅商城')
+          ? cur.replace('紅商城', '白商城')
+          : cur.replace('白商城', '紅商城');
+      }
+      img.src = next;
+    });
+
+    const nowIsWhite = imgs[0].src.includes('白商城');
+    showToast(`掛標切換：${nowIsWhite ? '白' : '紅'}`, 'ok', 1000);
   }
 
   document.querySelectorAll('.toggle-tag').forEach(btn=>{
     btn.addEventListener('click', ()=>toggleTag(btn));
-    btn.title = '切換掛標（紅／白／無掛標，同步 APP 與 PC）';
+    btn.title = '切換掛標（紅／白，同步 APP 與 PC）';
   });
 })();
 
