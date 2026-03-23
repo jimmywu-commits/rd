@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HBN製圖、審圖工具</title>
+<!-- Logo 編輯：不顯示 LOGO 字樣；橫式 logo 改為交換位置；每顆 logo 右上角皆有獨立編輯 icon；logo 編輯隱藏加影子 -->
 <!-- 本版增加：左側文字可直接貼上；Logo 上傳後可拖曳、滑鼠滾輪縮放 -->
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
@@ -349,22 +350,53 @@
 
 .brand.is-editable,
 #square .brand.is-editable{
-  cursor:move;
+  cursor:default;
   user-select:none;
 }
-.brand.is-editable::after{
-  content:'LOGO';
-  position:absolute;
-  left:0;
-  top:-18px;
-  font-size:10px;
-  line-height:1;
-  padding:2px 5px;
-  border-radius:999px;
-  background:rgba(0,0,0,.6);
-  color:#fff;
-  opacity:.9;
+
+
+.logo-item{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
+.logo-item .logo-edit-btn,
+.logo-item .logo-swap-btn{
+  position:absolute;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#000;
+  color:#fff;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:20;
+}
+.logo-item .logo-edit-btn{ top:-26px; right:-2px; }
+.logo-item .logo-swap-btn{ top:-26px; left:-2px; }
+.logo-item img{ display:block; }
+
+.logo-edit-btn{
+  position:absolute;
+  top:-26px;
+  right:-2px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#000;
+  color:#fff;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:20;
+}
+
 .brand.is-editable img,
 .brand.is-editable .logo-box,
 .brand.is-editable .logo-box img{
@@ -670,7 +702,7 @@
       <label>LOGO（橫，最多 3）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
       <label>底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
       <label>商品圖（最多3）：<input id="items-h" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 上傳後可拖曳與縮放</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 可左右微調與編輯</span>
     </div>
 
     <!-- APP 橫式 -->
@@ -757,7 +789,7 @@
       <label>LOGO（方 120×120）：<input id="logo-square" type="file" accept="image/*"></label>
       <label>底圖：<input id="bg-square" type="file" accept="image/*"></label>
       <label>商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 上傳後可拖曳與縮放</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 可左右微調與編輯</span>
     </div>
 
     <!-- APP 方形 -->
@@ -956,76 +988,106 @@
     const input=document.getElementById(inputId);
     const container=document.querySelector(containerSelector);
     if(!input || !container) return;
+
+    function applyLogoOrderEditing(){
+      const logos = Array.from(container.querySelectorAll('img'));
+      logos.forEach((img, index)=>{
+        let wrap = img.closest('.logo-item');
+        if(!wrap){
+          wrap = document.createElement('div');
+          wrap.className = 'logo-item';
+          img.parentNode.insertBefore(wrap, img);
+          wrap.appendChild(img);
+        }
+
+        let editBtn = wrap.querySelector('.logo-edit-btn');
+        if(!editBtn){
+          editBtn = document.createElement('div');
+          editBtn.className = 'logo-edit-btn';
+          editBtn.innerHTML = '✎';
+          editBtn.title = '編輯 Logo';
+          wrap.appendChild(editBtn);
+          editBtn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            openEraseEditor(img, { isLogoEdit:true });
+          });
+        }
+
+        let swapBtn = wrap.querySelector('.logo-swap-btn');
+        if(!swapBtn){
+          swapBtn = document.createElement('div');
+          swapBtn.className = 'logo-swap-btn';
+          swapBtn.innerHTML = '⇄';
+          swapBtn.title = '交換位置';
+          wrap.appendChild(swapBtn);
+          swapBtn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            const items = Array.from(container.querySelectorAll('.logo-item'));
+            const currentIndex = items.indexOf(wrap);
+            if(currentIndex < items.length - 1){
+              container.insertBefore(items[currentIndex + 1], wrap);
+            }else if(items.length > 1){
+              container.insertBefore(wrap, items[0]);
+            }
+            syncPcHorizontalLogo();
+          });
+        }
+      });
+      syncPcHorizontalLogo();
+    }
+
+    function syncPcHorizontalLogo(){
+      const pcLogo = document.getElementById('brandPHImg');
+      const first = container.querySelector('.logo-item img, img');
+      if(pcLogo && first){ pcLogo.src = first.src; }
+    }
+
     input.addEventListener('change', async e=>{
       const files = Array.from(e.target.files || []).slice(0, max);
       container.innerHTML = '';
       for(const file of files){
         const url = await readAsDataURL(file);
+        const wrap = document.createElement('div');
+        wrap.className = 'logo-item';
         const img = document.createElement('img');
-        img.src = url; img.alt = 'Logo';
-        container.appendChild(img);
+        img.src = url;
+        img.alt = 'Logo';
+        wrap.appendChild(img);
+        container.appendChild(wrap);
       }
-      /* 同步 PC 橫式 logo 使用第一張（若存在） */
-      const pcLogo = document.getElementById('brandPHImg');
-      const first = container.querySelector('img');
-      if(pcLogo && first){ pcLogo.src = first.src; }
+      applyLogoOrderEditing();
     });
   }
   function enableLogoEditing(target, options = {}){
     const el = typeof target === 'string' ? document.querySelector(target) : target;
     if(!el) return;
-    const minScale = options.minScale || 0.35;
-    const maxScale = options.maxScale || 3;
 
     el.classList.add('is-editable');
-    if(!el.dataset.logoScale) el.dataset.logoScale = '1';
-    if(!el.dataset.logoX) el.dataset.logoX = '0';
-    if(!el.dataset.logoY) el.dataset.logoY = '0';
+
+    const fixedY = Number.isFinite(options.fixedY) ? options.fixedY : 0;
+    el.dataset.logoY = String(fixedY);
 
     const apply = ()=>{
-      const x = parseFloat(el.dataset.logoX || '0');
-      const y = parseFloat(el.dataset.logoY || '0');
-      const s = parseFloat(el.dataset.logoScale || '1');
-      el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+      const y = fixedY;
+      el.style.transform = `translate(0px, ${y}px)`;
       el.style.transformOrigin = 'center center';
     };
     apply();
 
-    if(el.dataset.logoBound === '1') return;
-    el.dataset.logoBound = '1';
+    if(!el.querySelector('.logo-edit-btn')){
+      const btn = document.createElement('div');
+      btn.className = 'logo-edit-btn';
+      btn.innerHTML = '✎';
+      btn.title = '編輯 Logo';
+      el.appendChild(btn);
 
-    let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
-
-    el.addEventListener('mousedown', (e)=>{
-      if(e.target.closest('.ctrl')) return;
-      dragging = true;
-      sx = e.clientX;
-      sy = e.clientY;
-      ox = parseFloat(el.dataset.logoX || '0');
-      oy = parseFloat(el.dataset.logoY || '0');
-      e.preventDefault();
-    });
-
-    window.addEventListener('mousemove', (e)=>{
-      if(!dragging) return;
-      const dx = e.clientX - sx;
-      const dy = e.clientY - sy;
-      el.dataset.logoX = String(ox + dx);
-      el.dataset.logoY = String(oy + dy);
-      apply();
-    });
-
-    window.addEventListener('mouseup', ()=>{
-      dragging = false;
-    });
-
-    el.addEventListener('wheel', (e)=>{
-      e.preventDefault();
-      const cur = parseFloat(el.dataset.logoScale || '1');
-      const next = Math.max(minScale, Math.min(maxScale, cur + (e.deltaY < 0 ? 0.05 : -0.05)));
-      el.dataset.logoScale = String(next);
-      apply();
-    }, { passive:false });
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const img = el.querySelector('img');
+        if(!img) return;
+        openEraseEditor(img, { isLogoEdit:true });
+      });
+    }
   }
 
 /* ===========================================================
@@ -1079,19 +1141,16 @@
   /* =========================================================== */
 	  
   bindUploadMultiple('logo-horiz','#brandH',3);
-  document.getElementById('logo-horiz')?.addEventListener('change', ()=>{
-    enableLogoEditing('#brandH', { minScale:0.5, maxScale:3 });
-  });
 
   bindUpload('logo-square','#brandImgS');
   document.getElementById('logo-square')?.addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     const url=await readAsDataURL(f);
     const el=document.getElementById('brandPSImg'); if(el) el.src=url;
-    enableLogoEditing(document.querySelector('#square .brand'), { minScale:0.5, maxScale:3 });
+    enableLogoEditing(document.querySelector('#square .brand'), { minX:-30, maxX:30, fixedY:0 });
   });
 
-  enableLogoEditing(document.querySelector('#square .brand'), { minScale:0.5, maxScale:3 });
+  enableLogoEditing(document.querySelector('#square .brand'), { minX:-30, maxX:30, fixedY:0 });
     /* ========== 顏色工具 ========= */
   function hexToRgb(hex){ const h = hex.replace('#',''); const b = h.length===3 ? h.split('').map(c=>c+c).join('') : h; return { r:parseInt(b.slice(0,2),16), g:parseInt(b.slice(2,4),16), b:parseInt(b.slice(4,6),16) }; }
   function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
@@ -2333,7 +2392,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
           const curBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
           updateSolid(editor, curBg);
           updateGradient(editor, curBg);
-          applySplitToTexts(canvasId, curBg);
+          /* auto text color disabled on background upload */
           canvas.classList.remove('pending-underlay');
         }else{
           if(box.dataset.fixedW && box.dataset.fixedH){
@@ -2480,7 +2539,7 @@ backBtn.addEventListener('click', ()=>{
           canvas.style.backgroundColor = hex;
           updateSolid(editor, hex);
           updateGradient(editor, hex);
-          applySplitToTexts(canvasId, hex);
+          // disabled text auto color
         }else{
           const cur = (bgColorInput && bgColorInput.value) || '#c2dff3';
           updateSolid(editor, cur); updateGradient(editor, cur);
@@ -2493,7 +2552,7 @@ backBtn.addEventListener('click', ()=>{
     const initBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
     updateSolid(editor, initBg);
     updateGradient(editor, initBg);
-    applySplitToTexts(canvasId, initBg);
+    // disabled text auto color
   }
 
   // 啟用兩個 APP 編輯器
