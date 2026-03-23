@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HBN製圖、審圖工具</title>
+<!-- underlay restore fix: preserve no-underlay/pending-underlay state on JSON import -->
+<!-- json restore guard: prevent bg onload sync from overwriting saved solid/gradient -->
+<!-- JSON 1:1 patch: preserve app/pc background image, solid layer, gradient layer, tags, logos -->
 <!-- Logo 編輯：不顯示 LOGO 字樣；橫式 logo 改為交換位置；每顆 logo 右上角皆有獨立編輯 icon；logo 編輯隱藏加影子 -->
 <!-- 本版增加：左側文字可直接貼上；Logo 上傳後可拖曳、滑鼠滾輪縮放 -->
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
@@ -432,6 +435,39 @@
   cursor:default !important;
   -webkit-user-drag:none;
   user-select:none;
+}
+
+
+/* JSON save/load toolbar */
+.json-toolbar{
+  position:fixed;
+  top:20px;
+  right:132px;
+  z-index:10000;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  max-width:420px;
+}
+.json-toolbar button{
+  appearance:none;
+  border:1px solid rgba(0,0,0,.15);
+  background:#fff;
+  color:#111;
+  border-radius:999px;
+  padding:8px 12px;
+  font-size:13px;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+.json-toolbar button:hover{ transform:translateY(-1px); }
+
+
+/* hide logo icons during export */
+.is-exporting .logo-edit-btn,
+.is-exporting .logo-swap-btn{
+  display:none !important;
 }
 
 </style>
@@ -958,6 +994,7 @@
   <div id="toast" class="toast" style="display:none"></div>
 
 <script>
+  let __jsonRestoring = false;
   /* ========== Toast（可比照浮動字數泡泡定位） ========== */
   function showToast(msg, type='ok', ms=2000, targetEl=null){
     const t = document.getElementById('toast');
@@ -1109,6 +1146,7 @@
   
   // 輔助函式：吸取圖片左上角顏色並同步
   function autoSyncBackground(imgElement, type) {
+    if(__jsonRestoring) return;
     // 1. 建立 Canvas 吸色
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -3356,6 +3394,16 @@ syncBackgroundAndImage('bg-square', 'bgS', 'S');
 
 </script>
 
+
+<div class="json-toolbar">
+  
+  
+  <button type="button" id="jsonExport">匯出暫存</button>
+  <button type="button" id="jsonImportBtn">匯入暫存</button>
+  <input type="file" id="jsonImportInput" accept=".json,application/json" hidden>
+</div>
+
+
 <div class="manual-icon" onclick="window.open('https://docs.google.com/presentation/d/1xKfwM5JEqkOfCtoXsHp6x8jYhpBAcI18GVJxX-2h-Pw/edit?slide=id.p1#slide=id.p1','_blank')">
 <img src="https://raw.githubusercontent.com/jimmywu-commits/rd/main/%E7%A8%8B%E5%BC%8F%E6%AA%94%E6%A1%88/%E8%AA%AA%E6%98%8E%E6%9B%B8icon.png">
 <span>使用說明書</span>
@@ -3395,6 +3443,467 @@ document.addEventListener('DOMContentLoaded', () => {
     img.addEventListener('dragstart', (e) => e.preventDefault());
   });
 });
+</script>
+
+
+<script>
+(function(){
+  const STORAGE_KEY = 'hbn_template_full_state_v1';
+
+  function plainTextOf(el){
+    if(!el) return '';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.counter').forEach(n => n.remove());
+    return (clone.textContent || '').trim();
+  }
+
+  function datasetToObject(el){
+    const obj = {};
+    if(!el || !el.dataset) return obj;
+    Object.keys(el.dataset).forEach(k => obj[k] = el.dataset[k]);
+    return obj;
+  }
+
+  function objectToDataset(el, obj){
+    if(!el || !obj) return;
+    Object.keys(obj).forEach(k => {
+      try{ el.dataset[k] = obj[k]; }catch(_){}
+    });
+  }
+
+  function getLogoList(){
+    return Array.from(document.querySelectorAll('#brandH .logo-item img, #brandH > img')).map(img => ({
+      src: img.getAttribute('src') || '',
+      alt: img.getAttribute('alt') || 'Logo'
+    }));
+  }
+
+  function getEditorItems(editorId){
+    const editor = document.getElementById(editorId);
+    if(!editor) return [];
+    return Array.from(editor.querySelectorAll('.editor-item')).map(box => {
+      const img = box.querySelector('img');
+      return {
+        className: box.className,
+        style: box.getAttribute('style') || '',
+        dataset: datasetToObject(box),
+        imgSrc: img ? (img.getAttribute('src') || '') : '',
+        imgStyle: img ? (img.getAttribute('style') || '') : '',
+      };
+    });
+  }
+
+  function captureState(){
+    return {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      texts: {
+        'h1-h': { text: plainTextOf(document.getElementById('h1-h')), style: document.getElementById('h1-h')?.getAttribute('style') || '' },
+        'h2-h': { text: plainTextOf(document.getElementById('h2-h')), style: document.getElementById('h2-h')?.getAttribute('style') || '' },
+        'date-h': { text: plainTextOf(document.getElementById('date-h')), style: document.getElementById('date-h')?.getAttribute('style') || '' },
+        'h1-s': { text: plainTextOf(document.getElementById('h1-s')), style: document.getElementById('h1-s')?.getAttribute('style') || '' },
+        'h2-s': { text: plainTextOf(document.getElementById('h2-s')), style: document.getElementById('h2-s')?.getAttribute('style') || '' },
+        'date-s': { text: plainTextOf(document.getElementById('date-s')), style: document.getElementById('date-s')?.getAttribute('style') || '' }
+      },
+      cta: {
+        'cta-h': plainTextOf(document.querySelector('#cta-h .text')),
+        'cta-s': plainTextOf(document.querySelector('#cta-s .text'))
+      },
+      bg: {
+        solidH: document.getElementById('solidH')?.getAttribute('style') || '',
+        solidS: document.getElementById('solidS')?.getAttribute('style') || '',
+        solidPH: document.getElementById('solidPH')?.getAttribute('style') || '',
+        solidPS: document.getElementById('solidPS')?.getAttribute('style') || '',
+        gradH: document.getElementById('gradH')?.getAttribute('style') || '',
+        gradS: document.getElementById('gradS')?.getAttribute('style') || '',
+        gradPH: document.getElementById('gradPH')?.getAttribute('style') || '',
+        gradPS: document.getElementById('gradPS')?.getAttribute('style') || '',
+        bgH: document.getElementById('bgH')?.getAttribute('src') || '',
+        bgS: document.getElementById('bgS')?.getAttribute('src') || '',
+        bgPH: document.getElementById('bgPH')?.getAttribute('src') || '',
+        bgPS: document.getElementById('bgPS')?.getAttribute('src') || '',
+        bgColorH: document.getElementById('bg-color-h')?.value || '',
+        bgColorS: document.getElementById('bg-color-s')?.value || '',
+      },
+      tags: {
+        tagH: {
+          src: document.getElementById('tagH')?.getAttribute('src') || '',
+          style: document.getElementById('tagH')?.getAttribute('style') || '',
+          state: document.getElementById('tagH')?.dataset?.tagState || 'blank'
+        },
+        tagS: {
+          src: document.getElementById('tagS')?.getAttribute('src') || '',
+          style: document.getElementById('tagS')?.getAttribute('style') || '',
+          state: document.getElementById('tagS')?.dataset?.tagState || 'blank'
+        },
+        tagPH: {
+          src: document.getElementById('tagPH')?.getAttribute('src') || '',
+          style: document.getElementById('tagPH')?.getAttribute('style') || '',
+          state: document.getElementById('tagPH')?.dataset?.tagState || 'blank'
+        },
+        tagPS: {
+          src: document.getElementById('tagPS')?.getAttribute('src') || '',
+          style: document.getElementById('tagPS')?.getAttribute('style') || '',
+          state: document.getElementById('tagPS')?.dataset?.tagState || 'blank'
+        }
+      },
+      underlay: {
+        toggleH: !!document.getElementById('toggleUnderlayH')?.checked,
+        toggleS: !!document.getElementById('toggleUnderlayS')?.checked,
+        horizClass: document.getElementById('horiz')?.className || '',
+        squareClass: document.getElementById('square')?.className || '',
+        pcHClass: document.getElementById('pcH')?.className || '',
+        pcSClass: document.getElementById('pcS')?.className || ''
+      },
+      logos: {
+        horiz: getLogoList(),
+        square: {
+          src: document.getElementById('brandImgS')?.getAttribute('src') || '',
+          style: document.getElementById('brandImgS')?.getAttribute('style') || ''
+        },
+        pc: {
+          horiz: document.getElementById('brandPHImg')?.getAttribute('src') || '',
+          square: document.getElementById('brandPSImg')?.getAttribute('src') || ''
+        }
+      },
+      editorItems: {
+        editorH: getEditorItems('editorH'),
+        editorS: getEditorItems('editorS')
+      }
+    };
+  }
+
+  function createProductControls(box, img){
+    const delBtn  = document.createElement('button'); delBtn.className='ctrl del'; delBtn.title='刪除'; delBtn.textContent='✖';
+    const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切'; editBtn.textContent='✎';
+    const layerBox = document.createElement('div'); layerBox.className='layer-btns';
+    const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
+    const backBtn  = document.createElement('button'); backBtn.className='ctrl'; backBtn.title='圖層置後'; backBtn.textContent='▼';
+    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+    layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
+    box.appendChild(delBtn);
+    box.appendChild(editBtn);
+    box.appendChild(layerBox);
+    box.appendChild(resizeBtn);
+
+    delBtn.addEventListener('click', ()=> box.remove());
+    editBtn.addEventListener('click', ()=> { if(typeof openEraseEditor === 'function') openEraseEditor(img); });
+    frontBtn.addEventListener('click', ()=>{
+      const all = Array.from(box.parentElement.querySelectorAll('.editor-item:not(.editor-bg)'));
+      let maxZ = 4;
+      all.forEach(n => { const z = parseInt(n.style.zIndex || getComputedStyle(n).zIndex || '4', 10); if(!isNaN(z)) maxZ = Math.max(maxZ, z); });
+      box.style.zIndex = String(maxZ + 1);
+    });
+    backBtn.addEventListener('click', ()=>{
+      const parent = box.parentElement;
+      const items = Array.from(parent.querySelectorAll('.editor-item:not(.editor-bg)'));
+      const first = items[0];
+      if(first && first !== box) parent.insertBefore(box, first);
+      box.style.zIndex = '4';
+    });
+
+    bindBoxResize(box, resizeBtn);
+  }
+
+  function bindBoxResize(box, handle){
+    if(box.dataset.restoreResizeBound === '1') return;
+    box.dataset.restoreResizeBound = '1';
+    let resizing=false, startW=0, startH=0, startX=0, startY=0, aspect=1;
+    handle.addEventListener('mousedown', (e)=>{
+      resizing = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startW = box.clientWidth;
+      startH = box.clientHeight;
+      aspect = startW / Math.max(1, startH);
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    window.addEventListener('mousemove', (e)=>{
+      if(!resizing) return;
+      const delta = Math.max(e.clientX - startX, e.clientY - startY);
+      let newW = Math.max(20, startW + delta);
+      let newH = Math.max(20, newW / Math.max(0.001, aspect));
+      box.style.width = newW + 'px';
+      box.style.height = newH + 'px';
+      box.dataset.fixedW = String(Math.round(newW));
+      box.dataset.fixedH = String(Math.round(newH));
+    });
+    window.addEventListener('mouseup', ()=>{
+      if(resizing && !box.classList.contains('editor-bg') && typeof avoidRestrictedAreas === 'function'){
+        const editor = box.closest('.editor');
+        const canvas = editor?.closest('.canvas');
+        if(canvas) avoidRestrictedAreas(box, canvas.clientWidth, canvas.clientHeight);
+      }
+      resizing = false;
+    });
+  }
+
+  function bindBoxDrag(box){
+    if(box.dataset.restoreDragBound === '1') return;
+    box.dataset.restoreDragBound = '1';
+    let dragging=false, startX=0, startY=0, origLeft=0, origTop=0;
+    box.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.ctrl')) return;
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      origLeft = parseFloat(box.style.left) || 0;
+      origTop = parseFloat(box.style.top) || 0;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      box.style.left = (origLeft + e.clientX - startX) + 'px';
+      box.style.top = (origTop + e.clientY - startY) + 'px';
+      if(!box.classList.contains('editor-bg') && typeof clampItemToCanvas === 'function'){
+        const editor = box.closest('.editor');
+        const canvas = editor?.closest('.canvas');
+        if(canvas) clampItemToCanvas(box, canvas.clientWidth, canvas.clientHeight);
+      }
+    });
+    window.addEventListener('mouseup', ()=>{
+      if(dragging && !box.classList.contains('editor-bg') && typeof avoidRestrictedAreas === 'function'){
+        const editor = box.closest('.editor');
+        const canvas = editor?.closest('.canvas');
+        if(canvas) avoidRestrictedAreas(box, canvas.clientWidth, canvas.clientHeight);
+      }
+      dragging = false;
+    });
+  }
+
+  function buildEditorItem(editorId, itemData){
+    const editor = document.getElementById(editorId);
+    if(!editor) return;
+    const box = document.createElement('div');
+    box.className = itemData.className || 'editor-item';
+    if(itemData.style) box.setAttribute('style', itemData.style);
+    objectToDataset(box, itemData.dataset || {});
+
+    const img = document.createElement('img');
+    if(itemData.imgSrc) img.src = itemData.imgSrc;
+    if(itemData.imgStyle) img.setAttribute('style', itemData.imgStyle);
+    else img.style.objectFit = 'contain';
+    box.appendChild(img);
+
+    const bgLayer = editor.querySelector('.bg-layer') || editor;
+    (box.classList.contains('editor-bg') ? bgLayer : editor).appendChild(box);
+
+    if(!box.classList.contains('editor-bg')){
+      createProductControls(box, img);
+    }
+    bindBoxDrag(box);
+
+    img.addEventListener('dragstart', (e)=> e.preventDefault());
+  }
+
+  function clearEditorItems(editorId){
+    const editor = document.getElementById(editorId);
+    if(!editor) return;
+    editor.querySelectorAll('.editor-item').forEach(n => n.remove());
+  }
+
+  function rebuildHorizontalLogos(list){
+    const container = document.getElementById('brandH');
+    if(!container) return;
+    container.innerHTML = '';
+
+    function syncPc(){
+      const pcLogo = document.getElementById('brandPHImg');
+      const first = container.querySelector('.logo-item img');
+      if(pcLogo && first) pcLogo.src = first.src;
+    }
+
+    (list || []).forEach(item => {
+      const wrap = document.createElement('div');
+      wrap.className = 'logo-item';
+      const img = document.createElement('img');
+      img.src = item.src || '';
+      img.alt = item.alt || 'Logo';
+      img.setAttribute('draggable', 'false');
+      const editBtn = document.createElement('div');
+      editBtn.className = 'logo-edit-btn';
+      editBtn.innerHTML = '✎';
+      editBtn.title = '編輯 Logo';
+      editBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(typeof openEraseEditor === 'function') openEraseEditor(img, { isLogoEdit:true });
+      });
+      const swapBtn = document.createElement('div');
+      swapBtn.className = 'logo-swap-btn';
+      swapBtn.innerHTML = '⇄';
+      swapBtn.title = '交換位置';
+      swapBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const items = Array.from(container.querySelectorAll('.logo-item'));
+        const currentIndex = items.indexOf(wrap);
+        if(currentIndex < items.length - 1){
+          container.insertBefore(items[currentIndex + 1], wrap);
+        }else if(items.length > 1){
+          container.insertBefore(wrap, items[0]);
+        }
+        syncPc();
+      });
+      wrap.appendChild(img);
+      wrap.appendChild(editBtn);
+      wrap.appendChild(swapBtn);
+      container.appendChild(wrap);
+    });
+
+    syncPc();
+  }
+
+  function rebuildSquareLogo(data, pcData){
+    const img = document.getElementById('brandImgS');
+    if(img && data && data.src){
+      img.src = data.src;
+      if(data.style) img.setAttribute('style', data.style);
+    }
+    const pc = document.getElementById('brandPSImg');
+    if(pc){
+      if(pcData && pcData.square) pc.src = pcData.square;
+      else if(data && data.src) pc.src = data.src;
+    }
+    if(typeof enableLogoEditing === 'function'){
+      enableLogoEditing(document.querySelector('#square .brand'), { fixedY:0 });
+    }
+    const pcH = document.getElementById('brandPHImg');
+    if(pcH && pcData && pcData.horiz) pcH.src = pcData.horiz;
+  }
+
+  function applyJsonState(state){
+    if(!state) return;
+    __jsonRestoring = true;
+
+    Object.entries(state.texts || {}).forEach(([id, val])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.textContent = val?.text || '';
+      if(val?.style) el.setAttribute('style', val.style);
+    });
+
+    if(state.cta){
+      const ctaH = document.querySelector('#cta-h .text');
+      const ctaS = document.querySelector('#cta-s .text');
+      if(ctaH) ctaH.textContent = state.cta['cta-h'] || ctaH.textContent;
+      if(ctaS) ctaS.textContent = state.cta['cta-s'] || ctaS.textContent;
+    }
+
+    if(state.bg){
+      if(document.getElementById('bgH') && state.bg.bgH) document.getElementById('bgH').src = state.bg.bgH;
+      if(document.getElementById('bgS') && state.bg.bgS) document.getElementById('bgS').src = state.bg.bgS;
+      if(document.getElementById('bgPH') && state.bg.bgPH) document.getElementById('bgPH').src = state.bg.bgPH;
+      if(document.getElementById('bgPS') && state.bg.bgPS) document.getElementById('bgPS').src = state.bg.bgPS;
+      if(document.getElementById('bg-color-h') && state.bg.bgColorH) document.getElementById('bg-color-h').value = state.bg.bgColorH;
+      if(document.getElementById('bg-color-s') && state.bg.bgColorS) document.getElementById('bg-color-s').value = state.bg.bgColorS;
+
+      const restoreBgLayers = ()=>{
+        if(document.getElementById('solidH') && state.bg.solidH) document.getElementById('solidH').setAttribute('style', state.bg.solidH);
+        if(document.getElementById('solidS') && state.bg.solidS) document.getElementById('solidS').setAttribute('style', state.bg.solidS);
+        if(document.getElementById('solidPH') && state.bg.solidPH) document.getElementById('solidPH').setAttribute('style', state.bg.solidPH);
+        if(document.getElementById('solidPS') && state.bg.solidPS) document.getElementById('solidPS').setAttribute('style', state.bg.solidPS);
+        if(document.getElementById('gradH') && state.bg.gradH) document.getElementById('gradH').setAttribute('style', state.bg.gradH);
+        if(document.getElementById('gradS') && state.bg.gradS) document.getElementById('gradS').setAttribute('style', state.bg.gradS);
+        if(document.getElementById('gradPH') && state.bg.gradPH) document.getElementById('gradPH').setAttribute('style', state.bg.gradPH);
+        if(document.getElementById('gradPS') && state.bg.gradPS) document.getElementById('gradPS').setAttribute('style', state.bg.gradPS);
+      };
+
+      restoreBgLayers();
+      requestAnimationFrame(() => {
+        restoreBgLayers();
+        setTimeout(() => {
+          restoreBgLayers();
+          if(typeof restoreUnderlayState === 'function') restoreUnderlayState();
+          __jsonRestoring = false;
+        }, 80);
+      });
+    } else {
+      __jsonRestoring = false;
+    }
+
+    if(state.tags){
+      ['tagH','tagS','tagPH','tagPS'].forEach(id => {
+        const el = document.getElementById(id);
+        const data = state.tags[id];
+        if(!el || !data) return;
+        if(data.src) el.src = data.src;
+        if(data.style) el.setAttribute('style', data.style);
+        if(data.state){
+          el.dataset.tagState = data.state;
+        }
+      });
+    }
+
+    const restoreUnderlayState = ()=>{
+      if(!state.underlay) return;
+      const h = document.getElementById('horiz');
+      const s = document.getElementById('square');
+      const ph = document.getElementById('pcH');
+      const ps = document.getElementById('pcS');
+      const th = document.getElementById('toggleUnderlayH');
+      const ts = document.getElementById('toggleUnderlayS');
+
+      if(h && state.underlay.horizClass) h.className = state.underlay.horizClass;
+      if(s && state.underlay.squareClass) s.className = state.underlay.squareClass;
+      if(ph && state.underlay.pcHClass) ph.className = state.underlay.pcHClass;
+      if(ps && state.underlay.pcSClass) ps.className = state.underlay.pcSClass;
+
+      if(th){ th.checked = !!state.underlay.toggleH; th.dispatchEvent(new Event('change', {bubbles:true})); }
+      if(ts){ ts.checked = !!state.underlay.toggleS; ts.dispatchEvent(new Event('change', {bubbles:true})); }
+    };
+
+    restoreUnderlayState();
+    requestAnimationFrame(restoreUnderlayState);
+    setTimeout(restoreUnderlayState, 120);
+
+    clearEditorItems('editorH');
+    clearEditorItems('editorS');
+    (state.editorItems?.editorH || []).forEach(item => buildEditorItem('editorH', item));
+    (state.editorItems?.editorS || []).forEach(item => buildEditorItem('editorS', item));
+
+    rebuildHorizontalLogos(state.logos?.horiz || []);
+    rebuildSquareLogo(state.logos?.square || {}, state.logos?.pc || {});
+  }
+
+  function downloadJson(filename, data){
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 500);
+  }
+
+  document.getElementById('jsonExport')?.addEventListener('click', ()=>{
+    const data = captureState();
+    downloadJson('hbn_template_state.json', data);
+    if(typeof showToast === 'function') showToast('已匯出暫存', 'ok', 1200);
+  });
+
+  document.getElementById('jsonImportBtn')?.addEventListener('click', ()=>{
+    document.getElementById('jsonImportInput')?.click();
+  });
+
+  document.getElementById('jsonImportInput')?.addEventListener('change', async (e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      applyJsonState(data)
+      if(typeof showToast === 'function') showToast('已匯入暫存', 'ok', 1400);
+    }catch(err){
+      console.error(err);
+      if(typeof showToast === 'function') showToast('JSON 匯入失敗', 'err', 1800);
+    }
+    e.target.value = '';
+  });
+
+  
+  })();
 </script>
 
 </body>
