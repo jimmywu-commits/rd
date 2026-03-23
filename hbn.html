@@ -242,7 +242,14 @@
   .nudge-box img{width:100%; height:100%; object-fit:cover; cursor:pointer; display:block;}
   .nudge-close{position:absolute; right:6px; top:6px; width:28px; height:28px; border-radius:999px; background:#111; color:#fff; border:0; cursor:pointer; font-size:16px; line-height:28px; text-align:center;}
 
-  .toast{position:fixed;right:16px;top:16px;z-index:99999;background:#111;color:#fff;font-size:12px;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:.98;max-width:68ch}
+  .modal-actions .btn-ghost.active{
+  background:#ffffff;
+  color:#111;
+  border-color:#111;
+  box-shadow:0 0 0 2px rgba(17,17,17,.08) inset;
+}
+
+.toast{position:fixed;right:16px;top:16px;z-index:99999;background:#111;color:#fff;font-size:12px;padding:8px 10px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.3);opacity:.98;max-width:68ch}
   .toast.ok{background:#16a34a}
   .toast.err{background:#dc2626}
 
@@ -416,6 +423,16 @@
 .is-exporting .guide-line,
 .is-exporting .guide-warning,
 .is-exporting .guide-doc-overlay{ display:none !important; }
+
+
+.logo-item,
+.logo-item img,
+#brandH,
+#brandH img{
+  cursor:default !important;
+  -webkit-user-drag:none;
+  user-select:none;
+}
 
 </style>
 
@@ -918,6 +935,7 @@
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="eraseReset" type="button">重作</button>
+        <button class="btn-ghost" id="logoWhiteBase" type="button" title="Logo 加白底">加白底</button>
         <button class="btn-primary" id="cropConfirm" type="button" title="只套用裁切，不關閉視窗">確定裁切</button>
         <button class="btn-primary" id="eraseApply" type="button">完成</button>
         <button class="btn-danger" id="eraseCancel" type="button">取消</button>
@@ -1066,13 +1084,8 @@
 
     const fixedY = Number.isFinite(options.fixedY) ? options.fixedY : 0;
     el.dataset.logoY = String(fixedY);
-
-    const apply = ()=>{
-      const y = fixedY;
-      el.style.transform = `translate(0px, ${y}px)`;
-      el.style.transformOrigin = 'center center';
-    };
-    apply();
+    el.style.transform = `translate(0px, ${fixedY}px)`;
+    el.style.transformOrigin = 'center center';
 
     if(!el.querySelector('.logo-edit-btn')){
       const btn = document.createElement('div');
@@ -1478,6 +1491,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   const eraseApply = document.getElementById('eraseApply');
   const eraseCancel = document.getElementById('eraseCancel');
   const cropConfirm = document.getElementById('cropConfirm');
+  const logoWhiteBaseBtn = document.getElementById('logoWhiteBase');
 
   let editingTargetImg = null;
   let editingTargetBox = null;
@@ -1488,6 +1502,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   let cropStart=null, cropEnd=null, cropping=false;
   let editingModeIsLogo = false;
+  let logoWhiteBaseEnabled = false;
 
   function openEraseEditor(imgEl, options = {}){
     if(!imgEl) return;
@@ -1508,7 +1523,13 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     const shadowBoxUi = document.getElementById('shadowModalBox');
     if(shadowWrap) shadowWrap.style.display = editingModeIsLogo ? 'none' : '';
     if(shadowBoxUi) shadowBoxUi.style.display = editingModeIsLogo ? 'none' : '';
+    if(logoWhiteBaseBtn){
+      logoWhiteBaseBtn.style.display = editingModeIsLogo ? '' : 'none';
+      logoWhiteBaseBtn.classList.toggle('active', !!logoWhiteBaseEnabled);
+    }
 
+    logoWhiteBaseEnabled = false;
+    if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
     originalImg = new Image();
     originalImg.onload = ()=>{
       const pad = EDIT_PADDING;
@@ -1931,6 +1952,52 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     return {minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2};
   }
 
+
+    function addWhiteBaseToLogoCanvas(srcCanvas){
+    const bounds = getAlphaBounds(srcCanvas, 1);
+    if(!bounds) return srcCanvas;
+
+    const padX = 30;
+    const padY = 10;
+
+    const cropX = Math.max(0, bounds.minX);
+    const cropY = Math.max(0, bounds.minY);
+    const cropW = Math.max(1, bounds.maxX - bounds.minX + 1);
+    const cropH = Math.max(1, bounds.maxY - bounds.minY + 1);
+
+    const outW = cropW + padX * 2;
+    const outH = cropH + padY * 2;
+
+    const out = document.createElement('canvas');
+    out.width = outW;
+    out.height = outH;
+
+    const ctx = out.getContext('2d');
+
+    // 白底左右圓邊的膠囊形狀
+    const rr = Math.min(outH / 2, outW / 2);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(rr, 0);
+    ctx.lineTo(outW - rr, 0);
+    ctx.arcTo(outW, 0, outW, rr, rr);
+    ctx.lineTo(outW, outH - rr);
+    ctx.arcTo(outW, outH, outW - rr, outH, rr);
+    ctx.lineTo(rr, outH);
+    ctx.arcTo(0, outH, 0, outH - rr, rr);
+    ctx.lineTo(0, rr);
+    ctx.arcTo(0, 0, rr, 0, rr);
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+
+    // Logo 置中，內縮：上下 10px、左右 30px
+    ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, padX, padY, cropW, cropH);
+    return out;
+  }
+
 function applyCroppedToTarget(closeAfter){
     if(!editingTargetImg) return;
 
@@ -1961,6 +2028,15 @@ function applyCroppedToTarget(closeAfter){
       console.error(err);
       showToast?.('此圖片來源無法匯出（請使用本機上傳的圖片）','err',2600);
       return;
+    }
+
+    if(editingModeIsLogo && logoWhiteBaseEnabled){
+      outCanvas = addWhiteBaseToLogoCanvas(outCanvas);
+      try{
+        productOnlyUrl = outCanvas.toDataURL('image/png');
+      }catch(err){
+        console.error(err);
+      }
     }
 
     let finalW = outCanvas.width, finalH = outCanvas.height;
@@ -2086,6 +2162,8 @@ function applyCroppedToTarget(closeAfter){
       if(shadowWrap) shadowWrap.style.display = '';
       if(shadowBoxUi) shadowBoxUi.style.display = '';
       editingModeIsLogo = false;
+      logoWhiteBaseEnabled = false;
+      if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
       editingTargetImg = null;
       editingTargetBox = null;
     }else{
@@ -2119,11 +2197,19 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     if(shadowWrap) shadowWrap.style.display = '';
     if(shadowBoxUi) shadowBoxUi.style.display = '';
     editingModeIsLogo = false;
+    logoWhiteBaseEnabled = false;
+    if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
     editingTargetImg = null;
     editingTargetBox = null;
   });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
+  logoWhiteBaseBtn?.addEventListener('click', ()=>{
+    if(!editingModeIsLogo) return;
+    logoWhiteBaseEnabled = !logoWhiteBaseEnabled;
+    logoWhiteBaseBtn.classList.toggle('active', logoWhiteBaseEnabled);
+    showToast(logoWhiteBaseEnabled ? '已啟用白底' : '已取消白底', 'ok', 1200);
+  });
   document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(!editingModeIsLogo && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
   /* 背景縮放 + 編輯器（APP） */
@@ -3274,6 +3360,42 @@ syncBackgroundAndImage('bg-square', 'bgS', 'S');
 <img src="https://raw.githubusercontent.com/jimmywu-commits/rd/main/%E7%A8%8B%E5%BC%8F%E6%AA%94%E6%A1%88/%E8%AA%AA%E6%98%8E%E6%9B%B8icon.png">
 <span>使用說明書</span>
 </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // logo white-base button visual toggle binding
+  const whiteBtn = document.getElementById('logoWhiteBase');
+  if (whiteBtn && !whiteBtn.dataset.bound) {
+    whiteBtn.dataset.bound = '1';
+    whiteBtn.addEventListener('click', () => {
+      if (typeof logoWhiteBaseEnabled !== 'undefined') {
+        logoWhiteBaseEnabled = !logoWhiteBaseEnabled;
+        whiteBtn.style.background = logoWhiteBaseEnabled ? '#000' : '';
+        whiteBtn.style.color = logoWhiteBaseEnabled ? '#fff' : '';
+      }
+    });
+  }
+
+  // disable logo drag-swap by mouse; keep only icon-based swap/edit
+  document.querySelectorAll('.logo-item').forEach((item) => {
+    item.setAttribute('draggable', 'false');
+    item.style.cursor = 'default';
+    item.addEventListener('dragstart', (e) => e.preventDefault());
+    item.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('.logo-edit-btn') && !e.target.closest('.logo-swap-btn')) {
+        e.stopPropagation();
+      }
+    }, true);
+  });
+
+  document.querySelectorAll('.logo-item img, #brandH img').forEach((img) => {
+    img.setAttribute('draggable', 'false');
+    img.style.cursor = 'default';
+    img.addEventListener('dragstart', (e) => e.preventDefault());
+  });
+});
+</script>
 
 </body>
 </html>
