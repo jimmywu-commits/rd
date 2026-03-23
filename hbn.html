@@ -1487,43 +1487,49 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   let lastX=0, lastY=0, drawing=false;
 
   let cropStart=null, cropEnd=null, cropping=false;
+  let editingModeIsLogo = false;
 
-  function openEraseEditor(imgEl){
+  function openEraseEditor(imgEl, options = {}){
+    if(!imgEl) return;
     editingTargetImg = imgEl;
     editingTargetBox = imgEl.closest('.editor-item');
+    editingModeIsLogo = !!options.isLogoEdit;
     const _aus = document.getElementById('applyUploadSize');
     if(_aus) _aus.checked = true;
 
-    // Prefer storing a "base (no-shadow)" source so re-edit won't double-shadow
     const box = editingTargetBox;
-    const baseSrc = box?.dataset?.baseSrc || imgEl.src;
+    const baseSrc = (box && box.dataset && box.dataset.baseSrc) ? box.dataset.baseSrc : imgEl.src;
 
-    // Setup shadow UI state from dataset
-    const shadowEnabled = (box?.dataset?.shadowEnabled === '1');
     const toggle = document.getElementById('toggleShadow');
-    if(toggle) toggle.checked = shadowEnabled;
+    const shadowEnabled = (!editingModeIsLogo && box?.dataset?.shadowEnabled === '1');
+    if(toggle) toggle.checked = !!shadowEnabled;
 
-    // Load image into canvas
+    const shadowWrap = toggle?.closest('label') || toggle?.parentElement;
+    const shadowBoxUi = document.getElementById('shadowModalBox');
+    if(shadowWrap) shadowWrap.style.display = editingModeIsLogo ? 'none' : '';
+    if(shadowBoxUi) shadowBoxUi.style.display = editingModeIsLogo ? 'none' : '';
+
     originalImg = new Image();
     originalImg.onload = ()=>{
-      // Ensure modal canvas is large enough to leave 100px safe padding on all sides.
-// For very small uploads, we expand the edit canvas so the image won't become a 1px dot.
-const pad = EDIT_PADDING;
-const minW = 800, minH = 600; // visual floor for comfortable editing
-eraseCanvas.width  = Math.max(minW, Math.round(originalImg.naturalWidth) + pad*2);
-eraseCanvas.height = Math.max(minH, Math.round(originalImg.naturalHeight) + pad*2);
-    if(shadowCanvas){ shadowCanvas.width = eraseCanvas.width; shadowCanvas.height = eraseCanvas.height; }
+      const pad = EDIT_PADDING;
+      const minW = 800, minH = 600;
+      eraseCanvas.width  = Math.max(minW, Math.round(originalImg.naturalWidth) + pad*2);
+      eraseCanvas.height = Math.max(minH, Math.round(originalImg.naturalHeight) + pad*2);
+      if(shadowCanvas){
+        shadowCanvas.width = eraseCanvas.width;
+        shadowCanvas.height = eraseCanvas.height;
+      }
 
-// Draw with 100px safe padding (visual editing space)
-redrawOriginal();
+      redrawOriginal();
       drawn = true;
-      cropStart = cropEnd = null; cropping=false;
-
-      // Show modal
+      cropStart = null;
+      cropEnd = null;
+      cropping = false;
       eraseModal.classList.add('show');
 
-      // Init / restore shadow overlay in modal
-      initShadowModalForBox(box);
+      if(!editingModeIsLogo && box){
+        initShadowModalForBox(box);
+      }
     };
     originalImg.src = baseSrc;
   }
@@ -1926,15 +1932,12 @@ redrawOriginal();
   }
 
 function applyCroppedToTarget(closeAfter){
-    if(!editingTargetImg || !editingTargetBox) return;
+    if(!editingTargetImg) return;
 
     const box = editingTargetBox;
 
-    // 1) product-only output (erase/crop result)
     let outCanvas = getCroppedCanvasFromSelection() || eraseCanvas;
-    let innerPadApplied = false;
 
-    // If no explicit crop selection, export only inner area (remove 100px padding)
     if(outCanvas === eraseCanvas){
       const pad = EDIT_PADDING;
       const cw = eraseCanvas.width, ch = eraseCanvas.height;
@@ -1944,13 +1947,14 @@ function applyCroppedToTarget(closeAfter){
       const exCtx = ex.getContext('2d');
       exCtx.drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
       outCanvas = ex;
-      innerPadApplied = true;
     }
 
-        // Trim transparent edges so the product aspect ratio won't change after modal editing
-    // NOTE: do not trim product-only canvas before compositing; it would change the coordinate space.
-let productOnlyUrl = '';
-    const prodB = getAlphaBounds(outCanvas, 1) || {minX:0,minY:0,maxX:outCanvas.width-1,maxY:outCanvas.height-1,cx:outCanvas.width/2,cy:outCanvas.height/2};
+    const prodB = getAlphaBounds(outCanvas, 1) || {
+      minX:0, minY:0, maxX:outCanvas.width-1, maxY:outCanvas.height-1,
+      cx:outCanvas.width/2, cy:outCanvas.height/2
+    };
+
+    let productOnlyUrl = '';
     try{
       productOnlyUrl = outCanvas.toDataURL('image/png');
     }catch(err){
@@ -1959,10 +1963,9 @@ let productOnlyUrl = '';
       return;
     }
 
-    // 2) composite with shadow if enabled
     let finalW = outCanvas.width, finalH = outCanvas.height;
-    const shadowEnabled = (document.getElementById('toggleShadow')?.checked);
     let finalUrl = productOnlyUrl;
+    const shadowEnabled = (!editingModeIsLogo && !!box && document.getElementById('toggleShadow')?.checked);
 
     if(shadowEnabled){
       const sb = document.getElementById('shadowModalBox');
@@ -1971,18 +1974,18 @@ let productOnlyUrl = '';
       const scaleX = eraseCanvas.width / cr.width;
       const scaleY = eraseCanvas.height / cr.height;
 
-      // Shadow box coordinates in *canvas pixel* space (match what user sees in modal)
       const x = br ? (br.left - cr.left) * scaleX : 0;
       const y = br ? (br.top  - cr.top ) * scaleY : 0;
       const w = br ? br.width  * scaleX : 777;
       const h = br ? br.height * scaleY : 115;
 
-      // store shadow params for next re-edit
-      box.dataset.shadowEnabled = '1';
-      box.dataset.shadowX = String(Math.round(x));
-      box.dataset.shadowY = String(Math.round(y));
-      box.dataset.shadowW = String(Math.round(w));
-      box.dataset.shadowH = String(Math.round(h));
+      if(box){
+        box.dataset.shadowEnabled = '1';
+        box.dataset.shadowX = String(Math.round(x));
+        box.dataset.shadowY = String(Math.round(y));
+        box.dataset.shadowW = String(Math.round(w));
+        box.dataset.shadowH = String(Math.round(h));
+      }
 
       const sImg = document.getElementById('shadowModalImg');
       if(!(sImg && sImg.complete && sImg.naturalWidth>0)){
@@ -1990,8 +1993,6 @@ let productOnlyUrl = '';
         return;
       }
 
-      // 方案 A（修正版）：影子依去背後「實際可見像素」的寬度與最下緣定位。
-      // 這裡的 prodB 來自 outCanvas 的 alpha bounds，所以抓到的是肉眼看到的物件底，不是圖片外框底。
       const modalShadowRatio = (h > 0 && w > 0)
         ? (h / w)
         : ((sImg.naturalHeight > 0 && sImg.naturalWidth > 0) ? (sImg.naturalHeight / sImg.naturalWidth) : 0.148);
@@ -2005,123 +2006,125 @@ let productOnlyUrl = '';
       let sx = prodB.cx - shadowWidth / 2;
       let sy = prodB.maxY - shadowHeight * shadowOverlapRatio - 4;
 
-// Build a composite canvas that is symmetric around the PRODUCT center.
-// This guarantees that when the result image is centered on the main canvas, the product won't drift left/right.
-const outW0 = outCanvas.width, outH0 = outCanvas.height;
+      const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
+      const minX = Math.min(prodB.minX, sh.x);
+      const minY = Math.min(prodB.minY, sh.y);
+      const maxX = Math.max(prodB.maxX, sh.x + sh.w);
+      const maxY = Math.max(prodB.maxY, sh.y + sh.h);
 
-// shadow rect in outCanvas coordinates
-const sh = {x:sx, y:sy, w:shadowWidth, h:shadowHeight};
+      const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
+      const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
 
-// extents (product bounds are in outCanvas coordinates)
-const minX = Math.min(prodB.minX, sh.x);
-const minY = Math.min(prodB.minY, sh.y);
-const maxX = Math.max(prodB.maxX, sh.x + sh.w);
-const maxY = Math.max(prodB.maxY, sh.y + sh.h);
+      const comp = document.createElement('canvas');
+      comp.width = Math.max(1, halfW * 2);
+      comp.height = Math.max(1, halfH * 2);
+      const cctx = comp.getContext('2d');
 
+      const dx = Math.round(comp.width/2 - prodB.cx);
+      const dy = Math.round(comp.height/2 - prodB.cy);
 
-// required half size around product center
-const halfW = Math.ceil(Math.max(prodB.cx - minX, maxX - prodB.cx) + 2);
-const halfH = Math.ceil(Math.max(prodB.cy - minY, maxY - prodB.cy) + 2);
+      cctx.drawImage(sImg, dx + sh.x, dy + sh.y, sh.w, sh.h);
+      cctx.drawImage(outCanvas, dx, dy);
 
-const comp = document.createElement('canvas');
-comp.width = Math.max(1, halfW * 2);
-comp.height = Math.max(1, halfH * 2);
-const cctx = comp.getContext('2d');
+      const comp2 = trimAndCenterOnAnchor(comp, comp.width/2, comp.height/2, 1, 2);
 
-// shift so product center maps to canvas center
-const dx = Math.round(comp.width/2 - prodB.cx);
-const dy = Math.round(comp.height/2 - prodB.cy);
-
-// draw shadow under product
-cctx.drawImage(sImg, dx + sh.x, dy + sh.y, sh.w, sh.h);
-// draw product on top
-cctx.drawImage(outCanvas, dx, dy);
-
-// Finally, trim transparent edges but keep PRODUCT centered.
-const comp2 = trimAndCenterOnAnchor(comp, comp.width/2, comp.height/2, 1, 2);
-
-finalW = comp2.width;
-finalH = comp2.height;
-
-try{
-  finalUrl = comp2.toDataURL('image/png');
+      finalW = comp2.width;
+      finalH = comp2.height;
+      try{
+        finalUrl = comp2.toDataURL('image/png');
       }catch(err){
         console.error(err);
         showToast?.('合成影子失敗（請確認圖片為本機上傳）','err',2600);
         return;
       }
     }else{
-      box.dataset.shadowEnabled = '0';
-      // Even without shadow, trim transparent edges but keep PRODUCT centered to avoid visual shrink/shift.
+      if(box) box.dataset.shadowEnabled = '0';
       const compNoShadow = trimAndCenterOnAnchor(outCanvas, prodB.cx, prodB.cy, 1, 2);
       finalW = compNoShadow.width;
       finalH = compNoShadow.height;
       try{ finalUrl = compNoShadow.toDataURL('image/png'); }catch(err){ console.error(err); }
     }
 
-    // 3) Save base (no-shadow) for re-edit without double shadow
-    box.dataset.baseSrc = productOnlyUrl;
+    if(box) box.dataset.baseSrc = productOnlyUrl;
 
-    // 4) Apply to main editor image
-    const newW = finalW;
-    const newH = finalH;
+    if(box){
+      const _boxHasSize = !!(box.style.width && box.style.height);
+      const _applyUploadRule = !!(document.getElementById('applyUploadSize')?.checked);
+      const _editorEl = box.parentElement;
+      const _canvasH = _editorEl ? _editorEl.clientHeight : (box.closest('.canvas')?.clientHeight || 0);
 
-    // 4.1) Apply sizing rule same as upload: height = 70% canvas, width by aspect ratio
-    // Keep the box size/position exactly as-is to avoid any visual resize/compression after modal edit.
-    // Only if this element somehow has no explicit size yet, apply the standard "product image" sizing rule once.
-    const _boxHasSize = !!(box.style.width && box.style.height);
-    const _applyUploadRule = !!(document.getElementById('applyUploadSize')?.checked);
-    const _editorEl = box.parentElement;
-    const _canvasH = _editorEl ? _editorEl.clientHeight : CANVAS_H;
+      editingTargetImg.onload = ()=>{
+        if(_applyUploadRule || !_boxHasSize){
+          const ratio = (finalH>0) ? (finalW / finalH) : 1;
+          const targetH = Math.round(_canvasH * 0.7);
+          const targetW = Math.max(1, Math.round(targetH * ratio));
 
-    editingTargetImg.onload = ()=>{
-      // Default: keep the box size exactly as-is.
-      // Optional: if checked, or box has no size yet, apply the same sizing rule as upload (H = 70% of canvas, W by aspect ratio),
-      // and keep the box center point stable (uniform scale, no distortion).
-      if(_applyUploadRule || !_boxHasSize){
-        const ratio = (finalH>0) ? (finalW / finalH) : 1;
-        const targetH = Math.round(_canvasH * 0.7);
-        const targetW = Math.max(1, Math.round(targetH * ratio));
+          const cx = (box.offsetLeft || 0) + (box.offsetWidth  || 0) / 2;
+          const cy = (box.offsetTop  || 0) + (box.offsetHeight || 0) / 2;
 
-        const cx = (box.offsetLeft || 0) + (box.offsetWidth  || 0) / 2;
-        const cy = (box.offsetTop  || 0) + (box.offsetHeight || 0) / 2;
+          box.style.width  = targetW + 'px';
+          box.style.height = targetH + 'px';
+          box.style.left   = Math.round(cx - targetW/2) + 'px';
+          box.style.top    = Math.round(cy - targetH/2) + 'px';
 
-        box.style.width  = targetW + 'px';
-        box.style.height = targetH + 'px';
-        box.style.left   = Math.round(cx - targetW/2) + 'px';
-        box.style.top    = Math.round(cy - targetH/2) + 'px';
+          box.dataset.fixedW = String(targetW);
+          box.dataset.fixedH = String(targetH);
+        }
+      };
+      editingTargetImg.style.objectFit = 'contain';
+      editingTargetImg.src = finalUrl;
+    }else{
+      editingTargetImg.onload = null;
+      editingTargetImg.src = finalUrl;
+    }
 
-        box.dataset.fixedW = String(targetW);
-        box.dataset.fixedH = String(targetH);
-      }
-    };
-    editingTargetImg.style.objectFit = 'contain';
-    editingTargetImg.src = finalUrl;
-
-    // 5) Close or keep editing
     if(closeAfter){
       eraseModal.classList.remove('show');
-      editingTargetImg = null; editingTargetBox = null;
+      const toggle = document.getElementById('toggleShadow');
+      const shadowWrap = toggle?.closest('label') || toggle?.parentElement;
+      const shadowBoxUi = document.getElementById('shadowModalBox');
+      if(shadowWrap) shadowWrap.style.display = '';
+      if(shadowBoxUi) shadowBoxUi.style.display = '';
+      editingModeIsLogo = false;
+      editingTargetImg = null;
+      editingTargetBox = null;
     }else{
-      // Update canvas with product-only result so further edits are on clean base
       const tmp = new Image();
       tmp.onload = ()=>{
-        eraseCanvas.width  = Math.max(1, tmp.naturalWidth);
-        eraseCanvas.height = Math.max(1, tmp.naturalHeight);
-        eCtx.clearRect(0,0,eraseCanvas.width, eraseCanvas.height);
-        eCtx.drawImage(tmp, 0, 0, eraseCanvas.width, eraseCanvas.height);
-        cropStart = cropEnd = null;
-        // re-init shadow overlay position clamped to new canvas
-        initShadowModalForBox(box);
+        originalImg = tmp;
+        eraseCanvas.width  = Math.max(1, tmp.naturalWidth + EDIT_PADDING*2);
+        eraseCanvas.height = Math.max(1, tmp.naturalHeight + EDIT_PADDING*2);
+        if(shadowCanvas){
+          shadowCanvas.width = eraseCanvas.width;
+          shadowCanvas.height = eraseCanvas.height;
+        }
+        redrawOriginal();
+        cropStart = null;
+        cropEnd = null;
+        cropping = false;
+        if(!editingModeIsLogo && box){
+          initShadowModalForBox(box);
+        }
       };
       tmp.src = productOnlyUrl;
     }
   }
 document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.add('show'); });
-  document.getElementById('nudgeClose').addEventListener('click', ()=>{ document.getElementById('cancelNudge').classList.remove('show'); eraseModal.classList.remove('show'); editingTargetImg = null; editingTargetBox = null; });
+  document.getElementById('nudgeClose').addEventListener('click', ()=>{
+    document.getElementById('cancelNudge').classList.remove('show');
+    eraseModal.classList.remove('show');
+    const toggle = document.getElementById('toggleShadow');
+    const shadowWrap = toggle?.closest('label') || toggle?.parentElement;
+    const shadowBoxUi = document.getElementById('shadowModalBox');
+    if(shadowWrap) shadowWrap.style.display = '';
+    if(shadowBoxUi) shadowBoxUi.style.display = '';
+    editingModeIsLogo = false;
+    editingTargetImg = null;
+    editingTargetBox = null;
+  });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
-  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
+  document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(!editingModeIsLogo && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
   /* 背景縮放 + 編輯器（APP） */
   async function sampleTopLeftColor(dataUrl){
