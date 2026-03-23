@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HBN製圖、審圖工具</title>
+<!-- 本版增加：左側文字可直接貼上；Logo 上傳後可拖曳、滑鼠滾輪縮放 -->
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
@@ -345,6 +346,31 @@
   opacity:1;
   transform:translateY(0);
 }
+
+.brand.is-editable,
+#square .brand.is-editable{
+  cursor:move;
+  user-select:none;
+}
+.brand.is-editable::after{
+  content:'LOGO';
+  position:absolute;
+  left:0;
+  top:-18px;
+  font-size:10px;
+  line-height:1;
+  padding:2px 5px;
+  border-radius:999px;
+  background:rgba(0,0,0,.6);
+  color:#fff;
+  opacity:.9;
+}
+.brand.is-editable img,
+.brand.is-editable .logo-box,
+.brand.is-editable .logo-box img{
+  pointer-events:none;
+}
+
 .guide-doc-overlay{
   position:absolute;
   inset:0;
@@ -644,7 +670,7 @@
       <label>LOGO（橫，最多 3）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
       <label>底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
       <label>商品圖（最多3）：<input id="items-h" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 上傳後可拖曳與縮放</span>
     </div>
 
     <!-- APP 橫式 -->
@@ -731,7 +757,7 @@
       <label>LOGO（方 120×120）：<input id="logo-square" type="file" accept="image/*"></label>
       <label>底圖：<input id="bg-square" type="file" accept="image/*"></label>
       <label>商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 上傳後可拖曳與縮放</span>
     </div>
 
     <!-- APP 方形 -->
@@ -945,6 +971,63 @@
       if(pcLogo && first){ pcLogo.src = first.src; }
     });
   }
+  function enableLogoEditing(target, options = {}){
+    const el = typeof target === 'string' ? document.querySelector(target) : target;
+    if(!el) return;
+    const minScale = options.minScale || 0.35;
+    const maxScale = options.maxScale || 3;
+
+    el.classList.add('is-editable');
+    if(!el.dataset.logoScale) el.dataset.logoScale = '1';
+    if(!el.dataset.logoX) el.dataset.logoX = '0';
+    if(!el.dataset.logoY) el.dataset.logoY = '0';
+
+    const apply = ()=>{
+      const x = parseFloat(el.dataset.logoX || '0');
+      const y = parseFloat(el.dataset.logoY || '0');
+      const s = parseFloat(el.dataset.logoScale || '1');
+      el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+      el.style.transformOrigin = 'center center';
+    };
+    apply();
+
+    if(el.dataset.logoBound === '1') return;
+    el.dataset.logoBound = '1';
+
+    let dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+
+    el.addEventListener('mousedown', (e)=>{
+      if(e.target.closest('.ctrl')) return;
+      dragging = true;
+      sx = e.clientX;
+      sy = e.clientY;
+      ox = parseFloat(el.dataset.logoX || '0');
+      oy = parseFloat(el.dataset.logoY || '0');
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      el.dataset.logoX = String(ox + dx);
+      el.dataset.logoY = String(oy + dy);
+      apply();
+    });
+
+    window.addEventListener('mouseup', ()=>{
+      dragging = false;
+    });
+
+    el.addEventListener('wheel', (e)=>{
+      e.preventDefault();
+      const cur = parseFloat(el.dataset.logoScale || '1');
+      const next = Math.max(minScale, Math.min(maxScale, cur + (e.deltaY < 0 ? 0.05 : -0.05)));
+      el.dataset.logoScale = String(next);
+      apply();
+    }, { passive:false });
+  }
+
 /* ===========================================================
      修復版：背景上傳綁定 (含自動吸色 + PC 同步)
      =========================================================== */
@@ -996,15 +1079,20 @@
   /* =========================================================== */
 	  
   bindUploadMultiple('logo-horiz','#brandH',3);
+  document.getElementById('logo-horiz')?.addEventListener('change', ()=>{
+    enableLogoEditing('#brandH', { minScale:0.5, maxScale:3 });
+  });
+
   bindUpload('logo-square','#brandImgS');
-  /* 同步：APP 方形 logo → PC 方式 logo */
   document.getElementById('logo-square')?.addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     const url=await readAsDataURL(f);
     const el=document.getElementById('brandPSImg'); if(el) el.src=url;
+    enableLogoEditing(document.querySelector('#square .brand'), { minScale:0.5, maxScale:3 });
   });
 
-  /* ========== 顏色工具 ========= */
+  enableLogoEditing(document.querySelector('#square .brand'), { minScale:0.5, maxScale:3 });
+    /* ========== 顏色工具 ========= */
   function hexToRgb(hex){ const h = hex.replace('#',''); const b = h.length===3 ? h.split('').map(c=>c+c).join('') : h; return { r:parseInt(b.slice(0,2),16), g:parseInt(b.slice(2,4),16), b:parseInt(b.slice(4,6),16) }; }
   function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('').toUpperCase(); }
   function rgbToHsl(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,l=(max+min)/2; if(max===min){ h=s=0; } else { const d=max-min; s=l>0.5? d/(2-max-min) : d/(max+min); switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; case b: h=(r-g)/d+4; break; } h*=60; } return {h,s,l}; }
@@ -1278,7 +1366,31 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       const limit = limits.get(el.dataset.role) ?? Infinity;
       const base = getRawText(el);
       if(calcUnits(base + text) > limit){ showToast(`超出上限（${limit}）`, 'err', 1800, el); return; }
-      document.execCommand('insertText', false, text);
+      const inserted = (()=>{
+        try{
+          if(document.queryCommandSupported && document.queryCommandSupported('insertText')){
+            return document.execCommand('insertText', false, text);
+          }
+        }catch(_){}
+        return false;
+      })();
+
+      if(!inserted){
+        const sel = window.getSelection();
+        if(sel && sel.rangeCount){
+          const range = sel.getRangeAt(0);
+          range.deleteContents();
+          const node = document.createTextNode(text);
+          range.insertNode(node);
+          range.setStartAfter(node);
+          range.setEndAfter(node);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }else{
+          el.textContent = (getRawText(el) + text).trim();
+        }
+      }
+
       updateCounter(el); showFloatMeter(el);
     });
 
