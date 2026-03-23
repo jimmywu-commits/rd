@@ -323,6 +323,7 @@
 .guide-line.y34{ top:34px; }
 .guide-line.y318{ top:318px; }
 .guide-line.x546{ left:546px; top:0; width:1px; height:100%; }
+#square .guide-line.x546{ left:611px; }
 .guide-warning{
   position:absolute;
   top:10px;
@@ -1971,10 +1972,14 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   }
 
   const GUIDE_LINES_Y = [34, 318];
-  const GUIDE_LINES_X = [546];
   const GUIDE_GAP = 8;
   const CTA_SAFE_MARGIN = 6;
-  const PRODUCT_MIN_X = 547;
+  function getCanvasProductMinX(canvas){
+    return canvas && canvas.id === 'square' ? 612 : 547;
+  }
+  function getCanvasGuideLinesX(canvas){
+    return [getCanvasProductMinX(canvas) - 1];
+  }
 
   function clampItemToCanvas(box, maxW, maxH){
     let left = parseFloat(box.style.left) || 0;
@@ -1998,17 +2003,20 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   }
 
   function getRestrictedRects(canvas, maxW, maxH){
+    const productMinX = getCanvasProductMinX(canvas);
+    const guideLinesX = getCanvasGuideLinesX(canvas);
+
     const rects = [{
       left: 0,
       top: 0,
-      right: PRODUCT_MIN_X,
+      right: productMinX,
       bottom: maxH,
       type: 'left-forbidden'
     }];
 
     GUIDE_LINES_Y.forEach(y => {
       rects.push({
-        left: PRODUCT_MIN_X,
+        left: productMinX,
         top: y - GUIDE_GAP,
         right: maxW,
         bottom: y + GUIDE_GAP,
@@ -2016,7 +2024,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       });
     });
 
-    GUIDE_LINES_X.forEach(x => {
+    guideLinesX.forEach(x => {
       rects.push({
         left: x - GUIDE_GAP,
         top: 0,
@@ -2042,7 +2050,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
 
   function resolveOverlap(rect, zone, maxW, maxH){
     if(zone.type === 'left-forbidden' && !rect.isBg){
-      const rightPos = Math.min(maxW - rect.w, Math.max(zone.right, PRODUCT_MIN_X));
+      const rightPos = Math.min(maxW - rect.w, zone.right);
       rect.left = rightPos;
       rect.right = rect.left + rect.w;
       return true;
@@ -2127,6 +2135,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
 
     const CANVAS_W = canvas.clientWidth;
     const CANVAS_H = canvas.clientHeight;
+    const PRODUCT_MIN_X = getCanvasProductMinX(canvas);
     let zCounter = 10;
 
     function fitCoverSize(nw, nh){
