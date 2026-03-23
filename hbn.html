@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HBN製圖、審圖工具</title>
+<!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -182,7 +183,7 @@
   }
 
   /* 背景縮放控制（APP & PC 都有） */
-  .bg-scale-panel{position:absolute;right:8px;top:8px;z-index:7;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
+  .bg-scale-panel{position:absolute;right:0;top:-46px;z-index:20;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
   .bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px}
   .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
 
@@ -308,6 +309,54 @@
 
 /* PC 版 ghost 商品圖的右下角縮放把手（與 APP 一致樣式） */
 .editor-item.ghost .ctrl.resize{ right:6px; bottom:6px; }
+
+/* 編輯安全線 / 參考圖層（預覽可見、匯出不出現） */
+.guide-line{
+  position:absolute;
+  left:0;
+  width:100%;
+  height:1px;
+  background:#ff2b2b;
+  z-index:12;
+  pointer-events:none;
+}
+.guide-line.y34{ top:34px; }
+.guide-line.y318{ top:318px; }
+.guide-line.x546{ left:546px; top:0; width:1px; height:100%; }
+.guide-warning{
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:13;
+  pointer-events:none;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,43,43,.92);
+  color:#fff;
+  font-size:14px;
+  line-height:1.2;
+  box-shadow:0 4px 12px rgba(0,0,0,.18);
+  opacity:0;
+  transform:translateY(-6px);
+  transition:opacity .18s ease, transform .18s ease;
+}
+.guide-warning.show{
+  opacity:1;
+  transform:translateY(0);
+}
+.guide-doc-overlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:11;
+  pointer-events:none;
+  user-select:none;
+}
+.is-exporting .guide-line,
+.is-exporting .guide-warning,
+.is-exporting .guide-doc-overlay{ display:none !important; }
 
 </style>
 
@@ -605,6 +654,11 @@
         <div class="bg-solid" id="solidH"></div>
         <div class="bg-gradient" id="gradH"></div>
       </div>
+      <div class="guide-line y34 ui-only" aria-hidden="true"></div>
+      <div class="guide-line y318 ui-only" aria-hidden="true"></div>
+      <div class="guide-line x546 ui-only" aria-hidden="true"></div>
+      <img class="guide-doc-overlay ui-only" src="程式檔案/doc.png" alt="編輯參考圖" aria-hidden="true">
+      <div class="guide-warning ui-only" aria-hidden="true">商品請勿放置在範圍線外</div>
 
       <img class="mall-tag" id="tagH" src="程式檔案/紅商城.PNG" alt="商城掛標">
       <button class="toggle-tag" data-target="tagH" title="換色">🎨</button>
@@ -687,6 +741,11 @@
         <div class="bg-solid" id="solidS"></div>
         <div class="bg-gradient" id="gradS"></div>
       </div>
+      <div class="guide-line y34 ui-only" aria-hidden="true"></div>
+      <div class="guide-line y318 ui-only" aria-hidden="true"></div>
+      <div class="guide-line x546 ui-only" aria-hidden="true"></div>
+      <img class="guide-doc-overlay ui-only" src="程式檔案/doc.png" alt="編輯參考圖" aria-hidden="true">
+      <div class="guide-warning ui-only" aria-hidden="true">商品請勿放置在範圍線外</div>
 
       <img class="mall-tag" id="tagS" src="程式檔案/紅商城.PNG" alt="商城掛標">
       <button class="toggle-tag"  data-target="tagS" title="換色">🎨</button>
@@ -1911,6 +1970,151 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     });
   }
 
+  const GUIDE_LINES_Y = [34, 318];
+  const GUIDE_LINES_X = [546];
+  const GUIDE_GAP = 8;
+  const CTA_SAFE_MARGIN = 6;
+  const PRODUCT_MIN_X = 547;
+
+  function clampItemToCanvas(box, maxW, maxH){
+    let left = parseFloat(box.style.left) || 0;
+    let top = parseFloat(box.style.top) || 0;
+    const w = box.offsetWidth || parseFloat(box.style.width) || 0;
+    const h = box.offsetHeight || parseFloat(box.style.height) || 0;
+    left = Math.max(0, Math.min(left, maxW - w));
+    top = Math.max(0, Math.min(top, maxH - h));
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+  }
+
+  function showGuideWarningFor(box){
+    const canvas = box?.closest('.canvas');
+    if(!canvas) return;
+    const tip = canvas.querySelector('.guide-warning');
+    if(!tip) return;
+    clearTimeout(tip._hideTimer);
+    tip.classList.add('show');
+    tip._hideTimer = setTimeout(()=>tip.classList.remove('show'), 1400);
+  }
+
+  function getRestrictedRects(canvas, maxW, maxH){
+    const rects = [{
+      left: 0,
+      top: 0,
+      right: PRODUCT_MIN_X,
+      bottom: maxH,
+      type: 'left-forbidden'
+    }];
+
+    GUIDE_LINES_Y.forEach(y => {
+      rects.push({
+        left: PRODUCT_MIN_X,
+        top: y - GUIDE_GAP,
+        right: maxW,
+        bottom: y + GUIDE_GAP,
+        type: 'guide-y'
+      });
+    });
+
+    GUIDE_LINES_X.forEach(x => {
+      rects.push({
+        left: x - GUIDE_GAP,
+        top: 0,
+        right: x + GUIDE_GAP,
+        bottom: maxH,
+        type: 'guide-x'
+      });
+    });
+
+    canvas.querySelectorAll('.cta').forEach(cta => {
+      const left = cta.offsetLeft - CTA_SAFE_MARGIN;
+      const top = cta.offsetTop - CTA_SAFE_MARGIN;
+      const right = cta.offsetLeft + cta.offsetWidth + CTA_SAFE_MARGIN;
+      const bottom = cta.offsetTop + cta.offsetHeight + CTA_SAFE_MARGIN;
+      rects.push({ left, top, right, bottom, type: 'cta' });
+    });
+    return rects;
+  }
+
+  function rectsOverlap(a, b){
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  }
+
+  function resolveOverlap(rect, zone, maxW, maxH){
+    if(zone.type === 'left-forbidden' && !rect.isBg){
+      const rightPos = Math.min(maxW - rect.w, Math.max(zone.right, PRODUCT_MIN_X));
+      rect.left = rightPos;
+      rect.right = rect.left + rect.w;
+      return true;
+    }
+
+    const candidates = [];
+    const leftPos = zone.left - rect.w;
+    const rightPos = zone.right;
+    const upPos = zone.top - rect.h;
+    const downPos = zone.bottom;
+
+    if(leftPos >= 0){
+      candidates.push({ axis:'x', value:leftPos, dist:Math.abs(rect.left - leftPos) });
+    }
+    if(rightPos <= maxW - rect.w){
+      candidates.push({ axis:'x', value:rightPos, dist:Math.abs(rect.left - rightPos) });
+    }
+    if(upPos >= 0){
+      candidates.push({ axis:'y', value:upPos, dist:Math.abs(rect.top - upPos) });
+    }
+    if(downPos <= maxH - rect.h){
+      candidates.push({ axis:'y', value:downPos, dist:Math.abs(rect.top - downPos) });
+    }
+
+    if(!candidates.length) return false;
+    candidates.sort((a,b)=>a.dist-b.dist);
+    const best = candidates[0];
+    if(best.axis === 'x') rect.left = best.value;
+    else rect.top = best.value;
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+    return true;
+  }
+
+  function avoidRestrictedAreas(box, maxW, maxH){
+    if(!box || box.classList.contains('editor-bg')) return;
+    clampItemToCanvas(box, maxW, maxH);
+    const canvas = box.closest('.canvas');
+    if(!canvas) return;
+
+    const rect = { isBg: box.classList.contains('editor-bg'),
+      left: parseFloat(box.style.left) || 0,
+      top: parseFloat(box.style.top) || 0,
+      w: box.offsetWidth || parseFloat(box.style.width) || 0,
+      h: box.offsetHeight || parseFloat(box.style.height) || 0
+    };
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    const zones = getRestrictedRects(canvas, maxW, maxH);
+    let bumped = false;
+
+    for(let i=0; i<12; i++){
+      let moved = false;
+      for(const zone of zones){
+        if(rectsOverlap(rect, zone)){
+          if(resolveOverlap(rect, zone, maxW, maxH)){
+            moved = true;
+            bumped = true;
+          }
+        }
+      }
+      if(!moved) break;
+    }
+
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+    box.style.left = rect.left + 'px';
+    box.style.top = rect.top + 'px';
+    if(bumped) showGuideWarningFor(box);
+  }
+
   function setupEditor(canvasId, editorId, productsInputId, bgInputId, bgColorInputId, scalePanelId, scaleValId){
     const canvas = document.getElementById(canvasId);
     const editor = document.getElementById(editorId);
@@ -1935,6 +2139,16 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     }
 
 
+
+
+    function fitProductSizeWithinSafeZone(w, h){
+      const maxSafeW = Math.max(20, CANVAS_W - PRODUCT_MIN_X);
+      if(w <= maxSafeW) return { w, h };
+      const ratio = h / w;
+      const newW = maxSafeW;
+      const newH = Math.max(20, newW * ratio);
+      return { w: newW, h: newH };
+    }
 
     function fitContainSize(nw, nh){
       const ratio = nw/nh;
@@ -2002,23 +2216,33 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
           canvas.classList.remove('pending-underlay');
         }else{
           if(box.dataset.fixedW && box.dataset.fixedH){
-            box.style.width  = box.dataset.fixedW + 'px';
-            box.style.height = box.dataset.fixedH + 'px';
-            if(!box.style.left) box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (parseFloat(box.dataset.fixedW)/2)) + 'px';
+            let fixedW = parseFloat(box.dataset.fixedW);
+            let fixedH = parseFloat(box.dataset.fixedH);
+            const safeFixed = fitProductSizeWithinSafeZone(fixedW, fixedH);
+            fixedW = safeFixed.w;
+            fixedH = safeFixed.h;
+            box.dataset.fixedW = String(Math.round(fixedW));
+            box.dataset.fixedH = String(Math.round(fixedH));
+            box.style.width  = fixedW + 'px';
+            box.style.height = fixedH + 'px';
+            if(!box.style.left) box.style.left = Math.max(PRODUCT_MIN_X, Math.round((CANVAS_W - fixedW) / 2)) + 'px';
             if(!box.style.top)  box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
           }else{
             const targetH = CANVAS_H * 0.7;
             const targetW = targetH * ratio;
-            box.style.width = targetW + 'px';
-            box.style.height = targetH + 'px';
-            box.style.left = Math.round((CANVAS_W * (idx+1) / 4) - (targetW/2)) + 'px';
+            const safe = fitProductSizeWithinSafeZone(targetW, targetH);
+            box.style.width = safe.w + 'px';
+            box.style.height = safe.h + 'px';
+            box.style.left = Math.max(PRODUCT_MIN_X, Math.round((CANVAS_W - safe.w) / 2)) + 'px';
             box.style.top  = Math.round(CANVAS_H * 0.15) + 'px';
           }
           if(parseInt(box.style.zIndex,10) < 4){ box.style.zIndex = '4'; }
+          avoidRestrictedAreas(box, CANVAS_W, CANVAS_H);
         }
       };
 
       /* 拖拉 */
+      // 背景圖比照原始 hbn.html：拖曳時不做 clamp，不受紅線/範圍限制
       let dragging=false, startX=0, startY=0, origLeft=0, origTop=0;
       box.addEventListener('mousedown', (e)=>{
         if(e.target.classList.contains('ctrl') || e.target.tagName === 'BUTTON') return;
@@ -2034,8 +2258,11 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         const dy = e.clientY - startY;
         box.style.left = (origLeft + dx) + 'px';
         box.style.top  = (origTop  + dy) + 'px';
-});
-      window.addEventListener('mouseup', ()=> dragging=false);
+        if(!box.classList.contains('editor-bg')){
+          clampItemToCanvas(box, CANVAS_W, CANVAS_H);
+        }
+      });
+      window.addEventListener('mouseup', ()=>{ if(dragging) avoidRestrictedAreas(box, CANVAS_W, CANVAS_H); dragging=false; });
 
       /* 等比縮放（右下 ↗） */
       let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
@@ -2050,12 +2277,23 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
         let newW = Math.max(20, startW + delta);
         let newH = Math.max(20, newW / aspect);
+
+        if(!box.classList.contains('editor-bg')){
+          const safe = fitProductSizeWithinSafeZone(newW, newH);
+          newW = safe.w;
+          newH = safe.h;
+        }
+
         box.style.width = newW + 'px';
         box.style.height = newH + 'px';
         box.dataset.fixedW = String(Math.round(newW));
         box.dataset.fixedH = String(Math.round(newH));
+
+        if(!box.classList.contains('editor-bg')){
+          clampItemToCanvas(box, CANVAS_W, CANVAS_H);
+        }
       });
-      window.addEventListener('mouseup', ()=> resizing=false);
+      window.addEventListener('mouseup', ()=>{ if(resizing) avoidRestrictedAreas(box, CANVAS_W, CANVAS_H); resizing=false; });
 
       if(!asBackground){
         delBtn.addEventListener('click', ()=>{ box.remove(); });
@@ -2522,6 +2760,7 @@ backBtn.addEventListener('click', ()=>{
            el.classList.contains('modal') ||
            el.classList.contains('nudge') ||
            el.classList.contains('toggle-tag') ||
+           el.classList.contains('ui-only') ||
            el.getAttribute('aria-hidden') === 'true' ||
            el.classList.contains('ctrl');
   }
@@ -2654,47 +2893,61 @@ backBtn.addEventListener('click', ()=>{
   const _dlHPc=document.getElementById('dl-h-pc'); if(_dlHPc) _dlHPc.addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
   const _dlS=document.getElementById('dl-s'); if(_dlS) _dlS.addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
   const _dlSPc=document.getElementById('dl-s-pc'); if(_dlSPc) _dlSPc.addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
-// ========== 掛標紅／白切換（APP 與 PC 同步） ==========
+// ========== 掛標空白／紅／白切換（APP 與 PC 同步） ==========
 (function(){
   const GROUPS = {
-    tagH:  ['tagH','tagPH'], // 橫式組：APP + PC
+    tagH:  ['tagH','tagPH'],
     tagPH: ['tagH','tagPH'],
-    tagS:  ['tagS','tagPS'], // 方形組：APP + PC
+    tagS:  ['tagS','tagPS'],
     tagPS: ['tagS','tagPS']
   };
+  const STATE_LABEL = { blank:'空白', red:'紅', white:'白' };
+
+  function getSrcForState(img, state){
+    const cur = img.getAttribute('src') || '';
+    const isPc = cur.includes('掛標pc版') || img.id === 'tagPH' || img.id === 'tagPS';
+    if(state === 'red') return isPc ? '程式檔案/紅商城掛標pc版.png' : '程式檔案/紅商城.PNG';
+    if(state === 'white') return isPc ? '程式檔案/白商城掛標pc版.png' : '程式檔案/白商城.PNG';
+    return cur || (isPc ? '程式檔案/紅商城掛標pc版.png' : '程式檔案/紅商城.PNG');
+  }
+
+  function applyState(img, state){
+    img.dataset.tagState = state;
+    if(state === 'blank'){
+      img.style.visibility = 'hidden';
+      img.style.opacity = '0';
+    }else{
+      img.src = getSrcForState(img, state);
+      img.style.visibility = 'visible';
+      img.style.opacity = '1';
+    }
+  }
+
+  function nextState(state){
+    if(state === 'blank') return 'red';
+    if(state === 'red') return 'white';
+    return 'blank';
+  }
 
   function toggleTag(btn){
     const id = btn.getAttribute('data-target');
     const group = GROUPS[id] || [id];
     const imgs = group.map(g=>document.getElementById(g)).filter(Boolean);
     if(!imgs.length) return;
-
-    imgs.forEach(img=>{
-      let cur = img.getAttribute('src') || '';
-      let next = cur;
-
-      // 判斷 APP 或 PC
-      if(cur.includes('掛標pc版')) {
-        // PC 版：紅商城掛標pc版.png ↔ 白商城掛標pc版.png
-        next = cur.includes('紅商城掛標pc版')
-          ? cur.replace('紅商城掛標pc版', '白商城掛標pc版')
-          : cur.replace('白商城掛標pc版', '紅商城掛標pc版');
-      } else {
-        // APP 版：紅商城.PNG ↔ 白商城.PNG
-        next = cur.includes('紅商城')
-          ? cur.replace('紅商城', '白商城')
-          : cur.replace('白商城', '紅商城');
-      }
-      img.src = next;
-    });
-
-    const nowIsWhite = imgs[0].src.includes('白商城');
-    showToast(`掛標切換：${nowIsWhite ? '白' : '紅'}`, 'ok', 1000);
+    const current = imgs[0].dataset.tagState || 'blank';
+    const state = nextState(current);
+    imgs.forEach(img=>applyState(img, state));
+    showToast(`掛標切換：${STATE_LABEL[state]}`, 'ok', 1000);
   }
 
   document.querySelectorAll('.toggle-tag').forEach(btn=>{
     btn.addEventListener('click', ()=>toggleTag(btn));
-    btn.title = '切換掛標（紅／白，同步 APP 與 PC）';
+    btn.title = '切換掛標（空白／紅／白，同步 APP 與 PC）';
+  });
+
+  ['tagH','tagPH','tagS','tagPS'].forEach(id=>{
+    const img = document.getElementById(id);
+    if(img) applyState(img, 'blank');
   });
 })();
 
