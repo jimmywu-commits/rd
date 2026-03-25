@@ -61,12 +61,12 @@
 
   /* 橫式 Logo：最多 3 個，限高 50px、間距 15px、寬不限（.brand margin:0） */
   #horiz .brand{position:absolute;left:88px;top:122px;display:flex;align-items:center;gap:15px;z-index:5;margin:0}
-  #horiz .brand img{max-height:48px;height:auto;width:auto;object-fit:contain}
+  #horiz .brand img{max-height:50px;height:auto;width:auto;object-fit:contain;display:block}
 
   /* 方形 Logo app設定：105 x 105 盒 */
   #square .brand{position:absolute;left:45px;top:125px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
-  #square .logo-box{ position:absolute; inset:0; width:auto; height:auto; }
-  #square .logo-box img{ width:auto !important; height:auto !important; max-width:105px; max-height:105px; object-fit:contain; display:block; }
+  #square .logo-box{ position:relative; width:auto; height:auto; display:flex; align-items:center; justify-content:center; }
+  #square .logo-box img{ width:auto !important; height:105px !important; max-width:none !important; max-height:none !important; object-fit:contain !important; display:block; }
 
   /* 文字（固定 px、不允許換行） */
   .h1, .h2, .date{
@@ -195,7 +195,7 @@
   /* Modal / Nudge / Toast */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9998;}
   .modal.show{display:flex;}
-  .modal-panel{background:#111;border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);color:#fff;display:flex;flex-direction:column;gap:8px;min-width:820px}
+  .modal-panel{background:#111;border-radius:12px;padding:12px;box-shadow:0 10px 15px rgba(0,0,0,.5);color:#fff;display:flex;flex-direction:column;gap:8px;min-width:820px}
   .modal-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
   .modal-toolbar label{font-size:12px}
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;align-items:center}
@@ -679,6 +679,19 @@
     object-fit:contain !important;
     display:block !important;
   }
+
+  /* White-base logo display fix: canvas result should match editor preview */
+  #horiz .brand img[data-logo-white-base-enabled="1"],
+  #square .brand img[data-logo-white-base-enabled="1"],
+  #pcH .brand img[data-logo-white-base-enabled="1"],
+  #pcS .brand img[data-logo-white-base-enabled="1"]{
+    height:50px !important;
+    max-height:50px !important;
+    width:auto !important;
+    max-width:none !important;
+    vertical-align:middle !important;
+    display:block !important;
+  }
 </style>
 
 
@@ -732,6 +745,68 @@
     border-bottom-width: 9.5px !important;
     flex: 0 0 auto !important;
   }
+</style>
+
+
+<style id="square-logo-105-stable">
+  /* Lower square-logo canvas only: stable 105px display */
+  #square .brand img:not([data-logo-white-base-enabled="1"]),
+  #square .logo-box img:not([data-logo-white-base-enabled="1"]),
+  #brandImgS:not([data-logo-white-base-enabled="1"]),
+  #brandPSImg:not([data-logo-white-base-enabled="1"]){
+    width:auto !important;
+    height:105px !important;
+    max-width:none !important;
+    max-height:none !important;
+    object-fit:contain !important;
+    display:block !important;
+  }
+</style>
+
+
+<style id="square-whitebase-105-stable">
+  /* Lower square-logo canvas only: white-base outer frame is also 105px */
+  #square .brand img[data-logo-white-base-enabled="1"],
+  #square .logo-box img[data-logo-white-base-enabled="1"],
+  #brandImgS[data-logo-white-base-enabled="1"],
+  #brandPSImg[data-logo-white-base-enabled="1"]{
+    height:105px !important;
+    max-height:105px !important;
+    width:auto !important;
+    max-width:none !important;
+    object-fit:contain !important;
+    display:block !important;
+    vertical-align:middle !important;
+  }
+</style>
+
+
+<style id="canvas-whitebase-icon-back">
+.logo-white-btn{
+  position:absolute;
+  top:-26px;
+  right:22px;
+  width:20px;
+  height:20px;
+  border-radius:50%;
+  background:#000;
+  color:#fff;
+  font-size:11px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:20;
+  border:1px solid rgba(255,255,255,.25);
+}
+.logo-white-btn.is-on{
+  background:#fff;
+  color:#111;
+  border-color:#111;
+}
+.is-exporting .logo-white-btn{
+  display:none !important;
+}
 </style>
 
 </head>
@@ -959,6 +1034,7 @@
         <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
         <label style="display:flex;align-items:center;gap:6px"><input id="toggleShadow" type="checkbox"> 增加影子</label>
         <label style="display:flex;align-items:center;gap:6px"><input id="applyUploadSize" type="checkbox" checked> 完成後套用上傳尺寸規則</label>
+        <label id="logoWhiteBaseWrap" style="display:none;align-items:center;gap:6px;margin-left:auto;font-weight:700"><input id="logoWhiteBaseChk" type="checkbox"> 加白底</label>
         <span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
       </div>
       <div id="eraseWrap" class="checkerboard">
@@ -971,7 +1047,6 @@
       </div>
       <div class="modal-actions">
         <button class="btn-ghost" id="eraseReset" type="button">重作</button>
-        <button class="btn-ghost" id="logoWhiteBase" type="button" title="Logo 加白底">加白底</button>
         <button class="btn-primary" id="cropConfirm" type="button" title="只套用裁切，不關閉視窗">確定裁切</button>
         <button class="btn-primary" id="eraseApply" type="button">完成</button>
         <button class="btn-danger" id="eraseCancel" type="button">取消</button>
@@ -1094,7 +1169,7 @@
     function syncPcHorizontalLogo(){
       const pcLogo = document.getElementById('brandPHImg');
       const first = container.querySelector('.logo-item img, img');
-      if(pcLogo && first){ pcLogo.src = first.src; }
+      if(pcLogo && first){ pcLogo.src = first.src; pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || ''; pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || ''; syncLogoDisplaySize(pcLogo); }
     }
 
     input.addEventListener('change', async e=>{
@@ -1193,11 +1268,27 @@
 	  
   bindUploadMultiple('logo-horiz','#brandH',3);
 
+  const syncAllLogoDisplaySizes = ()=>{
+    document.querySelectorAll('#brandH img, #brandPHImg, #brandImgS, #brandPSImg').forEach(syncLogoDisplaySize);
+  };
+
   bindUpload('logo-square','#brandImgS');
   document.getElementById('logo-square')?.addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     const url=await readAsDataURL(f);
-    const el=document.getElementById('brandPSImg'); if(el) el.src=url;
+    const mainImg = document.getElementById('brandImgS');
+    const el=document.getElementById('brandPSImg');
+    if(mainImg){
+      mainImg.dataset.logoWhiteBaseEnabled = '';
+      mainImg.dataset.logoWhiteBaseRatio = '';
+      syncLogoDisplaySize(mainImg);
+    }
+    if(el){
+      el.src=url;
+      el.dataset.logoWhiteBaseEnabled = '';
+      el.dataset.logoWhiteBaseRatio = '';
+      syncLogoDisplaySize(el);
+    }
     enableLogoEditing(document.querySelector('#square .brand'), { minX:-30, maxX:30, fixedY:0 });
   });
 
@@ -1529,7 +1620,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   const eraseApply = document.getElementById('eraseApply');
   const eraseCancel = document.getElementById('eraseCancel');
   const cropConfirm = document.getElementById('cropConfirm');
-  const logoWhiteBaseBtn = document.getElementById('logoWhiteBase');
+  const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+  const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
 
   let editingTargetImg = null;
   let editingTargetBox = null;
@@ -1544,6 +1636,25 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   function openEraseEditor(imgEl, options = {}){
     if(!imgEl) return;
+
+    // 若目前畫布上的 logo 已套白底，進編輯器時先還原成原始 logo，
+    // 讓編輯器只顯示未加白底狀態；編輯完成後也維持未加白底。
+    if(options.isLogoEdit && imgEl.dataset.logoWhiteBaseEnabled === '1' && imgEl.dataset.logoOriginalSrc){
+      imgEl.src = imgEl.dataset.logoOriginalSrc;
+      imgEl.dataset.logoWhiteBaseEnabled = '';
+      imgEl.dataset.logoWhiteBaseRatio = '';
+      if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(imgEl);
+
+      const isSquareLogoRestore = imgEl.id === 'brandImgS';
+      const mirrorRestore = document.getElementById(isSquareLogoRestore ? 'brandPSImg' : 'brandPHImg');
+      if(mirrorRestore){
+        mirrorRestore.src = imgEl.dataset.logoOriginalSrc;
+        mirrorRestore.dataset.logoWhiteBaseEnabled = '';
+        mirrorRestore.dataset.logoWhiteBaseRatio = '';
+        if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(mirrorRestore);
+      }
+    }
+
     editingTargetImg = imgEl;
     editingTargetBox = imgEl.closest('.editor-item');
     editingModeIsLogo = !!options.isLogoEdit;
@@ -1561,13 +1672,10 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     const shadowBoxUi = document.getElementById('shadowModalBox');
     if(shadowWrap) shadowWrap.style.display = editingModeIsLogo ? 'none' : '';
     if(shadowBoxUi) shadowBoxUi.style.display = editingModeIsLogo ? 'none' : '';
-    if(logoWhiteBaseBtn){
-      logoWhiteBaseBtn.style.display = editingModeIsLogo ? '' : 'none';
-      logoWhiteBaseBtn.classList.toggle('active', !!logoWhiteBaseEnabled);
-    }
+    if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = editingModeIsLogo ? 'flex' : 'none';
 
     logoWhiteBaseEnabled = false;
-    if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
+    if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
     originalImg = new Image();
     originalImg.onload = ()=>{
       const pad = EDIT_PADDING;
@@ -1597,23 +1705,36 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     const cw = eraseCanvas.width, ch = eraseCanvas.height;
     const pad = EDIT_PADDING;
 
-    // inner editable area
     const innerW = Math.max(1, cw - pad*2);
     const innerH = Math.max(1, ch - pad*2);
 
-    // keep aspect ratio, center inside inner area
-    const scale = Math.min(innerW / originalImg.naturalWidth, innerH / originalImg.naturalHeight);
-    const w = Math.max(1, Math.round(originalImg.naturalWidth * scale));
-    const h = Math.max(1, Math.round(originalImg.naturalHeight * scale));
+    let renderSource = originalImg;
+    let renderW = Math.max(1, originalImg.naturalWidth);
+    let renderH = Math.max(1, originalImg.naturalHeight);
+
+    if(editingModeIsLogo && logoWhiteBaseEnabled){
+      const tmp = document.createElement('canvas');
+      tmp.width = Math.max(1, originalImg.naturalWidth);
+      tmp.height = Math.max(1, originalImg.naturalHeight);
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(originalImg, 0, 0);
+      const previewCanvas = addWhiteBaseToLogoCanvas(tmp);
+      renderSource = previewCanvas;
+      renderW = Math.max(1, previewCanvas.width);
+      renderH = Math.max(1, previewCanvas.height);
+    }
+
+    const scale = Math.min(innerW / renderW, innerH / renderH);
+    const w = Math.max(1, Math.round(renderW * scale));
+    const h = Math.max(1, Math.round(renderH * scale));
     const x = Math.round(pad + (innerW - w)/2);
     const y = Math.round(pad + (innerH - h)/2);
 
     modalProductRect = {x, y, w, h};
 
     eCtx.clearRect(0,0,cw,ch);
-    eCtx.drawImage(originalImg, x, y, w, h);
+    eCtx.drawImage(renderSource, x, y, w, h);
 
-    // store last known center for tools that rely on lastX/lastY
     lastX = x + w/2;
     lastY = y + h/2;
   }
@@ -1991,31 +2112,140 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   }
 
 
-    function addWhiteBaseToLogoCanvas(srcCanvas){
-    const bounds = getAlphaBounds(srcCanvas, 1);
-    if(!bounds) return srcCanvas;
+  function colorDistSq(a, b){
+    const dr = (a[0]||0) - (b[0]||0);
+    const dg = (a[1]||0) - (b[1]||0);
+    const db = (a[2]||0) - (b[2]||0);
+    return dr*dr + dg*dg + db*db;
+  }
 
-    const padX = 30;
-    const padY = 10;
+  function extractSmartLogoBounds(srcCanvas){
+    const alphaBounds = getAlphaBounds(srcCanvas, 1);
+    if(!alphaBounds) return null;
+
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d');
+    const img = ctx.getImageData(0,0,w,h);
+    const data = img.data;
+    const at = (x,y)=>{
+      const i = (y*w + x) * 4;
+      return [data[i], data[i+1], data[i+2], data[i+3]];
+    };
+
+    const corners = [at(0,0), at(Math.max(0,w-1),0), at(0,Math.max(0,h-1)), at(Math.max(0,w-1),Math.max(0,h-1))];
+    const opaqueCorners = corners.filter(c => (c[3]||0) > 245);
+    if(!opaqueCorners.length) return alphaBounds;
+
+    const avg = [0,0,0,255];
+    opaqueCorners.forEach(c => { avg[0]+=c[0]; avg[1]+=c[1]; avg[2]+=c[2]; });
+    avg[0]/=opaqueCorners.length; avg[1]/=opaqueCorners.length; avg[2]/=opaqueCorners.length;
+
+    const similarCount = corners.filter(c => (c[3]||0) > 245 && colorDistSq(c, avg) <= (28*28*3)).length;
+    if(similarCount < 3) return alphaBounds;
+
+    const visited = new Uint8Array(w*h);
+    const q = [];
+    function enqueue(x,y){
+      if(x<0||y<0||x>=w||y>=h) return;
+      const idx = y*w + x;
+      if(visited[idx]) return;
+      const i = idx*4;
+      if(data[i+3] < 245) return;
+      if(colorDistSq([data[i],data[i+1],data[i+2]], avg) > (42*42*3)) return;
+      visited[idx] = 1;
+      q.push(idx);
+    }
+
+    for(let x=0; x<w; x++){
+      enqueue(x,0); enqueue(x,h-1);
+    }
+    for(let y=0; y<h; y++){
+      enqueue(0,y); enqueue(w-1,y);
+    }
+
+    while(q.length){
+      const idx = q.pop();
+      const x = idx % w;
+      const y = (idx / w) | 0;
+      enqueue(x-1,y); enqueue(x+1,y); enqueue(x,y-1); enqueue(x,y+1);
+    }
+
+    let minX=w, minY=h, maxX=-1, maxY=-1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const idx = y*w + x;
+        const i = idx*4;
+        const a = data[i+3];
+        if(a <= 1) continue;
+        if(visited[idx]) continue;
+        if(x<minX) minX=x;
+        if(y<minY) minY=y;
+        if(x>maxX) maxX=x;
+        if(y>maxY) maxY=y;
+      }
+    }
+
+    if(maxX < minX || maxY < minY) return alphaBounds;
+    return {minX, minY, maxX, maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2};
+  }
+
+  function addWhiteBaseToLogoCanvas(srcCanvas){
+    const bounds = extractSmartLogoBounds(srcCanvas) || getAlphaBounds(srcCanvas, 1);
+    if(!bounds) return srcCanvas;
 
     const cropX = Math.max(0, bounds.minX);
     const cropY = Math.max(0, bounds.minY);
     const cropW = Math.max(1, bounds.maxX - bounds.minX + 1);
     const cropH = Math.max(1, bounds.maxY - bounds.minY + 1);
 
-    const outW = cropW + padX * 2;
-    const outH = cropH + padY * 2;
+    // 取左上角 3x3 平均色；若幾乎透明則改用白色
+    const sampleSize = 3;
+    const sample = document.createElement('canvas');
+    sample.width = sampleSize;
+    sample.height = sampleSize;
+    const sctx = sample.getContext('2d');
+    sctx.drawImage(srcCanvas, 0, 0, sampleSize, sampleSize, 0, 0, sampleSize, sampleSize);
+
+    const data = sctx.getImageData(0, 0, sampleSize, sampleSize).data;
+    let r = 0, g = 0, b = 0, a = 0, count = 0;
+    for(let i = 0; i < data.length; i += 4){
+      r += data[i];
+      g += data[i + 1];
+      b += data[i + 2];
+      a += data[i + 3];
+      count++;
+    }
+    const avgA = a / Math.max(1, count);
+    let bgColor;
+    if(avgA < 10){
+      bgColor = '#ffffff';
+    }else{
+      bgColor = `rgba(${Math.round(r/count)}, ${Math.round(g/count)}, ${Math.round(b/count)}, ${(avgA/255).toFixed(3)})`;
+    }
+
+    // 視覺規格基準：外框高度 50px；內縮 15%
+    const specOuterH = 50;
+    const insetRatio = 0.15;
+    const specPad = specOuterH * insetRatio;
+    const specDrawableH = Math.max(1, specOuterH - specPad * 2);
+
+    // 維持高解析輸出
+    const densityScale = Math.max(1, cropH / specDrawableH);
+    const pad = Math.max(1, Math.round(specPad * densityScale));
+
+    const outW = Math.max(1, Math.round(cropW + pad * 2));
+    const outH = Math.max(1, Math.round(cropH + pad * 2));
+    const drawX = Math.round((outW - cropW) / 2);
+    const drawY = Math.round((outH - cropH) / 2);
 
     const out = document.createElement('canvas');
     out.width = outW;
     out.height = outH;
 
     const ctx = out.getContext('2d');
+    const specRadius = 20;
+    const rr = Math.min(Math.round(specRadius * densityScale), outH / 2, outW / 2);
 
-    // 白底左右圓邊的膠囊形狀
-    const rr = Math.min(outH / 2, outW / 2);
-
-    ctx.save();
     ctx.beginPath();
     ctx.moveTo(rr, 0);
     ctx.lineTo(outW - rr, 0);
@@ -2027,13 +2257,62 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     ctx.lineTo(0, rr);
     ctx.arcTo(0, 0, rr, 0, rr);
     ctx.closePath();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = bgColor;
     ctx.fill();
-    ctx.restore();
 
-    // Logo 置中，內縮：上下 10px、左右 30px
-    ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, padX, padY, cropW, cropH);
+    ctx.drawImage(srcCanvas, cropX, cropY, cropW, cropH, drawX, drawY, cropW, cropH);
+    out.dataset.whiteBaseRatio = String(outW / outH);
     return out;
+  }
+
+
+  function syncLogoDisplaySize(imgEl){
+    if(!imgEl) return;
+    const enabled = imgEl.dataset.logoWhiteBaseEnabled === '1';
+    const ratio = Math.max(0.1, parseFloat(imgEl.dataset.logoWhiteBaseRatio || '') || (imgEl.naturalWidth && imgEl.naturalHeight ? (imgEl.naturalWidth / imgEl.naturalHeight) : 1));
+    const isSquare = imgEl.id === 'brandImgS' || imgEl.id === 'brandPSImg' || !!imgEl.closest('#square, #pcS');
+    const baseH = isSquare ? 105 : 50;
+    const outerW = Math.round(baseH * ratio);
+    const wrap = imgEl.closest('.logo-item, .logo-box, .brand');
+
+    if(enabled){
+      if(wrap){
+        wrap.style.width = outerW + 'px';
+        wrap.style.height = baseH + 'px';
+        wrap.style.display = 'flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.justifyContent = 'center';
+        wrap.style.overflow = 'visible';
+      }
+      imgEl.style.height = baseH + 'px';
+      imgEl.style.maxHeight = baseH + 'px';
+      imgEl.style.width = outerW + 'px';
+      imgEl.style.maxWidth = outerW + 'px';
+      imgEl.style.display = 'block';
+      imgEl.style.verticalAlign = 'middle';
+      imgEl.style.objectFit = 'contain';
+      imgEl.style.flex = '0 0 auto';
+    }else{
+      if(wrap && wrap.classList.contains('logo-item')){
+        wrap.style.removeProperty('width');
+        wrap.style.removeProperty('height');
+        wrap.style.removeProperty('display');
+        wrap.style.removeProperty('align-items');
+        wrap.style.removeProperty('justify-content');
+        wrap.style.removeProperty('overflow');
+      }else if(wrap && wrap.classList.contains('logo-box')){
+        wrap.style.removeProperty('width');
+        wrap.style.removeProperty('height');
+      }
+      imgEl.style.removeProperty('height');
+      imgEl.style.removeProperty('max-height');
+      imgEl.style.removeProperty('width');
+      imgEl.style.removeProperty('max-width');
+      imgEl.style.removeProperty('display');
+      imgEl.style.removeProperty('vertical-align');
+      imgEl.style.removeProperty('object-fit');
+      imgEl.style.removeProperty('flex');
+    }
   }
 
 function applyCroppedToTarget(closeAfter){
@@ -2054,7 +2333,7 @@ function applyCroppedToTarget(closeAfter){
       outCanvas = ex;
     }
 
-    const prodB = getAlphaBounds(outCanvas, 1) || {
+    let prodB = getAlphaBounds(outCanvas, 1) || {
       minX:0, minY:0, maxX:outCanvas.width-1, maxY:outCanvas.height-1,
       cx:outCanvas.width/2, cy:outCanvas.height/2
     };
@@ -2068,8 +2347,21 @@ function applyCroppedToTarget(closeAfter){
       return;
     }
 
+    if(editingTargetImg){
+      editingTargetImg.dataset.logoWhiteBaseEnabled = (editingModeIsLogo && logoWhiteBaseEnabled) ? '1' : '';
+      syncLogoDisplaySize(editingTargetImg);
+      const isSquareLogo = editingTargetImg.id === 'brandImgS';
+      const pcMirror = document.getElementById(isSquareLogo ? 'brandPSImg' : 'brandPHImg');
+      if(pcMirror){
+        pcMirror.dataset.logoWhiteBaseEnabled = editingTargetImg.dataset.logoWhiteBaseEnabled || '';
+        pcMirror.dataset.logoWhiteBaseRatio = editingTargetImg.dataset.logoWhiteBaseRatio || '';
+        syncLogoDisplaySize(pcMirror);
+      }
+    }
+
     if(editingModeIsLogo && logoWhiteBaseEnabled){
       outCanvas = addWhiteBaseToLogoCanvas(outCanvas);
+      prodB = { minX:0, minY:0, maxX:outCanvas.width-1, maxY:outCanvas.height-1, cx:outCanvas.width/2, cy:outCanvas.height/2 };
       try{
         productOnlyUrl = outCanvas.toDataURL('image/png');
       }catch(err){
@@ -2153,10 +2445,16 @@ function applyCroppedToTarget(closeAfter){
       }
     }else{
       if(box) box.dataset.shadowEnabled = '0';
-      const compNoShadow = trimAndCenterOnAnchor(outCanvas, prodB.cx, prodB.cy, 1, 2);
-      finalW = compNoShadow.width;
-      finalH = compNoShadow.height;
-      try{ finalUrl = compNoShadow.toDataURL('image/png'); }catch(err){ console.error(err); }
+      if(editingModeIsLogo){
+        finalW = outCanvas.width;
+        finalH = outCanvas.height;
+        try{ finalUrl = outCanvas.toDataURL('image/png'); }catch(err){ console.error(err); }
+      }else{
+        const compNoShadow = trimAndCenterOnAnchor(outCanvas, prodB.cx, prodB.cy, 1, 2);
+        finalW = compNoShadow.width;
+        finalH = compNoShadow.height;
+        try{ finalUrl = compNoShadow.toDataURL('image/png'); }catch(err){ console.error(err); }
+      }
     }
 
     if(box) box.dataset.baseSrc = productOnlyUrl;
@@ -2186,6 +2484,22 @@ function applyCroppedToTarget(closeAfter){
         }
       };
       editingTargetImg.style.objectFit = 'contain';
+      editingTargetImg.onload = ()=>{
+        if(editingModeIsLogo){
+          editingTargetImg.dataset.logoWhiteBaseRatio = finalH > 0 ? String(finalW / finalH) : '';
+        }
+        syncLogoDisplaySize(editingTargetImg);
+        const isSquareLogo = editingTargetImg.id === 'brandImgS';
+        const pcMirror = document.getElementById(isSquareLogo ? 'brandPSImg' : 'brandPHImg');
+        if(pcMirror){
+          pcMirror.src = finalUrl;
+          pcMirror.dataset.logoWhiteBaseEnabled = editingTargetImg.dataset.logoWhiteBaseEnabled || '';
+          if(editingModeIsLogo){
+            pcMirror.dataset.logoWhiteBaseRatio = finalH > 0 ? String(finalW / finalH) : '';
+          }
+          syncLogoDisplaySize(pcMirror);
+        }
+      };
       editingTargetImg.src = finalUrl;
     }else{
       editingTargetImg.onload = null;
@@ -2201,7 +2515,8 @@ function applyCroppedToTarget(closeAfter){
       if(shadowBoxUi) shadowBoxUi.style.display = '';
       editingModeIsLogo = false;
       logoWhiteBaseEnabled = false;
-      if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
+      if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+      if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
       editingTargetImg = null;
       editingTargetBox = null;
     }else{
@@ -2236,17 +2551,30 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     if(shadowBoxUi) shadowBoxUi.style.display = '';
     editingModeIsLogo = false;
     logoWhiteBaseEnabled = false;
-    if(logoWhiteBaseBtn) logoWhiteBaseBtn.classList.remove('active');
+    if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+    if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
     editingTargetImg = null;
     editingTargetBox = null;
   });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
-  logoWhiteBaseBtn?.addEventListener('click', ()=>{
+  logoWhiteBaseChk?.addEventListener('change', ()=>{
     if(!editingModeIsLogo) return;
-    logoWhiteBaseEnabled = !logoWhiteBaseEnabled;
-    logoWhiteBaseBtn.classList.toggle('active', logoWhiteBaseEnabled);
-    showToast(logoWhiteBaseEnabled ? '已啟用白底' : '已取消白底', 'ok', 1200);
+    logoWhiteBaseEnabled = !!logoWhiteBaseChk.checked;
+    if(editingTargetImg){
+      editingTargetImg.dataset.logoWhiteBaseEnabled = logoWhiteBaseEnabled ? '1' : '';
+      if(logoWhiteBaseEnabled && editingTargetImg.naturalWidth && editingTargetImg.naturalHeight){ editingTargetImg.dataset.logoWhiteBaseRatio = String(editingTargetImg.naturalWidth / editingTargetImg.naturalHeight); }
+      syncLogoDisplaySize(editingTargetImg);
+      const isSquareLogo = editingTargetImg.id === 'brandImgS';
+      const pcMirror = document.getElementById(isSquareLogo ? 'brandPSImg' : 'brandPHImg');
+      if(pcMirror){
+        pcMirror.dataset.logoWhiteBaseEnabled = editingTargetImg.dataset.logoWhiteBaseEnabled || '';
+        pcMirror.dataset.logoWhiteBaseRatio = editingTargetImg.dataset.logoWhiteBaseRatio || '';
+        syncLogoDisplaySize(pcMirror);
+      }
+    }
+    redrawOriginal();
+    showToast(logoWhiteBaseEnabled ? '已啟用白底（預覽中）' : '已取消白底', 'ok', 1200);
   });
   document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(!editingModeIsLogo && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
@@ -3412,19 +3740,6 @@ syncBackgroundAndImage('bg-square', 'bgS', 'S');
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // logo white-base button visual toggle binding
-  const whiteBtn = document.getElementById('logoWhiteBase');
-  if (whiteBtn && !whiteBtn.dataset.bound) {
-    whiteBtn.dataset.bound = '1';
-    whiteBtn.addEventListener('click', () => {
-      if (typeof logoWhiteBaseEnabled !== 'undefined') {
-        logoWhiteBaseEnabled = !logoWhiteBaseEnabled;
-        whiteBtn.style.background = logoWhiteBaseEnabled ? '#000' : '';
-        whiteBtn.style.color = logoWhiteBaseEnabled ? '#fff' : '';
-      }
-    });
-  }
-
   // disable logo drag-swap by mouse; keep only icon-based swap/edit
   document.querySelectorAll('.logo-item').forEach((item) => {
     item.setAttribute('draggable', 'false');
@@ -3442,6 +3757,8 @@ document.addEventListener('DOMContentLoaded', () => {
     img.style.cursor = 'default';
     img.addEventListener('dragstart', (e) => e.preventDefault());
   });
+
+  if(typeof syncAllLogoDisplaySizes === 'function') syncAllLogoDisplaySizes();
 });
 </script>
 
@@ -3711,7 +4028,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncPc(){
       const pcLogo = document.getElementById('brandPHImg');
       const first = container.querySelector('.logo-item img');
-      if(pcLogo && first) pcLogo.src = first.src;
+      if(pcLogo && first){ pcLogo.src = first.src; pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || ''; pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || ''; syncLogoDisplaySize(pcLogo); }
     }
 
     (list || []).forEach(item => {
@@ -3751,6 +4068,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     syncPc();
+    if(typeof syncAllLogoDisplaySizes === 'function') syncAllLogoDisplaySizes();
   }
 
   function rebuildSquareLogo(data, pcData){
@@ -3769,6 +4087,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const pcH = document.getElementById('brandPHImg');
     if(pcH && pcData && pcData.horiz) pcH.src = pcData.horiz;
+    if(typeof syncAllLogoDisplaySizes === 'function') syncAllLogoDisplaySizes();
   }
 
   function applyJsonState(state){
@@ -3904,6 +4223,147 @@ document.addEventListener('DOMContentLoaded', () => {
 
   
   })();
+</script>
+
+
+<script id="canvas-whitebase-icon-script">
+(function(){
+  function updateLogoWhiteBtnState(img){
+    const wrap = img && img.closest('.logo-item, .brand');
+    const btn = wrap && wrap.querySelector('.logo-white-btn');
+    if(!btn) return;
+    btn.classList.toggle('is-on', img.dataset.logoWhiteBaseEnabled === '1');
+    btn.title = img.dataset.logoWhiteBaseEnabled === '1' ? '取消白底' : '加白底';
+  }
+
+  function syncCanvasWhiteBaseMirror(img){
+    const isSquare = img && img.id === 'brandImgS';
+    const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+    if(!mirror || !img) return;
+    mirror.src = img.src;
+    mirror.dataset.logoOriginalSrc = img.dataset.logoOriginalSrc || '';
+    mirror.dataset.logoWhiteBaseEnabled = img.dataset.logoWhiteBaseEnabled || '';
+    mirror.dataset.logoWhiteBaseRatio = img.dataset.logoWhiteBaseRatio || '';
+    if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(mirror);
+    updateLogoWhiteBtnState(mirror);
+  }
+
+  function removeCanvasWhiteBase(img){
+    if(!img) return;
+    const original = img.dataset.logoOriginalSrc || '';
+    if(!original) return;
+    img.src = original;
+    img.dataset.logoWhiteBaseEnabled = '';
+    img.dataset.logoWhiteBaseRatio = '';
+    if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(img);
+    syncCanvasWhiteBaseMirror(img);
+    updateLogoWhiteBtnState(img);
+  }
+
+  function applyCanvasWhiteBase(img){
+    if(!img) return;
+    const source = img.dataset.logoOriginalSrc || img.src;
+    const base = new Image();
+    base.onload = ()=>{
+      const tmp = document.createElement('canvas');
+      tmp.width = Math.max(1, base.naturalWidth || base.width);
+      tmp.height = Math.max(1, base.naturalHeight || base.height);
+      const tctx = tmp.getContext('2d');
+      tctx.drawImage(base, 0, 0);
+      const out = addWhiteBaseToLogoCanvas(tmp);
+      const url = out.toDataURL('image/png');
+      img.dataset.logoOriginalSrc = source;
+      img.dataset.logoWhiteBaseEnabled = '1';
+      img.dataset.logoWhiteBaseRatio = String(out.width / out.height);
+      img.src = url;
+      if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(img);
+      syncCanvasWhiteBaseMirror(img);
+      updateLogoWhiteBtnState(img);
+    };
+    base.src = source;
+  }
+
+  function toggleCanvasWhiteBase(img){
+    if(!img) return;
+    if(img.dataset.logoWhiteBaseEnabled === '1') removeCanvasWhiteBase(img);
+    else applyCanvasWhiteBase(img);
+  }
+
+  function attachWhiteBtnToWrap(wrap, img){
+    if(!wrap || !img) return;
+    let whiteBtn = wrap.querySelector('.logo-white-btn');
+    if(!whiteBtn){
+      whiteBtn = document.createElement('div');
+      whiteBtn.className = 'logo-white-btn';
+      whiteBtn.innerHTML = '⬜';
+      wrap.appendChild(whiteBtn);
+      whiteBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        toggleCanvasWhiteBase(img);
+      });
+    }
+    updateLogoWhiteBtnState(img);
+  }
+
+  function attachHorizontalWhiteBtns(){
+    const container = document.getElementById('brandH');
+    if(!container) return;
+    Array.from(container.querySelectorAll('.logo-item')).forEach(wrap=>{
+      const img = wrap.querySelector('img');
+      if(img) attachWhiteBtnToWrap(wrap, img);
+    });
+  }
+
+  function attachSquareWhiteBtn(){
+    const wrap = document.querySelector('#square .brand');
+    const img = document.getElementById('brandImgS');
+    if(wrap && img) attachWhiteBtnToWrap(wrap, img);
+  }
+
+  const oldEnableLogoEditing = window.enableLogoEditing;
+  window.enableLogoEditing = function(target, options = {}){
+    const result = oldEnableLogoEditing ? oldEnableLogoEditing(target, options) : undefined;
+    const el = typeof target === 'string' ? document.querySelector(target) : target;
+    if(el){
+      const img = el.querySelector('img');
+      if(img) attachWhiteBtnToWrap(el, img);
+    }
+    return result;
+  };
+
+  const oldBindUploadMultiple = window.bindUploadMultiple;
+  if(oldBindUploadMultiple){
+    // white buttons are appended after uploads via observer below
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    attachHorizontalWhiteBtns();
+    attachSquareWhiteBtn();
+
+    const brandH = document.getElementById('brandH');
+    if(brandH){
+      const mo = new MutationObserver(()=>attachHorizontalWhiteBtns());
+      mo.observe(brandH, {childList:true, subtree:true});
+    }
+
+    const squareImg = document.getElementById('brandImgS');
+    if(squareImg){
+      squareImg.addEventListener('load', ()=>attachSquareWhiteBtn());
+    }
+  });
+
+  window.toggleCanvasWhiteBase = toggleCanvasWhiteBase;
+})();
+</script>
+
+
+<script id="whitebase-edit-restore-helper">
+document.addEventListener('DOMContentLoaded', ()=>{
+  const oldOpen = window.openEraseEditor;
+  if(typeof oldOpen === 'function' && !window.__whitebaseRestorePatched){
+    window.__whitebaseRestorePatched = true;
+  }
+});
 </script>
 
 </body>
