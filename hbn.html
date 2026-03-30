@@ -591,6 +591,61 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   transform-origin: top left;
 }
 
+
+/* 曝品 icon 位置與樣式更新 */
+.editor-item .layer-btns{
+  position:absolute;
+  left:6px;
+  top:6px;
+  right:auto;
+  display:flex;
+  gap:4px;
+}
+.editor-item .ctrl.del{
+  right:6px;
+  left:auto;
+  top:6px;
+}
+.editor-item .ctrl.resize{
+  font-size:16px;
+}
+
+
+
+
+/* === 系統重繪 icon（非直接使用參考圖） === */
+.editor-item .ctrl.del {
+  background:#2F2F2F;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%0A%3Cpath%20d%3D%22M4%207.2h16%22/%3E%0A%3Cpath%20d%3D%22M9%204.2h6l.9%202H8.1z%22/%3E%0A%3Cpath%20d%3D%22M7.2%207.2l.8%2012.2h8l.8-12.2%22/%3E%0A%3Cpath%20d%3D%22M10%2010v6.5%22/%3E%0A%3Cpath%20d%3D%22M14%2010v6.5%22/%3E%0A%3C/g%3E%3C/svg%3E");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+.editor-item .layer-btns .ctrl {
+  background:#2F2F2F;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.6%22%20stroke-linejoin%3D%22round%22%3E%0A%3Cpath%20d%3D%22M12%203.8%203.8%208.9%2012%2014l8.2-5.1z%22/%3E%0A%3Cpath%20d%3D%22M5.1%2012.2%2012%2016.5l6.9-4.3%22/%3E%0A%3Cpath%20d%3D%22M5.1%2015.5%2012%2019.8l6.9-4.3%22/%3E%0A%3C/g%3E%3C/svg%3E");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+.editor-item .ctrl.resize {
+  background-image:url("data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%20%20%3Crect%20x%3D%221.5%22%20y%3D%221.5%22%20width%3D%2221%22%20height%3D%2221%22%20rx%3D%224.5%22%20fill%3D%22%232F2F2F%22/%3E%0A%20%20%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%205.8h4.2V10%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.2%205.8%2012.9%2011.1%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M10%2018.2H5.8V14%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M5.8%2018.2%2011.1%2012.9%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+
+
+/* 隱藏編輯器縮放功能 */
+#editZoom,
+#editZoomVal,
+label:has(#editZoom){
+  display:none !important;
+}
+
 </style>
 
 <!-- Modified: applied hbn-like frontend sizes/coords (best-effort). -->
@@ -609,6 +664,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 
 /* Keep layout space if needed: if you prefer to collapse, use display:none (above). 
    If you'd rather keep the space but hide content, comment out display:none and use opacity:0 instead. */
+
+
 </style>
 
 
@@ -635,6 +692,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   #horiz #cta-h .triangle{
     border-left-width:10px !important;
   }
+
+
 </style>
 
 
@@ -642,6 +701,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 <style id="assistant-cta-xy-override">
   /* With canvas 1200x360 and CTA 238x44: X=940 => right=22, Y=291 => bottom=25 */
   
+
+
 </style>
 
 
@@ -665,6 +726,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   h3:has(+ #pcS) {
     display: none !important;
   }
+
+
 </style>
 
 
@@ -700,6 +763,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -728,6 +793,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -771,6 +838,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto;
   }
+
+
 </style>
 
 
@@ -779,6 +848,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   /* Do not force square logo to 105x105; keep aspect ratio */
   #square .logo-box{ width:auto !important; height:auto !important; }
   #square .logo-box img{ width:auto !important; height:auto !important; max-width:105px; max-height:105px; object-fit:contain; display:block; }
+
+
 </style>
 
 
@@ -813,6 +884,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     vertical-align:middle !important;
     display:block !important;
   }
+
+
 </style>
 
 
@@ -820,6 +893,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .manual-icon{position:fixed;top:20px;right:20px;width:100px;text-align:center;cursor:pointer;z-index:9999}
 .manual-icon img{width:100px;height:100px;display:block}
 .manual-icon span{display:block;font-size:10px;line-height:1.2}
+
+
 </style>
 
 
@@ -866,6 +941,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width: 9.5px !important;
     flex: 0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -882,6 +959,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain !important;
     display:block !important;
   }
+
+
 </style>
 
 
@@ -899,6 +978,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     display:block !important;
     vertical-align:middle !important;
   }
+
+
 </style>
 
 
@@ -928,6 +1009,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .is-exporting .logo-white-btn{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -1091,6 +1174,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain;
     display:block;
   }
+
+
 </style>
 
 
@@ -1125,6 +1210,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     color:#666;
     margin-top:6px;
   }
+
+
 </style>
 
 
@@ -1183,6 +1270,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-size:12px;
     line-height:1;
   }
+
+
 </style>
 
 
@@ -1216,6 +1305,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     height:120px;
     z-index:3;
   }
+
+
 </style>
 
 
@@ -1224,6 +1315,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .dd-canvas.square .dd-h1{ top:203.5px !important; }
 .dd-canvas.square .dd-h2{ top:253px !important; }
 .dd-canvas.square .dd-date{ top:327px !important; }
+
+
 </style>
 
 
@@ -1232,6 +1325,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
 .dd-canvas:not(.square) .dd-h2{ top:220px !important; }
 .dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
+
+
 </style>
 
 
@@ -1240,6 +1335,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   #ddSquareBg[data-dd-hidden="1"]{
     display:none !important;
   }
+
+
 </style>
 
 
@@ -1283,6 +1380,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   .is-exporting .dd-guide-warning{
     display:none !important;
   }
+
+
 </style>
 
 
@@ -1306,11 +1405,15 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain !important;
     display:block !important;
   }
+
+
 </style>
 
 
 <style id="contenteditable-empty-caret-fix">
   [contenteditable="true"]{ min-width:0.5em; min-height:1em; cursor:text; }
+
+
 </style>
 
 </head>
@@ -3367,7 +3470,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       img.src = url;
       img.style.objectFit = 'contain';
 
-      const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='✖';
+      const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='＝';
       const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切';  editBtn.textContent='✎';
       const layerBox = document.createElement('div'); layerBox.className='layer-btns';
       const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
@@ -3375,7 +3478,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
 
 
-      const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+      const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='⇱⇲';
 
       box.appendChild(img);
       if(!asBackground){
@@ -4448,12 +4551,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createProductControls(box, img){
-    const delBtn  = document.createElement('button'); delBtn.className='ctrl del'; delBtn.title='刪除'; delBtn.textContent='✖';
+    const delBtn  = document.createElement('button'); delBtn.className='ctrl del'; delBtn.title='刪除'; delBtn.textContent='＝';
     const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切'; editBtn.textContent='✎';
     const layerBox = document.createElement('div'); layerBox.className='layer-btns';
     const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
     const backBtn  = document.createElement('button'); backBtn.className='ctrl'; backBtn.title='圖層置後'; backBtn.textContent='▼';
-    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='⇱⇲';
     layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
     box.appendChild(delBtn);
     box.appendChild(editBtn);
@@ -5821,6 +5924,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -6218,6 +6323,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -6492,6 +6599,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -7518,227 +7627,108 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 
-<script id="preview-zoom-bugfix">
+<script id="final-icon-layout-patch">
 (function(){
-  // flag to separate base vs preview rendering
-  window.__isRenderingPreview = false;
-
-  const oldRender = window.renderPreviewZoomFromBase;
-  if(oldRender){
-    window.renderPreviewZoomFromBase = function(){
-      window.__isRenderingPreview = true;
-      oldRender();
-      window.__isRenderingPreview = false;
-    }
-  }
-
-  const oldSnapshot = window.snapshotVisibleToBase;
-  if(oldSnapshot){
-    window.snapshotVisibleToBase = function(){
-      // ❗關鍵：如果正在 preview render，不要覆蓋 base
-      if(window.__isRenderingPreview) return;
-      oldSnapshot();
-    }
-  }
-
-  // 智慧選取後強制只更新 base（避免倍率污染）
-  const oldFlood = window.floodSelect;
-  if(oldFlood){
-    window.floodSelect = function(){
-      const result = oldFlood.apply(this, arguments);
-      if(typeof window.snapshotVisibleToBase === 'function'){
-        window.snapshotVisibleToBase();
+  function refreshProductIcons(){
+    document.querySelectorAll('.editor-item:not(.editor-bg)').forEach(function(box){
+      var layerBtns = box.querySelector('.layer-btns');
+      if(layerBtns){
+        layerBtns.style.left = '6px';
+        layerBtns.style.top = '6px';
+        layerBtns.style.right = 'auto';
       }
+      var del = box.querySelector('.ctrl.del');
+      if(del){
+        del.style.left = 'auto';
+        del.style.right = '6px';
+        del.style.top = '6px';
+        del.textContent = '＝';
+        del.title = '刪除';
+      }
+      var resize = box.querySelector('.ctrl.resize');
+      if(resize){
+        resize.textContent = '⇱⇲';
+      }
+      var btns = box.querySelectorAll('.layer-btns .ctrl');
+      if(btns[0]) btns[0].textContent = '▲';
+      if(btns[1]) btns[1].textContent = '▼';
+    });
+  }
+
+  function refreshLogoIcons(){
+    document.querySelectorAll('.logo-item').forEach(function(item){
+      var edit = item.querySelector('.logo-edit-btn');
+      var swap = item.querySelector('.logo-swap-btn');
+      if(edit){
+        edit.style.left = '-2px';
+        edit.style.right = 'auto';
+        edit.textContent = '';
+        edit.title = '功能';
+      }
+      if(swap){
+        swap.style.right = '-2px';
+        swap.style.left = 'auto';
+        swap.textContent = '⇄';
+        swap.title = '交換位置';
+      }
+    });
+  }
+
+  function run(){
+    refreshProductIcons();
+    refreshLogoIcons();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', run);
+  }else{
+    run();
+  }
+  setTimeout(run, 200);
+  setTimeout(run, 800);
+})();
+</script>
+
+
+<script id="disable-editor-zoom-safe-reset">
+(function(){
+  function resetEditorZoomState(){
+    try{
+      if(typeof window.__erasePreviewZoom !== 'undefined') window.__erasePreviewZoom = 1;
+    }catch(_){}
+    try{
+      if(typeof window.__zoomSliderHeld !== 'undefined') window.__zoomSliderHeld = false;
+    }catch(_){}
+    try{
+      if(typeof window.__zoomSliderActive !== 'undefined') window.__zoomSliderActive = false;
+    }catch(_){}
+    const slider = document.getElementById('editZoom');
+    const val = document.getElementById('editZoomVal');
+    if(slider) slider.value = '100';
+    if(val) val.textContent = '100%';
+  }
+
+  const oldOpenEraseEditor = window.openEraseEditor;
+  if(typeof oldOpenEraseEditor === 'function'){
+    window.openEraseEditor = function(){
+      resetEditorZoomState();
+      return oldOpenEraseEditor.apply(this, arguments);
+    };
+  }
+
+  const oldRedrawOriginal = window.redrawOriginal;
+  if(typeof oldRedrawOriginal === 'function'){
+    window.redrawOriginal = function(){
+      const result = oldRedrawOriginal.apply(this, arguments);
+      resetEditorZoomState();
       return result;
-    }
-  }
-
-})();
-</script>
-
-
-<script id="preview-zoom-slider-only-fix">
-(function(){
-  function installSliderOnlyPreviewZoom(){
-    var slider = document.getElementById('editZoom');
-    if(!slider) return;
-    if(window.__sliderOnlyPreviewZoomInstalled) return;
-    window.__sliderOnlyPreviewZoomInstalled = true;
-
-    // zoom only changes when moving the slider itself
-    slider.addEventListener('pointerdown', function(){
-      window.__zoomSliderActive = true;
-    }, true);
-
-    window.addEventListener('pointerup', function(){
-      window.__zoomSliderActive = false;
-    }, true);
-
-    // prevent any clicks / drags inside editor from being interpreted as zoom-related state changes
-    var eraseCanvas = document.getElementById('eraseCanvas');
-    if(eraseCanvas){
-      eraseCanvas.addEventListener('pointerdown', function(){
-        window.__zoomSliderActive = false;
-      }, true);
-      eraseCanvas.addEventListener('mousedown', function(){
-        window.__zoomSliderActive = false;
-      }, true);
-      eraseCanvas.addEventListener('click', function(){
-        window.__zoomSliderActive = false;
-      }, true);
-    }
-
-    // hard guard: only slider input may update preview zoom
-    var oldSet = window.renderPreviewZoomFromBase;
-    if(typeof oldSet === 'function' && !window.__renderPreviewZoomGuarded){
-      window.__renderPreviewZoomGuarded = true;
-      window.renderPreviewZoomFromBase = function(){
-        return oldSet.apply(this, arguments);
-      };
-    }
-
-    // override slider behavior so only slider input changes zoom
-    var oldInputHandlerValue = slider.value;
-    slider.addEventListener('input', function(e){
-      window.__zoomSliderActive = true;
-    }, true);
-
-    // Any pointer interaction elsewhere must never alter the stored zoom value
-    ['pointerdown','mousedown','click','mousemove'].forEach(function(evt){
-      window.addEventListener(evt, function(ev){
-        var t = ev.target;
-        if(t === slider) return;
-        if(t && t.closest && t.closest('#editZoom')) return;
-        window.__zoomSliderActive = false;
-      }, true);
-    });
-
-    // Freeze zoom state except via slider
-    var currentZoom = window.__erasePreviewZoom || 1;
-    Object.defineProperty(window, '__safePreviewZoomValue', {
-      configurable: true,
-      get: function(){ return currentZoom; },
-      set: function(v){
-        if(window.__zoomSliderActive){
-          currentZoom = v;
-        }
-      }
-    });
-
-    // Redirect existing zoom state writes to guarded value where possible
-    try{
-      currentZoom = window.__erasePreviewZoom || 1;
-      Object.defineProperty(window, '__erasePreviewZoom', {
-        configurable: true,
-        get: function(){ return currentZoom; },
-        set: function(v){
-          if(window.__zoomSliderActive){
-            currentZoom = v;
-          }
-        }
-      });
-    }catch(_){}
-
-    // initialize from current slider value once
-    window.__zoomSliderActive = true;
-    try{
-      window.__erasePreviewZoom = Math.max(0.5, Math.min(3, (parseInt(slider.value || '100', 10) / 100)));
-    }finally{
-      window.__zoomSliderActive = false;
-    }
+    };
   }
 
   if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', installSliderOnlyPreviewZoom);
+    document.addEventListener('DOMContentLoaded', resetEditorZoomState);
   }else{
-    installSliderOnlyPreviewZoom();
-  }
-})();
-</script>
-
-
-<script id="preview-zoom-hold-only-fix">
-(function(){
-  function installHoldOnlyZoom(){
-    var slider = document.getElementById('editZoom');
-    if(!slider) return;
-    if(window.__holdOnlyZoomInstalled) return;
-    window.__holdOnlyZoomInstalled = true;
-
-    window.__zoomSliderHeld = false;
-
-    function lockOff(){
-      window.__zoomSliderHeld = false;
-    }
-    function lockOn(){
-      window.__zoomSliderHeld = true;
-    }
-
-    // 只有壓住 slider 時才允許變更 zoom
-    slider.addEventListener('pointerdown', lockOn, true);
-    slider.addEventListener('mousedown', lockOn, true);
-    slider.addEventListener('touchstart', lockOn, true);
-
-    window.addEventListener('pointerup', lockOff, true);
-    window.addEventListener('mouseup', lockOff, true);
-    window.addEventListener('touchend', lockOff, true);
-    window.addEventListener('touchcancel', lockOff, true);
-    window.addEventListener('blur', lockOff, true);
-
-    // 只要不是 slider 本身的互動，一律關閉 zoom 可寫入狀態
-    ['pointerdown','mousedown','click','touchstart'].forEach(function(evt){
-      document.addEventListener(evt, function(e){
-        var t = e.target;
-        if(t === slider) return;
-        if(t && t.closest && t.closest('#editZoom')) return;
-        lockOff();
-      }, true);
-    });
-
-    // 徹底防呆：只有 hold 住 slider 時，才允許寫入 __erasePreviewZoom
-    var currentZoom = window.__erasePreviewZoom || 1;
-    try{
-      Object.defineProperty(window, '__erasePreviewZoom', {
-        configurable: true,
-        get: function(){ return currentZoom; },
-        set: function(v){
-          if(window.__zoomSliderHeld){
-            currentZoom = v;
-          }
-        }
-      });
-    }catch(_){}
-
-    // slider input 也要二次確認：沒按住就不處理
-    slider.addEventListener('input', function(e){
-      if(!window.__zoomSliderHeld){
-        e.stopImmediatePropagation();
-        slider.value = String(Math.round((currentZoom || 1) * 100));
-        return false;
-      }
-    }, true);
-
-    slider.addEventListener('change', function(e){
-      if(!window.__zoomSliderHeld){
-        e.stopImmediatePropagation();
-        slider.value = String(Math.round((currentZoom || 1) * 100));
-        return false;
-      }
-    }, true);
-
-    // 初始化一次目前值
-    window.__zoomSliderHeld = true;
-    try{
-      currentZoom = Math.max(0.5, Math.min(3, (parseInt(slider.value || '100', 10) / 100)));
-    } finally {
-      window.__zoomSliderHeld = false;
-    }
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', installHoldOnlyZoom);
-  }else{
-    installHoldOnlyZoom();
+    resetEditorZoomState();
   }
 })();
 </script>
