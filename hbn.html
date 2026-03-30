@@ -4028,9 +4028,9 @@ backBtn.addEventListener('click', ()=>{
     }
   }
 
-  const _dlH=document.getElementById('dl-h'); if(_dlH) _dlH.addEventListener('click', ()=>downloadJpgFor('horiz','bg-color-h','horiz.jpg'));
+  /* disabled old direct download binding */
   const _dlHPc=document.getElementById('dl-h-pc'); if(_dlHPc) _dlHPc.addEventListener('click', ()=>downloadJpgFor('pcH','bg-color-h','pc-horiz.jpg'));
-  const _dlS=document.getElementById('dl-s'); if(_dlS) _dlS.addEventListener('click', ()=>{ copyHorizCtaToSquare(); downloadJpgFor('square','bg-color-s','square.jpg'); });
+  /* disabled old direct download binding */
   const _dlSPc=document.getElementById('dl-s-pc'); if(_dlSPc) _dlSPc.addEventListener('click', ()=>downloadJpgFor('pcS','bg-color-s','pc-square.jpg'));
 // ========== 掛標空白／紅／白切換（APP 與 PC 同步） ==========
 (function(){
@@ -6548,6 +6548,229 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }else{
     init();
   }
+})();
+</script>
+
+
+<script id="final-export-fixes">
+(function(){
+  function hexToRgb2(hex){
+    const h = String(hex || '#ffffff').replace('#','');
+    const b = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return {
+      r: parseInt(b.slice(0,2), 16) || 255,
+      g: parseInt(b.slice(2,4), 16) || 255,
+      b: parseInt(b.slice(4,6), 16) || 255
+    };
+  }
+
+  function getContainedRect(boxRect, naturalW, naturalH){
+    const bw = boxRect.width;
+    const bh = boxRect.height;
+    if(!bw || !bh || !naturalW || !naturalH){
+      return { left: boxRect.left, top: boxRect.top, width: bw, height: bh };
+    }
+    const boxRatio = bw / bh;
+    const imgRatio = naturalW / naturalH;
+    let drawW, drawH, drawLeft, drawTop;
+    if(imgRatio > boxRatio){
+      drawW = bw;
+      drawH = bw / imgRatio;
+      drawLeft = boxRect.left;
+      drawTop = boxRect.top + (bh - drawH) / 2;
+    }else{
+      drawH = bh;
+      drawW = bh * imgRatio;
+      drawTop = boxRect.top;
+      drawLeft = boxRect.left + (bw - drawW) / 2;
+    }
+    return { left: drawLeft, top: drawTop, width: drawW, height: drawH };
+  }
+
+  async function exportNodeExactFixed(node, bgColorInputId, filename, options){
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
+    const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+
+    const snap = await html2canvas(node, {
+      backgroundColor: null,
+      scale: 1,
+      useCORS: true,
+      allowTaint: false,
+      removeContainer: true,
+      letterRendering: true,
+      logging: false,
+      width: node.clientWidth,
+      height: node.clientHeight,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+      ignoreElements: function(el){
+        if(!el || !el.classList) return false;
+        return el.classList.contains('panel') ||
+               el.classList.contains('bg-scale-panel') ||
+               el.classList.contains('toggle-tag') ||
+               el.classList.contains('float-meter') ||
+               el.classList.contains('modal') ||
+               el.classList.contains('nudge') ||
+               el.classList.contains('ui-only') ||
+               el.classList.contains('ctrl');
+      },
+      onclone: function(doc){
+        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
+        const clonedNode = doc.getElementById(node.id);
+        if(clonedNode){
+          clonedNode.style.overflow = 'hidden';
+          clonedNode.classList.add('hide-dd-icons');
+        }
+        if(options && typeof options.onclone === 'function'){
+          options.onclone(doc, clonedNode);
+        }
+      }
+    });
+
+    const outC = document.createElement('canvas');
+    outC.width = snap.width;
+    outC.height = snap.height;
+    const ctx = outC.getContext('2d');
+    const rgb = hexToRgb2(bgHex);
+    ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+    ctx.fillRect(0, 0, outC.width, outC.height);
+    ctx.drawImage(snap, 0, 0);
+
+    const toBlob = (type, quality) => new Promise(res => outC.toBlob(b => res(b), type, quality));
+
+    let outName = (filename || 'banner').replace(/\.png$/i,'').replace(/\.jpg$/i,'') + '.jpg';
+    let quality = 1.0;
+    let blob = await toBlob('image/jpeg', quality);
+    if(blob && blob.size > 145 * 1024){
+      while(blob && blob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.05).toFixed(2));
+        blob = await toBlob('image/jpeg', quality);
+      }
+    }
+    if(!blob) throw new Error('產生圖檔失敗');
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = outName;
+    document.body.appendChild(a);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url, '_blank');
+    else a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    if(typeof showToast === 'function'){
+      showToast('已下載：' + Math.round(blob.size/1024) + 'KB（JPG ' + (blob.size <= 145*1024 ? '未壓縮' : '已壓縮') + '）', 'ok', 2500);
+    }
+  }
+
+  function buildHbnProductLocksFixed(node){
+    const nodeRect = node.getBoundingClientRect();
+    const locks = [];
+    let i = 0;
+
+    node.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
+      const img = box.querySelector('img');
+      if(!img) return;
+
+      const boxRect = box.getBoundingClientRect();
+      const drawRect = getContainedRect(boxRect, img.naturalWidth || 0, img.naturalHeight || 0);
+
+      const boxId = 'export-box-' + (++i);
+      box.setAttribute('data-export-box-id', boxId);
+
+      locks.push({
+        boxId,
+        src: img.currentSrc || img.src || '',
+        zIndex: getComputedStyle(box).zIndex || '4',
+        left: drawRect.left - nodeRect.left,
+        top: drawRect.top - nodeRect.top,
+        width: drawRect.width,
+        height: drawRect.height
+      });
+    });
+
+    return locks;
+  }
+
+  function clearHbnProductLocksFixed(node){
+    node.querySelectorAll('[data-export-box-id]').forEach(el => el.removeAttribute('data-export-box-id'));
+  }
+
+  function applyHbnCloneOverlayFixed(clonedNode, locks){
+    if(!clonedNode) return;
+
+    clonedNode.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
+      box.style.visibility = 'hidden';
+    });
+
+    const overlayRoot = document.createElement('div');
+    overlayRoot.style.position = 'absolute';
+    overlayRoot.style.left = '0';
+    overlayRoot.style.top = '0';
+    overlayRoot.style.width = '100%';
+    overlayRoot.style.height = '100%';
+    overlayRoot.style.pointerEvents = 'none';
+    overlayRoot.style.zIndex = '999';
+
+    locks.forEach(lock => {
+      const img = document.createElement('img');
+      img.src = lock.src;
+      img.style.position = 'absolute';
+      img.style.left = lock.left + 'px';
+      img.style.top = lock.top + 'px';
+      img.style.width = lock.width + 'px';
+      img.style.height = lock.height + 'px';
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = 'none';
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      img.style.zIndex = String(lock.zIndex);
+      overlayRoot.appendChild(img);
+    });
+
+    clonedNode.appendChild(overlayRoot);
+  }
+
+  window.__downloadInFlight = false;
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    if(window.__downloadInFlight) return;
+    window.__downloadInFlight = true;
+    const node = document.getElementById(canvasId);
+    if(!node){
+      window.__downloadInFlight = false;
+      return;
+    }
+
+    const isHbn = canvasId === 'horiz' || canvasId === 'square' || canvasId === 'pcH' || canvasId === 'pcS';
+    const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+
+    let locks = [];
+    if(isHbn){
+      locks = buildHbnProductLocksFixed(node);
+    }
+
+    try{
+      await exportNodeExactFixed(node, bgColorInputId, filename, {
+        onclone: function(doc, clonedNode){
+          if(isHbn){
+            applyHbnCloneOverlayFixed(clonedNode, locks);
+          }
+          if(isDd && clonedNode){
+            clonedNode.querySelectorAll('.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
+          }
+        }
+      });
+    } finally {
+      if(isHbn){
+        clearHbnProductLocksFixed(node);
+      }
+      window.__downloadInFlight = false;
+    }
+  };
 })();
 </script>
 
