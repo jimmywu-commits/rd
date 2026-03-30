@@ -523,6 +523,22 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   transform: translateY(1px) !important;
 }
 
+
+/* DDCard 三行文字防切字（g/j/p/q/y descender 修正） */
+.dd-h1, .dd-h2, .dd-date{
+  transform: translateY(-1px);
+  padding-bottom: 0.25em;
+  margin-bottom: -0.25em;
+}
+
+
+/* DDCard 副標再補強：避免英文 descender 被自身 overflow 切掉 */
+.dd-h2{
+  overflow: visible !important;
+  padding-bottom: 0.32em !important;
+  margin-bottom: -0.32em !important;
+}
+
 </style>
 
 <!-- Modified: applied hbn-like frontend sizes/coords (best-effort). -->
