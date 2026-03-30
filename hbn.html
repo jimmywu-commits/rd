@@ -809,6 +809,384 @@
 }
 </style>
 
+
+<style id="ddcard-linked-preview-style">
+  .dd-sync-note{
+    font-size:12px;
+    color:#666;
+    margin:6px 0 12px;
+  }
+  .dd-preview-wrap{
+    margin:12px 0 18px;
+    padding:12px;
+    background:#fff;
+    border:1px solid #eaeaea;
+    border-radius:8px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.06);
+  }
+  .dd-preview-title{
+    font-size:16px;
+    font-weight:700;
+    margin:0 0 8px;
+  }
+  .dd-canvas{
+    position:relative;
+    width:531px;
+    height:792px;
+    overflow:hidden;
+    border-radius:0;
+    background:#c2dff3;
+  }
+  .dd-canvas .bg{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:0;
+  }
+  .dd-canvas .mall-tag{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    z-index:8;
+    pointer-events:none;
+  }
+  .dd-canvas .dd-brand{
+    position:absolute;
+    left:0;
+    right:0;
+    top:104px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:15px;
+    z-index:5;
+    padding:0 20px;
+  }
+  .dd-canvas .dd-brand img{
+    max-height:48px;
+    width:auto;
+    max-width:420px;
+    object-fit:contain;
+    display:block;
+  }
+  .dd-canvas.square .dd-brand img{
+    max-height:105px;
+    max-width:220px;
+  }
+  .dd-canvas .dd-h1,
+  .dd-canvas .dd-h2,
+  .dd-canvas .dd-date{
+    position:absolute;
+    left:0;
+    width:100%;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    z-index:5;
+  }
+  .dd-canvas .dd-h1{
+    top:162px;
+    font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;
+    font-weight:500;
+    font-size:40px;
+    line-height:56px;
+    color:#1b5e7a;
+    padding:0 20px;
+  }
+  .dd-canvas .dd-h2{
+    top:220px;
+    font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;
+    font-weight:700;
+    font-size:60px;
+    line-height:68px;
+    color:#0b6c4a;
+    padding:0 20px;
+  }
+  .dd-canvas .dd-date{
+    top:295px;
+    font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;
+    font-weight:500;
+    font-size:24px;
+    line-height:50px;
+    color:#306b8f;
+    padding:0 20px;
+  }
+  .dd-canvas .dd-cta{
+    position:absolute;
+    left:0;
+    right:0;
+    top:674.5px;
+    width:238px;
+    height:44px;
+    margin:0 auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:0 16px;
+    border-radius:8px;
+    background:#2176FF;
+    color:#fff;
+    z-index:6;
+    font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial;
+    font-weight:400;
+    font-size:29px;
+    line-height:1;
+  }
+  .dd-canvas .dd-cta .text{
+    position:relative;
+    top:-2px;
+    white-space:nowrap;
+  }
+  .dd-canvas .dd-cta .triangle{
+    position:static;
+    width:0;
+    height:0;
+    border-left:10px solid currentColor;
+    border-top:9.5px solid transparent;
+    border-bottom:9.5px solid transparent;
+    flex:0 0 auto;
+  }
+  .dd-canvas .dd-products{
+    position:absolute;
+    inset:0;
+    z-index:4;
+    pointer-events:none;
+  }
+  .dd-canvas .dd-product{
+    position:absolute;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .dd-canvas .dd-product img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:block;
+  }
+</style>
+
+
+<style id="ddcard-independent-edit-style">
+  .dd-canvas .bg{
+    cursor:move;
+    user-select:none;
+  }
+  .dd-canvas.edit-bg .bg{
+    outline:1px dashed rgba(255,255,255,.6);
+  }
+  .dd-canvas .dd-product{
+    pointer-events:auto;
+    cursor:move;
+    user-select:none;
+  }
+  .dd-canvas .dd-product::after{
+    content:'';
+    position:absolute;
+    right:-6px;
+    bottom:-6px;
+    width:14px;
+    height:14px;
+    border-radius:4px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,.4);
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+    cursor:nwse-resize;
+  }
+  .dd-edit-tip{
+    font-size:12px;
+    color:#666;
+    margin-top:6px;
+  }
+</style>
+
+
+<style id="ddcard-bg-panel-enhance">
+  .dd-preview-wrap{
+    position:relative;
+    overflow:visible;
+    
+  }
+  .dd-canvas{
+    overflow:hidden;
+  }
+  .dd-canvas .bg{
+    object-fit:contain !important;
+    width:auto;
+    height:auto;
+    max-width:none;
+    max-height:none;
+  }
+  .dd-bg-scale-panel{
+    position:relative;
+    margin-top:6px;
+    margin-bottom:6px;
+    display:flex;
+    justify-content:flex-end;
+    z-index:20;
+    display:flex;
+    gap:6px;
+    align-items:center;
+    background:rgba(17,17,17,.72);
+    color:#fff;
+    border-radius:10px;
+    padding:6px 8px;
+    font-size:12px;
+  }
+  .dd-bg-scale-panel button{
+    border:0;
+    border-radius:6px;
+    background:#fff;
+    color:#111;
+    cursor:pointer;
+    padding:4px 8px;
+  }
+  .dd-bg-scale-panel .tag{
+    background:#222;
+    color:#fff;
+    border-radius:6px;
+    padding:2px 6px;
+    font-weight:700;
+  }
+  .dd-canvas .dd-product::after{
+    content:'↗';
+    display:grid;
+    place-items:center;
+    color:#111;
+    font-size:12px;
+    line-height:1;
+  }
+</style>
+
+
+<style id="ddcard-underlay-block-gradient">
+  .dd-canvas .dd-solid-top,
+  .dd-canvas .dd-solid-bottom,
+  .dd-canvas .dd-gradient-top,
+  .dd-canvas .dd-gradient-bottom{
+    position:absolute;
+    left:0;
+    width:100%;
+    pointer-events:none;
+  }
+  .dd-canvas .dd-solid-top{
+    top:0;
+    height:310px;
+    z-index:2;
+  }
+  .dd-canvas .dd-gradient-top{
+    top:308px;
+    height:120px;
+    z-index:3;
+  }
+  .dd-canvas .dd-solid-bottom{
+    top:740px;
+    height:52px;
+    z-index:2;
+  }
+  .dd-canvas .dd-gradient-bottom{
+    top:622px;
+    height:120px;
+    z-index:3;
+  }
+</style>
+
+
+<style id="fix-ddcard-square-y">
+.dd-canvas.square .dd-brand{ top:82.5px !important; }
+.dd-canvas.square .dd-h1{ top:203.5px !important; }
+.dd-canvas.square .dd-h2{ top:253px !important; }
+.dd-canvas.square .dd-date{ top:327px !important; }
+</style>
+
+
+<style id="fix-ddcard-horiz-y">
+.dd-canvas:not(.square) .dd-brand{ top:102.5px !important; }
+.dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
+.dd-canvas:not(.square) .dd-h2{ top:220px !important; }
+.dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
+</style>
+
+
+<style id="hide-ddcard-bgs">
+  #ddHorizBg[data-dd-hidden="1"],
+  #ddSquareBg[data-dd-hidden="1"]{
+    display:none !important;
+  }
+</style>
+
+
+<style id="ddcard-guide-style">
+  .dd-guide-line{
+    position:absolute;
+    left:0;
+    width:100%;
+    height:1px;
+    background:#ff2b2b;
+    z-index:12;
+    pointer-events:none;
+  }
+  .dd-guide-warning{
+    position:absolute;
+    top:10px;
+    right:10px;
+    z-index:13;
+    pointer-events:none;
+    padding:6px 10px;
+    border-radius:999px;
+    background:rgba(255,43,43,.92);
+    color:#fff;
+    font-size:14px;
+    line-height:1.2;
+    box-shadow:0 4px 12px rgba(0,0,0,.18);
+    opacity:0;
+    transform:translateY(-6px);
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .dd-guide-warning.show{
+    opacity:1;
+    transform:translateY(0);
+  }
+  .dd-guide-top-h{ top:330px; }
+  .dd-guide-bottom-h{ top:674px; }
+  .dd-guide-top-s{ top:370px; }
+  .dd-guide-bottom-s{ top:674px; }
+
+  .is-exporting .dd-guide-line,
+  .is-exporting .dd-guide-warning{
+    display:none !important;
+  }
+</style>
+
+
+
+<style id="ddcard-product-clean-style">
+  .dd-canvas .dd-product{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:visible !important;
+  }
+  .dd-canvas .dd-product img{
+    position:static !important;
+    left:auto !important;
+    top:auto !important;
+    transform:none !important;
+    width:100% !important;
+    height:100% !important;
+    max-width:100% !important;
+    max-height:100% !important;
+    object-fit:contain !important;
+    display:block !important;
+  }
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -865,6 +1243,32 @@
         <button type="button" data-step="0.05">+</button>
       </div>
     </div>
+
+    
+    <div class="dd-preview-wrap" id="ddHorizWrap">
+      <div class="dd-preview-title">DDCard 連動畫布（橫 LOGO）</div>
+      <div class="dd-sync-note">會同步 HBN 橫 LOGO 畫布的大多數操作；商品圖的移動與放大縮小不同步。</div>
+      <div class="dd-edit-tip">DDCard 畫布內可直接拖曳背景、拖曳商品圖，並從右下角縮放。</div>
+      <div class="dd-bg-scale-panel" id="ddBgScaleHoriz"><span class="tag">背景圖尺寸</span><button type="button" data-step="-0.05">–</button><span id="ddBgScaleValHoriz">100%</span><button type="button" data-step="0.05">+</button></div>
+      <div id="ddHorizCanvas" class="dd-canvas">
+        <div class="dd-guide-line dd-guide-top-h" aria-hidden="true"></div>
+        <div class="dd-guide-line dd-guide-bottom-h" aria-hidden="true"></div>
+        <div class="dd-guide-warning" id="ddHorizGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
+        <img class="bg" id="ddHorizBg" src="程式檔案/橫BG-DDCARD.png" alt="DDCard 背景" data-dd-hidden="1" />
+        <div class="dd-solid-top" id="ddHorizSolidTop"></div>
+        <div class="dd-gradient-top" id="ddHorizGradientTop"></div>
+        <div class="dd-solid-bottom" id="ddHorizSolidBottom"></div>
+        <div class="dd-gradient-bottom" id="ddHorizGradientBottom"></div>
+        <img class="mall-tag" id="ddHorizTag" src="程式檔案/ddcard紅商城.PNG" alt="DDCard 掛標" />
+        <div class="dd-brand" id="ddHorizBrand"></div>
+        <div class="dd-h1" id="ddHorizH1">99購物節開跑</div>
+        <div class="dd-h2" id="ddHorizH2">滿$990享8折</div>
+        <div class="dd-date" id="ddHorizDate">9/9 - 9/11</div>
+        <div class="dd-products" id="ddHorizProducts"></div>
+        <div class="dd-cta" id="ddHorizCta"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
+      </div>
+    </div>
+
 
     <!-- PC 橫式 -->
     <h3 style="margin:10px 0 6px">PC 版位預覽（橫式）</h3>
@@ -952,6 +1356,32 @@
         <button type="button" data-step="0.05">+</button>
       </div>
     </div>
+
+    
+    <div class="dd-preview-wrap" id="ddSquareWrap">
+      <div class="dd-preview-title">DDCard 連動畫布（方 LOGO）</div>
+      <div class="dd-sync-note">會同步 HBN 方 LOGO 畫布的大多數操作；商品圖的移動與放大縮小不同步。</div>
+      <div class="dd-edit-tip">DDCard 畫布內可直接拖曳背景、拖曳商品圖，並從右下角縮放。</div>
+      <div class="dd-bg-scale-panel" id="ddBgScaleSquare"><span class="tag">背景圖尺寸</span><button type="button" data-step="-0.05">–</button><span id="ddBgScaleValSquare">100%</span><button type="button" data-step="0.05">+</button></div>
+      <div id="ddSquareCanvas" class="dd-canvas square">
+        <div class="dd-guide-line dd-guide-top-s" aria-hidden="true"></div>
+        <div class="dd-guide-line dd-guide-bottom-s" aria-hidden="true"></div>
+        <div class="dd-guide-warning" id="ddSquareGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
+        <img class="bg" id="ddSquareBg" src="程式檔案/方BG-DDCARD.png" alt="DDCard 背景" data-dd-hidden="1" />
+        <div class="dd-solid-top" id="ddSquareSolidTop"></div>
+        <div class="dd-gradient-top" id="ddSquareGradientTop"></div>
+        <div class="dd-solid-bottom" id="ddSquareSolidBottom"></div>
+        <div class="dd-gradient-bottom" id="ddSquareGradientBottom"></div>
+        <img class="mall-tag" id="ddSquareTag" src="程式檔案/ddcard紅商城.PNG" alt="DDCard 掛標" />
+        <div class="dd-brand" id="ddSquareBrand"></div>
+        <div class="dd-h1" id="ddSquareH1">指定商務品滿8千</div>
+        <div class="dd-h2" id="ddSquareH2">登錄送藍牙喇叭</div>
+        <div class="dd-date" id="ddSquareDate">9/1 - 9/30</div>
+        <div class="dd-products" id="ddSquareProducts"></div>
+        <div class="dd-cta" id="ddSquareCta"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
+      </div>
+    </div>
+
 
     <!-- PC 方式 -->
     <h3 style="margin:10px 0 6px">PC 版位預覽（方式）</h3>
@@ -2598,7 +3028,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   }
 
   const GUIDE_LINES_Y = [34, 318];
-  const GUIDE_GAP = 8;
+  const GUIDE_GAP = 2;
   const CTA_SAFE_MARGIN = 6;
   function getCanvasProductMinX(canvas){
     return canvas && canvas.id === 'square' ? 612 : 547;
@@ -4364,6 +4794,1297 @@ document.addEventListener('DOMContentLoaded', ()=>{
     window.__whitebaseRestorePatched = true;
   }
 });
+</script>
+
+
+
+
+<script id="ddcard-linked-sync-script">
+(function(){
+  const ddEditState = window.ddEditState = {
+    ddHoriz: { bg: null, products: {} },
+    ddSquare: { bg: null, products: {} }
+  };
+
+  const DD_GUIDE_LINES = {
+    ddHoriz: [330, 674],
+    ddSquare: [370, 674]
+  };
+  const DD_GUIDE_GAP = 2;
+
+  function showDdGuideWarning(prefix){
+    const tip = document.getElementById(prefix + 'GuideWarning');
+    if(!tip) return;
+    clearTimeout(tip._hideTimer);
+    tip.classList.add('show');
+    tip._hideTimer = setTimeout(()=>tip.classList.remove('show'), 1400);
+  }
+
+  function getDdRestrictedRects(prefix, canvas, maxW, maxH){
+    const ys = DD_GUIDE_LINES[prefix] || [];
+    return ys.map(y => ({
+      left: 0,
+      top: y - DD_GUIDE_GAP,
+      right: maxW,
+      bottom: y + DD_GUIDE_GAP,
+      type: 'guide-y'
+    }));
+  }
+
+  function ddRectsOverlap(a, b){
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  }
+
+  function ddResolveOverlap(rect, zone, maxW, maxH){
+    const candidates = [];
+    const upPos = zone.top - rect.h;
+    const downPos = zone.bottom;
+
+    if(upPos >= 0){
+      candidates.push({ axis:'y', value:upPos, dist:Math.abs(rect.top - upPos) });
+    }
+    if(downPos <= maxH - rect.h){
+      candidates.push({ axis:'y', value:downPos, dist:Math.abs(rect.top - downPos) });
+    }
+
+    if(!candidates.length) return false;
+    candidates.sort((a,b)=>a.dist-b.dist);
+    const best = candidates[0];
+    if(best.axis === 'y') rect.top = best.value;
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+    return true;
+  }
+
+  function avoidDdRestrictedAreas(prefix, box, state){
+    const canvas = document.getElementById(prefix + 'Canvas');
+    if(!canvas || !box || !state) return;
+
+    const maxW = canvas.clientWidth || 531;
+    const maxH = canvas.clientHeight || 792;
+
+    const rect = {
+      left: state.left != null ? state.left : (parseFloat(box.style.left) || 0),
+      top: state.top != null ? state.top : (parseFloat(box.style.top) || 0),
+      w: state.width != null ? state.width : (parseFloat(box.style.width) || box.offsetWidth || 0),
+      h: state.height != null ? state.height : (parseFloat(box.style.height) || box.offsetHeight || 0)
+    };
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    const zones = getDdRestrictedRects(prefix, canvas, maxW, maxH);
+    let bumped = false;
+    for(let i=0; i<12; i++){
+      let moved = false;
+      for(const zone of zones){
+        if(ddRectsOverlap(rect, zone)){
+          if(ddResolveOverlap(rect, zone, maxW, maxH)){
+            moved = true;
+            bumped = true;
+          }
+        }
+      }
+      if(!moved) break;
+    }
+
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+
+    state.left = rect.left;
+    state.top = rect.top;
+    state.width = rect.w;
+    state.height = rect.h;
+
+    if(bumped) showDdGuideWarning(prefix);
+  }
+
+  function getPlainText(el){
+    if(!el) return '';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.counter,.audit-tip').forEach(n => n.remove());
+    return (clone.textContent || '').trim();
+  }
+
+  function getProductSrcs(editorId){
+    const editor = document.getElementById(editorId);
+    if(!editor) return [];
+    return Array.from(editor.querySelectorAll('.editor-item:not(.editor-bg) img'))
+      .map(img => img.getAttribute('src') || '')
+      .filter(Boolean);
+  }
+
+  function getLogoSrcs(kind){
+    if(kind === 'horiz'){
+      return Array.from(document.querySelectorAll('#brandH .logo-item img, #brandH > img'))
+        .map(img => img.getAttribute('src') || '')
+        .filter(Boolean);
+    }
+    const src = document.getElementById('brandImgS')?.getAttribute('src') || '';
+    return src ? [src] : [];
+  }
+
+  function getState(kind){
+    const isHoriz = kind === 'horiz';
+    const canvasId = isHoriz ? 'horiz' : 'square';
+    const tagId = isHoriz ? 'tagH' : 'tagS';
+    const bgId = isHoriz ? 'bgH' : 'bgS';
+    const h1Id = isHoriz ? 'h1-h' : 'h1-s';
+    const h2Id = isHoriz ? 'h2-h' : 'h2-s';
+    const dateId = isHoriz ? 'date-h' : 'date-s';
+    const ctaId = isHoriz ? 'cta-h' : 'cta-s';
+    const editorId = isHoriz ? 'editorH' : 'editorS';
+
+    const canvas = document.getElementById(canvasId);
+    const h1 = document.getElementById(h1Id);
+    const h2 = document.getElementById(h2Id);
+    const date = document.getElementById(dateId);
+    const cta = document.getElementById(ctaId);
+    const tag = document.getElementById(tagId);
+    const bg = document.getElementById(bgId);
+
+    return {
+      bgSrc: bg?.getAttribute('src') || '',
+      bgColor: canvas ? getComputedStyle(canvas).backgroundColor : '',
+      tagSrc: tag?.getAttribute('src') || '',
+      tagVisibility: tag ? getComputedStyle(tag).visibility : '',
+      tagOpacity: tag ? getComputedStyle(tag).opacity : '',
+      h1Text: getPlainText(h1),
+      h2Text: getPlainText(h2),
+      dateText: getPlainText(date),
+      h1Color: h1 ? getComputedStyle(h1).color : '',
+      h2Color: h2 ? getComputedStyle(h2).color : '',
+      dateColor: date ? getComputedStyle(date).color : '',
+      ctaText: cta?.querySelector('.text')?.textContent || '',
+      ctaBg: cta ? getComputedStyle(cta).backgroundColor : '',
+      ctaFg: cta ? getComputedStyle(cta).color : '',
+      logos: getLogoSrcs(kind),
+      products: getProductSrcs(editorId)
+    };
+  }
+
+  function renderLogos(rootId, logos){
+    const root = document.getElementById(rootId);
+    if(!root) return;
+    const next = logos.map(src => '<img src="' + src + '" alt="logo">').join('');
+    if(root.dataset.lastLogos !== next){
+      root.innerHTML = next;
+      root.dataset.lastLogos = next;
+    }
+  }
+
+  function getSlots(count){
+    if(count <= 1){
+      return [{left: 156, top: 360, width: 220, height: 280}];
+    }
+    if(count === 2){
+      return [
+        {left: 55, top: 360, width: 170, height: 280},
+        {left: 306, top: 360, width: 170, height: 280}
+      ];
+    }
+    return [
+      {left: 18, top: 360, width: 150, height: 280},
+      {left: 191, top: 348, width: 150, height: 300},
+      {left: 364, top: 360, width: 150, height: 280}
+    ];
+  }
+
+  function fitContainSize(canvasW, canvasH, imgW, imgH){
+    const ratio = imgW / imgH;
+    const h = canvasH;
+    const w = h * ratio;
+    return { w, h };
+  }
+
+  function renderBgScale(prefix){
+    const state = ddEditState[prefix]?.bg;
+    const valEl = document.getElementById(prefix === 'ddHoriz' ? 'ddBgScaleValHoriz' : 'ddBgScaleValSquare');
+    if(!state || !valEl || !state.baseW) return;
+    valEl.textContent = Math.round((state.width / state.baseW) * 100) + '%';
+  }
+
+  function applyBgState(prefix){
+    const bg = document.getElementById(prefix + 'Bg');
+    const canvas = document.getElementById(prefix + 'Canvas');
+    const st = ddEditState[prefix]?.bg;
+    if(!bg || !canvas || !st) return;
+    bg.style.position = 'absolute';
+    bg.style.left = st.left + 'px';
+    bg.style.top = st.top + 'px';
+    bg.style.width = st.width + 'px';
+    bg.style.height = st.height + 'px';
+    renderBgScale(prefix);
+  }
+
+  function bindBgScalePanel(prefix){
+    const panelId = prefix === 'ddHoriz' ? 'ddBgScaleHoriz' : 'ddBgScaleSquare';
+    const panel = document.getElementById(panelId);
+    if(!panel || panel.dataset.bound === '1') return;
+    panel.dataset.bound = '1';
+    panel.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const step = Number(btn.dataset.step || 0);
+      const state = ddEditState[prefix]?.bg;
+      if(!state || !state.baseW || !state.baseH) return;
+      const cx = state.left + state.width / 2;
+      const cy = state.top + state.height / 2;
+      const currentScale = state.width / state.baseW;
+      const nextScale = Math.max(0.1, Math.min(5, currentScale + step));
+      state.width = state.baseW * nextScale;
+      state.height = state.baseH * nextScale;
+      state.left = cx - state.width / 2;
+      state.top = cy - state.height / 2;
+      applyBgState(prefix);
+    });
+  }
+
+  function bindBgEditing(prefix){
+    const bg = document.getElementById(prefix + 'Bg');
+    const canvas = document.getElementById(prefix + 'Canvas');
+    if(!bg || !canvas || bg.dataset.editBound === '1') return;
+    bg.dataset.editBound = '1';
+
+    let dragging = false;
+    let sx = 0, sy = 0, sl = 0, st = 0;
+
+    bg.addEventListener('mousedown', (e)=>{
+      dragging = true;
+      canvas.classList.add('edit-bg');
+      sx = e.clientX; sy = e.clientY;
+      const state = ddEditState[prefix].bg;
+      if(!state) return;
+      sl = state.left; st = state.top;
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      const state = ddEditState[prefix].bg;
+      if(!state) return;
+      state.left = sl + dx;
+      state.top = st + dy;
+      applyBgState(prefix);
+    });
+
+    window.addEventListener('mouseup', ()=>{
+      dragging = false;
+      canvas.classList.remove('edit-bg');
+    });
+
+    bg.title = '拖曳可移動背景；用上方「背景圖尺寸」調整大小';
+  }
+
+  function ensureBgState(prefix, requestedSrc){
+    const bg = document.getElementById(prefix + 'Bg');
+    const canvas = document.getElementById(prefix + 'Canvas');
+    if(!bg || !canvas) return;
+    bindBgEditing(prefix);
+    bindBgScalePanel(prefix);
+
+    const desiredSrc = requestedSrc || bg.getAttribute('src') || '';
+    const state = ddEditState[prefix];
+    if(!state.bg || state.bg.src !== desiredSrc){
+      bg.src = desiredSrc;
+      const img = new Image();
+      img.onload = ()=>{
+        const size = fitContainSize(canvas.clientWidth, canvas.clientHeight, img.naturalWidth || img.width, img.naturalHeight || img.height);
+        ddEditState[prefix].bg = {
+          src: desiredSrc,
+          left: Math.round((canvas.clientWidth - size.w) / 2),
+          top: Math.round((canvas.clientHeight - size.h) / 2),
+          width: size.w,
+          height: size.h,
+          baseW: size.w,
+          baseH: size.h
+        };
+        applyBgState(prefix);
+      };
+      img.src = desiredSrc;
+    }else{
+      applyBgState(prefix);
+    }
+  }
+
+  function applyProductState(box, state){
+    const prefix = box && box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
+    avoidDdRestrictedAreas(prefix, box, state);
+    if(state.left != null) box.style.left = state.left + 'px';
+    if(state.top != null) box.style.top = state.top + 'px';
+    if(state.width != null) box.style.width = state.width + 'px';
+    if(state.height != null) box.style.height = state.height + 'px';
+  }
+
+  function bindProductEditing(prefix, box, key){
+    if(box.dataset.editBound === '1') return;
+    box.dataset.editBound = '1';
+    let dragging = false, resizing = false;
+    let sx = 0, sy = 0, sl = 0, st = 0, sw = 0, sh = 0;
+
+    box.addEventListener('mousedown', (e)=>{
+      const rect = box.getBoundingClientRect();
+      const nearHandle = (e.clientX >= rect.right - 18) && (e.clientY >= rect.bottom - 18);
+      resizing = nearHandle;
+      dragging = !nearHandle;
+      sx = e.clientX; sy = e.clientY;
+      sl = parseFloat(box.style.left) || 0;
+      st = parseFloat(box.style.top) || 0;
+      sw = parseFloat(box.style.width) || box.offsetWidth;
+      sh = parseFloat(box.style.height) || box.offsetHeight;
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e)=>{
+      if(!dragging && !resizing) return;
+      const dx = e.clientX - sx;
+      const dy = e.clientY - sy;
+      const state = ddEditState[prefix].products[key] || {};
+
+      if(dragging){
+        state.left = sl + dx;
+        state.top = st + dy;
+        state.width = parseFloat(box.style.width) || box.offsetWidth || sw;
+        state.height = parseFloat(box.style.height) || box.offsetHeight || sh;
+      }else if(resizing){
+        const ratio = sw / Math.max(1, sh);
+        let nw = Math.max(60, sw + dx);
+        let nh = nw / ratio;
+        state.left = parseFloat(box.style.left) || 0;
+        state.top = parseFloat(box.style.top) || 0;
+        state.width = nw;
+        state.height = nh;
+      }
+
+      ddEditState[prefix].products[key] = state;
+      applyProductState(box, state);
+    });
+
+    window.addEventListener('mouseup', ()=>{
+      dragging = false;
+      resizing = false;
+    });
+
+    box.title = '拖曳可移動商品圖；拖曳右下角可縮放';
+  }
+
+  function renderProducts(prefix, products){
+    const root = document.getElementById(prefix + 'Products');
+    if(!root) return;
+    const normalized = products.slice(0, 3);
+    const slots = getSlots(normalized.length);
+    const current = new Map(Array.from(root.querySelectorAll('.dd-product')).map(n => [n.dataset.key, n]));
+
+    normalized.forEach((src, idx) => {
+      const key = idx + '|' + src;
+      let box = current.get(key);
+      if(!box){
+        box = document.createElement('div');
+        box.className = 'dd-product';
+        box.dataset.key = key;
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'product';
+        box.appendChild(img);
+        root.appendChild(box);
+      }else{
+        const img = box.querySelector('img');
+        if(img && img.getAttribute('src') !== src) img.src = src;
+      }
+
+      const defaultSlot = slots[idx] || slots[slots.length - 1];
+      if(!ddEditState[prefix].products[key]){
+        ddEditState[prefix].products[key] = {
+          left: defaultSlot.left,
+          top: defaultSlot.top,
+          width: defaultSlot.width,
+          height: defaultSlot.height
+        };
+      }
+      applyProductState(box, ddEditState[prefix].products[key]);
+      bindProductEditing(prefix, box, key);
+      current.delete(key);
+    });
+
+    current.forEach((node, key) => {
+      delete ddEditState[prefix].products[key];
+      node.remove();
+    });
+  }
+
+  function applyDdUnderlay(prefix, color){
+    const solidTop = document.getElementById(prefix + 'SolidTop');
+    const gradTop = document.getElementById(prefix + 'GradientTop');
+    const solidBottom = document.getElementById(prefix + 'SolidBottom');
+    const gradBottom = document.getElementById(prefix + 'GradientBottom');
+    if(solidTop) solidTop.style.background = color;
+    if(solidBottom) solidBottom.style.background = color;
+    if(gradTop) gradTop.style.background = `linear-gradient(to bottom, ${color} 0%, rgba(0,0,0,0) 100%)`;
+    if(gradBottom) gradBottom.style.background = `linear-gradient(to top, ${color} 0%, rgba(0,0,0,0) 100%)`;
+  }
+
+  function applyState(prefix, state){
+    const canvas = document.getElementById(prefix + 'Canvas');
+    const tag = document.getElementById(prefix + 'Tag');
+    const h1 = document.getElementById(prefix + 'H1');
+    const h2 = document.getElementById(prefix + 'H2');
+    const date = document.getElementById(prefix + 'Date');
+    const cta = document.getElementById(prefix + 'Cta');
+
+    if(canvas && state.bgColor) canvas.style.backgroundColor = state.bgColor;
+    if(state.bgColor) applyDdUnderlay(prefix, state.bgColor);
+    ensureBgState(prefix, state.bgSrc);
+
+    if(tag){
+      if(state.tagSrc && tag.getAttribute('src') !== state.tagSrc) tag.src = state.tagSrc;
+      tag.style.visibility = state.tagVisibility || '';
+      tag.style.opacity = state.tagOpacity || '';
+    }
+    if(h1){
+      h1.textContent = state.h1Text;
+      h1.style.color = state.h1Color || '';
+    }
+    if(h2){
+      h2.textContent = state.h2Text;
+      h2.style.color = state.h2Color || '';
+    }
+    if(date){
+      date.textContent = state.dateText;
+      date.style.color = state.dateColor || '';
+    }
+    if(cta){
+      const text = cta.querySelector('.text');
+      if(text) text.textContent = state.ctaText || '';
+      cta.style.backgroundColor = state.ctaBg || '';
+      cta.style.color = state.ctaFg || '';
+    }
+    renderLogos(prefix + 'Brand', state.logos);
+    renderProducts(prefix, state.products);
+  }
+
+  let queued = false;
+  let lastHoriz = '';
+  let lastSquare = '';
+
+  function syncDdLinkedCanvases(force){
+    const horizState = getState('horiz');
+    const horizSig = JSON.stringify(horizState);
+    if(force || horizSig !== lastHoriz){
+      lastHoriz = horizSig;
+      applyState('ddHoriz', horizState);
+    }
+
+    const squareState = getState('square');
+    const squareSig = JSON.stringify(squareState);
+    if(force || squareSig !== lastSquare){
+      lastSquare = squareSig;
+      applyState('ddSquare', squareState);
+    }
+  }
+
+  function queueSync(force){
+    if(queued && !force) return;
+    queued = true;
+    requestAnimationFrame(()=>{
+      queued = false;
+      syncDdLinkedCanvases(!!force);
+    });
+  }
+
+  function observeTarget(target, options){
+    if(!target) return;
+    const mo = new MutationObserver(()=>queueSync(false));
+    mo.observe(target, options);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    queueSync(true);
+
+    [
+      'bgH','bgS','tagH','tagS','brandImgS','brandPHImg','brandPSImg',
+      'h1-h','h2-h','date-h','h1-s','h2-s','date-s','cta-h','cta-s',
+      'brandH','editorH','editorS','horiz','square'
+    ].forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      observeTarget(el, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+        attributeFilter: ['src','style','class','data-logo-white-base-enabled','data-logo-white-base-ratio']
+      });
+    });
+
+    ['logo-horiz','logo-square','bg-horiz','bg-square','items-h','items-s'].forEach(id=>{
+      const input = document.getElementById(id);
+      if(input) input.addEventListener('change', ()=>setTimeout(()=>queueSync(true), 80));
+    });
+
+    document.addEventListener('input', (e)=>{
+      if(e.target && e.target.matches && e.target.matches('[contenteditable="true"], input[type="color"]')){
+        queueSync(false);
+      }
+    }, true);
+
+    document.addEventListener('click', (e)=>{
+      if(e.target && e.target.closest && (
+          e.target.closest('.logo-edit-btn') ||
+          e.target.closest('.logo-swap-btn') ||
+          e.target.closest('.logo-white-btn') ||
+          e.target.closest('.toggle-tag') ||
+          e.target.closest('#eraseApply') ||
+          e.target.closest('#cropConfirm') ||
+          e.target.closest('#eraseReset')
+      )){
+        setTimeout(()=>queueSync(true), 80);
+      }
+    }, true);
+
+    setInterval(()=>queueSync(false), 800);
+  });
+
+  window.syncDdLinkedCanvases = function(){ queueSync(true); };
+})();
+</script>
+
+
+
+
+
+
+<script id="ddcard-bg-sync-fix">
+(function(){
+  function isUploadedLike(src){
+    return /^data:|^blob:/.test(src || '');
+  }
+
+  function isBuiltInBg(src){
+    return /程式檔案\//.test(src || '');
+  }
+
+  function syncDdBgFromHbn(kind){
+    const isHoriz = kind === 'horiz';
+    const srcEl = document.getElementById(isHoriz ? 'bgH' : 'bgS');
+    const ddEl  = document.getElementById(isHoriz ? 'ddHorizBg' : 'ddSquareBg');
+    const stateKey = isHoriz ? 'ddHoriz' : 'ddSquare';
+    if(!srcEl || !ddEl) return;
+
+    const src = srcEl.getAttribute('src') || srcEl.src || '';
+    if(!src) return;
+
+    // copy source
+    if(ddEl.getAttribute('src') !== src){
+      ddEl.setAttribute('src', src);
+    }
+
+    // initial rule:
+    // - built-in default HBN bg => DDCard bg hidden
+    // - uploaded / changed bg => DDCard bg visible
+    if(isUploadedLike(src)){
+      ddEl.removeAttribute('data-dd-hidden');
+      ddEl.style.removeProperty('display');
+      ddEl.style.removeProperty('visibility');
+      ddEl.style.removeProperty('opacity');
+    }else if(isBuiltInBg(src)){
+      // keep hidden only for built-in defaults
+      ddEl.setAttribute('data-dd-hidden', '1');
+    }else{
+      ddEl.removeAttribute('data-dd-hidden');
+      ddEl.style.removeProperty('display');
+      ddEl.style.removeProperty('visibility');
+      ddEl.style.removeProperty('opacity');
+    }
+
+    // reset DDCard bg state so linked canvas rebuilds with latest image
+    if(window.ddEditState && window.ddEditState[stateKey]){
+      window.ddEditState[stateKey].bg = null;
+    }
+
+    if(window.syncDdLinkedCanvases){
+      try{ window.syncDdLinkedCanvases(); }catch(e){}
+    }
+  }
+
+  function bindDdBgSync(){
+    const bgH = document.getElementById('bgH');
+    const bgS = document.getElementById('bgS');
+    const inputH = document.getElementById('bg-horiz');
+    const inputS = document.getElementById('bg-square');
+
+    if(bgH && !bgH.dataset.ddSyncBound){
+      bgH.dataset.ddSyncBound = '1';
+      bgH.addEventListener('load', ()=>syncDdBgFromHbn('horiz'));
+      const moH = new MutationObserver(()=>syncDdBgFromHbn('horiz'));
+      moH.observe(bgH, { attributes:true, attributeFilter:['src'] });
+    }
+
+    if(bgS && !bgS.dataset.ddSyncBound){
+      bgS.dataset.ddSyncBound = '1';
+      bgS.addEventListener('load', ()=>syncDdBgFromHbn('square'));
+      const moS = new MutationObserver(()=>syncDdBgFromHbn('square'));
+      moS.observe(bgS, { attributes:true, attributeFilter:['src'] });
+    }
+
+    if(inputH && !inputH.dataset.ddSyncBound){
+      inputH.dataset.ddSyncBound = '1';
+      inputH.addEventListener('change', ()=>setTimeout(()=>syncDdBgFromHbn('horiz'), 120));
+    }
+
+    if(inputS && !inputS.dataset.ddSyncBound){
+      inputS.dataset.ddSyncBound = '1';
+      inputS.addEventListener('change', ()=>setTimeout(()=>syncDdBgFromHbn('square'), 120));
+    }
+
+    // initial sync
+    syncDdBgFromHbn('horiz');
+    syncDdBgFromHbn('square');
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindDdBgSync);
+  }else{
+    bindDdBgSync();
+  }
+})();
+</script>
+
+
+
+<script id="ddcard-download">
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btnH = document.createElement('button');
+  btnH.textContent = '下載 DDCard（橫）';
+  btnH.style.marginLeft = '8px';
+  document.getElementById('dl-h')?.parentElement?.appendChild(btnH);
+
+  const btnS = document.createElement('button');
+  btnS.textContent = '下載 DDCard（方）';
+  btnS.style.marginLeft = '8px';
+  document.getElementById('dl-s')?.parentElement?.appendChild(btnS);
+
+  btnH.addEventListener('click', ()=>{
+    if(window.downloadJpgFor) downloadJpgFor('ddHorizCanvas','bg-color-h','ddcard-h.jpg');
+  });
+
+  btnS.addEventListener('click', ()=>{
+    if(window.downloadJpgFor) downloadJpgFor('ddSquareCanvas','bg-color-s','ddcard-s.jpg');
+  });
+});
+</script>
+
+
+<script id="ddcard-hbn-parity-patch">
+(function(){
+  const DD_LIMITS = {
+    ddHoriz: [330, 674],
+    ddSquare: [370, 674]
+  };
+  const DD_GAP = 2;
+
+  function ddShowWarning(prefix){
+    const tip = document.getElementById(prefix + 'GuideWarning');
+    if(!tip) return;
+    clearTimeout(tip._hideTimer);
+    tip.classList.add('show');
+    tip._hideTimer = setTimeout(()=>tip.classList.remove('show'), 1400);
+  }
+
+  function ddZones(prefix, maxW, maxH){
+    const ys = DD_LIMITS[prefix] || [];
+    return ys.map(y => ({
+      left: 0,
+      top: y - DD_GAP,
+      right: maxW,
+      bottom: y + DD_GAP,
+      type: 'guide-y'
+    }));
+  }
+
+  function overlap(a, b){
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+  }
+
+  function resolve(rect, zone, maxW, maxH){
+    const candidates = [];
+    const upPos = zone.top - rect.h;
+    const downPos = zone.bottom;
+
+    if(upPos >= 0){
+      candidates.push({ axis:'y', value:upPos, dist:Math.abs(rect.top - upPos) });
+    }
+    if(downPos <= maxH - rect.h){
+      candidates.push({ axis:'y', value:downPos, dist:Math.abs(rect.top - downPos) });
+    }
+
+    if(!candidates.length) return false;
+    candidates.sort((a,b)=>a.dist-b.dist);
+    const best = candidates[0];
+    rect.top = best.value;
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+    return true;
+  }
+
+  function applyHbnLikeDdBounds(prefix, box, state){
+    const canvas = document.getElementById(prefix + 'Canvas');
+    if(!canvas || !box || !state) return;
+    const maxW = canvas.clientWidth || 531;
+    const maxH = canvas.clientHeight || 792;
+
+    const rect = {
+      left: state.left != null ? state.left : (parseFloat(box.style.left) || 0),
+      top: state.top != null ? state.top : (parseFloat(box.style.top) || 0),
+      w: state.width != null ? state.width : (parseFloat(box.style.width) || box.offsetWidth || 0),
+      h: state.height != null ? state.height : (parseFloat(box.style.height) || box.offsetHeight || 0)
+    };
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    const zones = ddZones(prefix, maxW, maxH);
+    let bumped = false;
+    for(let i=0; i<12; i++){
+      let moved = false;
+      for(const zone of zones){
+        if(overlap(rect, zone)){
+          if(resolve(rect, zone, maxW, maxH)){
+            moved = true;
+            bumped = true;
+          }
+        }
+      }
+      if(!moved) break;
+    }
+
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+
+    state.left = rect.left;
+    state.top = rect.top;
+    state.width = rect.w;
+    state.height = rect.h;
+
+    if(bumped) ddShowWarning(prefix);
+  }
+
+  function patchDdEditors(){
+    ['ddHoriz','ddSquare'].forEach(prefix => {
+      const root = document.getElementById(prefix + 'Products');
+      if(!root || root.dataset.hbnParityBound === '1') return;
+      root.dataset.hbnParityBound = '1';
+
+      const originalApply = window.applyProductState;
+
+      // Patch each product box after it appears
+      const mo = new MutationObserver(() => {
+        root.querySelectorAll('.dd-product').forEach(box => {
+          if(box.dataset.hbnParityBoxBound === '1') return;
+          box.dataset.hbnParityBoxBound = '1';
+
+          let dragging = false, resizing = false;
+          let sx = 0, sy = 0, sl = 0, st = 0, sw = 0, sh = 0;
+
+          box.addEventListener('mousedown', (e)=>{
+            const rect = box.getBoundingClientRect();
+            const nearHandle = (e.clientX >= rect.right - 18) && (e.clientY >= rect.bottom - 18);
+            resizing = nearHandle;
+            dragging = !nearHandle;
+            sx = e.clientX; sy = e.clientY;
+            sl = parseFloat(box.style.left) || 0;
+            st = parseFloat(box.style.top) || 0;
+            sw = parseFloat(box.style.width) || box.offsetWidth;
+            sh = parseFloat(box.style.height) || box.offsetHeight;
+            e.preventDefault();
+            e.stopPropagation();
+          }, true);
+
+          window.addEventListener('mousemove', (e)=>{
+            if(!dragging && !resizing) return;
+            const key = box.dataset.key;
+            const state = (window.ddEditState && window.ddEditState[prefix] && window.ddEditState[prefix].products[key]) || {};
+            const dx = e.clientX - sx;
+            const dy = e.clientY - sy;
+
+            if(dragging){
+              state.left = sl + dx;
+              state.top = st + dy;
+              state.width = parseFloat(box.style.width) || box.offsetWidth || sw;
+              state.height = parseFloat(box.style.height) || box.offsetHeight || sh;
+            }else if(resizing){
+              const ratio = sw / Math.max(1, sh);
+              let nw = Math.max(60, sw + Math.max(dx, dy));
+              let nh = nw / ratio;
+              state.left = parseFloat(box.style.left) || 0;
+              state.top = parseFloat(box.style.top) || 0;
+              state.width = nw;
+              state.height = nh;
+            }
+
+            applyHbnLikeDdBounds(prefix, box, state);
+            box.style.left = state.left + 'px';
+            box.style.top = state.top + 'px';
+            box.style.width = state.width + 'px';
+            box.style.height = state.height + 'px';
+            if(window.ddEditState && window.ddEditState[prefix]){
+              window.ddEditState[prefix].products[key] = state;
+            }
+          }, true);
+
+          window.addEventListener('mouseup', ()=>{
+            dragging = false;
+            resizing = false;
+          }, true);
+        });
+      });
+      mo.observe(root, { childList:true, subtree:true });
+    });
+  }
+
+  function patchDdDownload(){
+    if(window.__ddDownloadPatched) return;
+    window.__ddDownloadPatched = true;
+
+    const original = window.downloadJpgFor;
+    if(typeof original !== 'function') return;
+
+    window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+      const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+      if(!isDd) return original(canvasId, bgColorInputId, filename);
+
+      const node = document.getElementById(canvasId);
+      if(!node) return original(canvasId, bgColorInputId, filename);
+
+      const imgs = Array.from(node.querySelectorAll('.dd-product img'));
+      const previous = imgs.map(img => ({
+        img,
+        width: img.style.width,
+        height: img.style.height,
+        maxWidth: img.style.maxWidth,
+        maxHeight: img.style.maxHeight,
+        objectFit: img.style.objectFit
+      }));
+
+      // Preserve on-canvas box size; do not stretch image to fill the box during export
+      imgs.forEach(img => {
+        img.style.width = 'auto';
+        img.style.height = 'auto';
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.objectFit = 'contain';
+      });
+
+      try{
+        return await original(canvasId, bgColorInputId, filename);
+      }finally{
+        previous.forEach(x => {
+          x.img.style.width = x.width;
+          x.img.style.height = x.height;
+          x.img.style.maxWidth = x.maxWidth;
+          x.img.style.maxHeight = x.maxHeight;
+          x.img.style.objectFit = x.objectFit;
+        });
+      }
+    };
+  }
+
+  function init(){
+    patchDdEditors();
+    patchDdDownload();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+<script id="hbn-export-product-ratio-fix">
+(function(){
+  if(window.__hbnExportRatioPatched) return;
+  window.__hbnExportRatioPatched = true;
+
+  const original = window.downloadJpgFor;
+  if(typeof original !== 'function') return;
+
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    const isHbn = canvasId === 'horiz' || canvasId === 'square' || canvasId === 'pcH' || canvasId === 'pcS';
+    if(!isHbn){
+      return original(canvasId, bgColorInputId, filename);
+    }
+
+    const node = document.getElementById(canvasId);
+    if(!node){
+      return original(canvasId, bgColorInputId, filename);
+    }
+
+    const imgs = Array.from(node.querySelectorAll('.editor-item:not(.editor-bg) img'));
+    const prev = imgs.map(img => ({
+      img,
+      width: img.style.width,
+      height: img.style.height,
+      maxWidth: img.style.maxWidth,
+      maxHeight: img.style.maxHeight,
+      objectFit: img.style.objectFit,
+      left: img.style.left,
+      top: img.style.top,
+      position: img.style.position
+    }));
+
+    imgs.forEach(img => {
+      img.style.width = 'auto';
+      img.style.height = 'auto';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.objectFit = 'contain';
+    });
+
+    try{
+      return await original(canvasId, bgColorInputId, filename);
+    }finally{
+      prev.forEach(x => {
+        x.img.style.width = x.width;
+        x.img.style.height = x.height;
+        x.img.style.maxWidth = x.maxWidth;
+        x.img.style.maxHeight = x.maxHeight;
+        x.img.style.objectFit = x.objectFit;
+        x.img.style.left = x.left;
+        x.img.style.top = x.top;
+        x.img.style.position = x.position;
+      });
+    }
+  };
+})();
+</script>
+
+
+
+
+
+<script id="ddcard-hide-resize-icon-export">
+(function(){
+  if(window.__ddcardIconExportPatched) return;
+  window.__ddcardIconExportPatched = true;
+
+  const original = window.downloadJpgFor;
+  if(typeof original !== 'function') return;
+
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+    if(!isDd){
+      return original(canvasId, bgColorInputId, filename);
+    }
+
+    const node = document.getElementById(canvasId);
+    if(!node){
+      return original(canvasId, bgColorInputId, filename);
+    }
+
+    // hide resize pseudo icon via class toggle
+    node.classList.add('hide-dd-icons');
+
+    try{
+      return await original(canvasId, bgColorInputId, filename);
+    }finally{
+      node.classList.remove('hide-dd-icons');
+    }
+  };
+})();
+</script>
+
+<style id="ddcard-hide-resize-icon-style">
+.hide-dd-icons .dd-product::after{
+  display:none !important;
+}
+</style>
+
+
+
+<script id="ddcard-final-visual-fix">
+(function(){
+  function hexToRgba(hex, alpha){
+    const h = (hex || '').replace('#','').trim();
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const r = parseInt(full.slice(0,2), 16) || 0;
+    const g = parseInt(full.slice(2,4), 16) || 0;
+    const b = parseInt(full.slice(4,6), 16) || 0;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  function applyDdUnderlay(prefix, hex){
+    if(!hex) return;
+    const canvas = document.getElementById(prefix + 'Canvas');
+    const solidTop = document.getElementById(prefix + 'SolidTop');
+    const gradTop = document.getElementById(prefix + 'GradientTop');
+    const solidBottom = document.getElementById(prefix + 'SolidBottom');
+    const gradBottom = document.getElementById(prefix + 'GradientBottom');
+
+    if(canvas) canvas.style.backgroundColor = hex;
+    if(solidTop){
+      solidTop.style.background = hex;
+      solidTop.style.opacity = '1';
+      solidTop.style.mixBlendMode = 'normal';
+    }
+    if(solidBottom){
+      solidBottom.style.background = hex;
+      solidBottom.style.opacity = '1';
+      solidBottom.style.mixBlendMode = 'normal';
+    }
+    if(gradTop){
+      gradTop.style.background =
+        'linear-gradient(to bottom, ' +
+        hex + ' 0%, ' +
+        hexToRgba(hex, 0.96) + ' 35%, ' +
+        hexToRgba(hex, 0.82) + ' 60%, ' +
+        hexToRgba(hex, 0.55) + ' 82%, ' +
+        hexToRgba(hex, 0.00) + ' 100%)';
+      gradTop.style.opacity = '1';
+      gradTop.style.mixBlendMode = 'normal';
+    }
+    if(gradBottom){
+      gradBottom.style.background =
+        'linear-gradient(to top, ' +
+        hex + ' 0%, ' +
+        hexToRgba(hex, 0.96) + ' 35%, ' +
+        hexToRgba(hex, 0.82) + ' 60%, ' +
+        hexToRgba(hex, 0.55) + ' 82%, ' +
+        hexToRgba(hex, 0.00) + ' 100%)';
+      gradBottom.style.opacity = '1';
+      gradBottom.style.mixBlendMode = 'normal';
+    }
+  }
+
+  function syncDdUnderlays(){
+    const h = document.getElementById('bg-color-h')?.value || '';
+    const s = document.getElementById('bg-color-s')?.value || '';
+    if(h) applyDdUnderlay('ddHoriz', h);
+    if(s) applyDdUnderlay('ddSquare', s);
+  }
+
+  function bindDdUnderlays(){
+    ['bg-color-h','bg-color-s'].forEach(id => {
+      const el = document.getElementById(id);
+      if(!el || el.dataset.ddFinalUnderlayBound === '1') return;
+      el.dataset.ddFinalUnderlayBound = '1';
+      el.addEventListener('input', syncDdUnderlays);
+      el.addEventListener('change', syncDdUnderlays);
+    });
+
+    ['bgH','bgS'].forEach(id => {
+      const el = document.getElementById(id);
+      if(!el || el.dataset.ddFinalUnderlayLoadBound === '1') return;
+      el.dataset.ddFinalUnderlayLoadBound = '1';
+      el.addEventListener('load', () => setTimeout(syncDdUnderlays, 80));
+    });
+
+    syncDdUnderlays();
+    setTimeout(syncDdUnderlays, 180);
+    setTimeout(syncDdUnderlays, 500);
+  }
+
+  function patchDdDownload(){
+    if(window.__ddFinalDownloadPatched) return;
+    window.__ddFinalDownloadPatched = true;
+
+    const original = window.downloadJpgFor;
+    if(typeof original !== 'function') return;
+
+    window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+      const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+      if(!isDd){
+        return original(canvasId, bgColorInputId, filename);
+      }
+
+      syncDdUnderlays();
+
+      const node = document.getElementById(canvasId);
+      if(!node){
+        return original(canvasId, bgColorInputId, filename);
+      }
+
+      // keep resize icon hidden on export
+      node.classList.add('hide-dd-icons');
+
+      // keep current on-canvas DDCard product rendering; do not add extra scaling logic
+      try{
+        return await original(canvasId, bgColorInputId, filename);
+      }finally{
+        node.classList.remove('hide-dd-icons');
+      }
+    };
+  }
+
+  function init(){
+    bindDdUnderlays();
+    patchDdDownload();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+<script id="ddcard-product-edit-ratio-fix">
+(function(){
+  function clamp(v, min, max){
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function fitContain(boxW, boxH, imgW, imgH){
+    if(!boxW || !boxH || !imgW || !imgH){
+      return { width: boxW || 0, height: boxH || 0 };
+    }
+    const boxRatio = boxW / boxH;
+    const imgRatio = imgW / imgH;
+    let width, height;
+    if(imgRatio > boxRatio){
+      width = boxW;
+      height = width / imgRatio;
+    }else{
+      height = boxH;
+      width = height * imgRatio;
+    }
+    return { width, height };
+  }
+
+  function getPrefixFromBox(box){
+    return box && box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
+  }
+
+  function getDdLimits(prefix){
+    return prefix === 'ddSquare'
+      ? { top: 370, bottom: 674, canvasW: 531, canvasH: 792 }
+      : { top: 330, bottom: 674, canvasW: 531, canvasH: 792 };
+  }
+
+  function preserveImageRatio(box, img){
+    if(!box || !img || !img.naturalWidth || !img.naturalHeight) return;
+
+    const prefix = getPrefixFromBox(box);
+    const limits = getDdLimits(prefix);
+
+    const oldW = parseFloat(box.style.width) || box.offsetWidth || 0;
+    const oldH = parseFloat(box.style.height) || box.offsetHeight || 0;
+    if(!oldW || !oldH) return;
+
+    const oldLeft = parseFloat(box.style.left) || 0;
+    const oldTop = parseFloat(box.style.top) || 0;
+    const cx = oldLeft + oldW / 2;
+    const cy = oldTop + oldH / 2;
+
+    const fitted = fitContain(oldW, oldH, img.naturalWidth, img.naturalHeight);
+    let newW = Math.round(fitted.width * 1000) / 1000;
+    let newH = Math.round(fitted.height * 1000) / 1000;
+
+    let newLeft = cx - newW / 2;
+    let newTop = cy - newH / 2;
+
+    newLeft = clamp(newLeft, 0, limits.canvasW - newW);
+    newTop = clamp(newTop, limits.top, limits.bottom - newH);
+
+    box.style.width = newW + 'px';
+    box.style.height = newH + 'px';
+    box.style.left = newLeft + 'px';
+    box.style.top = newTop + 'px';
+
+    const key = box.dataset.key;
+    if(window.ddEditState && window.ddEditState[prefix] && window.ddEditState[prefix].products && key){
+      window.ddEditState[prefix].products[key] = {
+        left: newLeft,
+        top: newTop,
+        width: newW,
+        height: newH
+      };
+    }
+
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.style.position = 'static';
+    img.style.transform = 'none';
+  }
+
+  function bindImg(box, img){
+    if(!box || !img || img.dataset.ddRatioBound === '1') return;
+    img.dataset.ddRatioBound = '1';
+
+    const apply = ()=> preserveImageRatio(box, img);
+
+    if(img.complete && img.naturalWidth){
+      apply();
+    }else{
+      img.addEventListener('load', apply, { once: true });
+    }
+
+    const mo = new MutationObserver((muts)=>{
+      for(const m of muts){
+        if(m.type === 'attributes' && m.attributeName === 'src'){
+          if(img.complete && img.naturalWidth) apply();
+          else img.addEventListener('load', apply, { once: true });
+          break;
+        }
+      }
+    });
+    mo.observe(img, { attributes: true, attributeFilter: ['src'] });
+  }
+
+  function scan(){
+    document.querySelectorAll('#ddHorizProducts .dd-product, #ddSquareProducts .dd-product').forEach(box=>{
+      const img = box.querySelector('img');
+      if(img) bindImg(box, img);
+    });
+  }
+
+  function init(){
+    scan();
+
+    ['ddHorizProducts','ddSquareProducts'].forEach(id=>{
+      const root = document.getElementById(id);
+      if(!root || root.dataset.ddRatioRootBound === '1') return;
+      root.dataset.ddRatioRootBound = '1';
+
+      const mo = new MutationObserver(()=> scan());
+      mo.observe(root, { childList: true, subtree: true });
+    });
+
+    const originalSync = window.syncDdLinkedCanvases;
+    if(typeof originalSync === 'function' && !window.__ddRatioSyncWrapped){
+      window.__ddRatioSyncWrapped = true;
+      window.syncDdLinkedCanvases = function(){
+        const result = originalSync.apply(this, arguments);
+        setTimeout(scan, 30);
+        return result;
+      };
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
 </script>
 
 </body>
