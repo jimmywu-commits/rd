@@ -6774,5 +6774,292 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script id="autotrim-product-upload-and-export-match">
+(function(){
+  function loadImage(src){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      img.onload = ()=>resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function getPixel(data, w, x, y){
+    const i = (y * w + x) * 4;
+    return [data[i], data[i+1], data[i+2], data[i+3]];
+  }
+
+  function isBgLike(r, g, b, a){
+    // transparent
+    if(a <= 8) return true;
+    // white-ish edge background
+    return a >= 180 && r >= 242 && g >= 242 && b >= 242;
+  }
+
+  async function trimProductImageSource(src){
+    const img = await loadImage(src);
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if(!w || !h) return { changed:false, src, width:w, height:h };
+
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d', { willReadFrequently:true });
+    ctx.drawImage(img, 0, 0);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
+
+    const visited = new Uint8Array(w * h);
+    const queue = [];
+    function tryPush(x, y){
+      if(x < 0 || y < 0 || x >= w || y >= h) return;
+      const idx = y * w + x;
+      if(visited[idx]) return;
+      const i = idx * 4;
+      if(!isBgLike(data[i], data[i+1], data[i+2], data[i+3])) return;
+      visited[idx] = 1;
+      queue.push(idx);
+    }
+
+    for(let x=0; x<w; x++){
+      tryPush(x, 0);
+      tryPush(x, h - 1);
+    }
+    for(let y=0; y<h; y++){
+      tryPush(0, y);
+      tryPush(w - 1, y);
+    }
+
+    while(queue.length){
+      const idx = queue.pop();
+      const x = idx % w;
+      const y = (idx / w) | 0;
+      tryPush(x - 1, y);
+      tryPush(x + 1, y);
+      tryPush(x, y - 1);
+      tryPush(x, y + 1);
+    }
+
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const idx = y * w + x;
+        const i = idx * 4;
+        const a = data[i+3];
+        if(a <= 8) continue;
+        if(visited[idx]) continue;
+        if(x < minX) minX = x;
+        if(y < minY) minY = y;
+        if(x > maxX) maxX = x;
+        if(y > maxY) maxY = y;
+      }
+    }
+
+    // fallback: pure transparent trim only
+    if(maxX < minX || maxY < minY){
+      minX = w; minY = h; maxX = -1; maxY = -1;
+      for(let y=0; y<h; y++){
+        for(let x=0; x<w; x++){
+          const a = data[(y * w + x) * 4 + 3];
+          if(a <= 8) continue;
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if(maxX < minX || maxY < minY){
+      return { changed:false, src, width:w, height:h };
+    }
+
+    const pad = 1;
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(w - 1, maxX + pad);
+    maxY = Math.min(h - 1, maxY + pad);
+
+    const tw = maxX - minX + 1;
+    const th = maxY - minY + 1;
+
+    if(tw === w && th === h && minX === 0 && minY === 0){
+      return { changed:false, src, width:w, height:h };
+    }
+
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    out.getContext('2d').drawImage(c, minX, minY, tw, th, 0, 0, tw, th);
+    return {
+      changed:true,
+      src: out.toDataURL('image/png'),
+      width: tw,
+      height: th,
+      originalWidth: w,
+      originalHeight: h
+    };
+  }
+
+  function fitContain(boxW, boxH, natW, natH){
+    if(!boxW || !boxH || !natW || !natH){
+      return { width: boxW || 0, height: boxH || 0 };
+    }
+    const boxRatio = boxW / boxH;
+    const imgRatio = natW / natH;
+    let width, height;
+    if(imgRatio > boxRatio){
+      width = boxW;
+      height = width / imgRatio;
+    }else{
+      height = boxH;
+      width = height * imgRatio;
+    }
+    return { width, height };
+  }
+
+  async function normalizeProductBox(box){
+    if(!box || box.classList.contains('editor-bg')) return;
+    const img = box.querySelector('img');
+    if(!img) return;
+
+    const src = img.currentSrc || img.src || '';
+    if(!src) return;
+    if(box.dataset.autotrimBusy === '1') return;
+    if(box.dataset.autotrimNormalized === src) return;
+
+    const natW = img.naturalWidth || 0;
+    const natH = img.naturalHeight || 0;
+    const boxW = box.offsetWidth || parseFloat(box.style.width) || 0;
+    const boxH = box.offsetHeight || parseFloat(box.style.height) || 0;
+    const left = parseFloat(box.style.left) || 0;
+    const top = parseFloat(box.style.top) || 0;
+    const boxCenterX = left + boxW / 2;
+    const boxCenterY = top + boxH / 2;
+    const visible = fitContain(boxW, boxH, natW, natH);
+
+    box.dataset.autotrimBusy = '1';
+    try{
+      const trimmed = await trimProductImageSource(src);
+
+      const finalSrc = trimmed.src;
+      const finalNatW = trimmed.width || natW || 1;
+      const finalNatH = trimmed.height || natH || 1;
+
+      // 新框尺寸 = 原本畫布上「實際看得到的內容尺寸」
+      let newW = Math.max(20, visible.width || boxW || finalNatW);
+      let newH = Math.max(20, visible.height || boxH || finalNatH);
+
+      // 如果原本還沒成形，退回 70% 高規則，但用裁切後比例
+      if(!boxW || !boxH){
+        const editor = box.parentElement;
+        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
+        const canvasH = canvas ? canvas.clientHeight : 360;
+        newH = Math.round(canvasH * 0.7);
+        newW = Math.max(20, Math.round(newH * (finalNatW / finalNatH)));
+      }
+
+      box.style.width = newW + 'px';
+      box.style.height = newH + 'px';
+      box.style.left = Math.round(boxCenterX - newW / 2) + 'px';
+      box.style.top = Math.round(boxCenterY - newH / 2) + 'px';
+      box.dataset.fixedW = String(Math.round(newW));
+      box.dataset.fixedH = String(Math.round(newH));
+      box.dataset.baseSrc = finalSrc;
+      box.dataset.autotrimNormalized = finalSrc;
+
+      if(finalSrc !== src){
+        await new Promise((resolve)=>{
+          img.onload = ()=>resolve();
+          img.src = finalSrc;
+        });
+      }
+
+      if(typeof clampItemToCanvas === 'function'){
+        const editor = box.parentElement;
+        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
+        if(canvas) clampItemToCanvas(box, canvas.clientWidth, canvas.clientHeight);
+      }
+      if(typeof avoidRestrictedAreas === 'function'){
+        const editor = box.parentElement;
+        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
+        if(canvas && canvas.classList && canvas.classList.contains('canvas')){
+          avoidRestrictedAreas(box, canvas.clientWidth, canvas.clientHeight);
+        }
+      }
+    }catch(err){
+      console.error('auto trim failed', err);
+      box.dataset.autotrimNormalized = src;
+    }finally{
+      box.dataset.autotrimBusy = '0';
+    }
+  }
+
+  function scanEditor(editorId){
+    const editor = document.getElementById(editorId);
+    if(!editor) return;
+    editor.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
+      normalizeProductBox(box);
+    });
+  }
+
+  function bindAutoTrimObserver(editorId){
+    const editor = document.getElementById(editorId);
+    if(!editor || editor.dataset.autotrimBound === '1') return;
+    editor.dataset.autotrimBound = '1';
+
+    const mo = new MutationObserver((mutations)=>{
+      let needScan = false;
+      for(const m of mutations){
+        if(m.type === 'childList'){
+          needScan = true;
+          break;
+        }
+        if(m.type === 'attributes' && m.target.tagName === 'IMG' && m.attributeName === 'src'){
+          needScan = true;
+          break;
+        }
+      }
+      if(needScan) setTimeout(()=>scanEditor(editorId), 30);
+    });
+
+    mo.observe(editor, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src']
+    });
+  }
+
+  function bindInputRescan(inputId, editorId){
+    const input = document.getElementById(inputId);
+    if(!input || input.dataset.autotrimInputBound === '1') return;
+    input.dataset.autotrimInputBound = '1';
+    input.addEventListener('change', ()=>{
+      setTimeout(()=>scanEditor(editorId), 80);
+      setTimeout(()=>scanEditor(editorId), 220);
+    });
+  }
+
+  function init(){
+    bindAutoTrimObserver('editorH');
+    bindAutoTrimObserver('editorS');
+    bindInputRescan('items-h', 'editorH');
+    bindInputRescan('items-s', 'editorS');
+    setTimeout(()=>scanEditor('editorH'), 120);
+    setTimeout(()=>scanEditor('editorS'), 120);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>
