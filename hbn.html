@@ -12,7 +12,24 @@
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+// 英文數字額外上移（安全版）
+function wrapEnUp(el){
+  if(!el) return;
+  const text = el.textContent;
+  const wrapped = text.replace(/([A-Za-z0-9!@#$%^&*()\-_=+\[\]{};:'",.<>/?]+)/g,
+    '<span class="en-up">$1</span>');
+  el.innerHTML = wrapped;
+}
+
+document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+  el.addEventListener('blur', ()=>{
+    wrapEnUp(el);
+  });
+});
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="./banwords-engine-hbn.js"></script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
@@ -73,12 +90,15 @@
     position:relative; z-index:5;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     outline-offset:0;
+    transform: translateY(-1px);
+    padding-bottom:0.25em;   /* 預留英文字 descender（g/j/p/q/y）空間 */
+    margin-bottom:-0.25em;   /* 不改變原本視覺座標 */
   }
   /* 防止 PC 預覽的 h2 被 flex 影響 */
   #pcH .h2, #pcS .h2 { display:block; align-items:normal; }
 
   .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 40px;line-height: 56px;letter-spacing:0px;color:#1b5e7a;text-align:left; }
-  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size: 60px;line-height: 68px;letter-spacing:0px;color:#0b6c4a;text-align:left;height: 72px;display:flex;align-items:center; }
+  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size: 60px;line-height: 68px;letter-spacing:0px;color:#0b6c4a;text-align:left;height: calc(72px + 0.25em);display:flex;align-items:center; }
   .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 24px;line-height: 50px;letter-spacing:0px;color:#306b8f;text-align:left; }
 
   /* CTA（APP / SQUARE 預設） */
@@ -115,9 +135,29 @@
   #square #h2-s{position:absolute;left: 0; top:44px;top:33.5px;}
   #square #date-s{position:absolute;left: 0; top:114px;top:100px;}
 
-  [contenteditable="true"]{outline:2px dashed rgba(255,255,255,.0);transition:outline-color .2s}
+  [contenteditable="true"]{
+    outline:2px dashed rgba(255,255,255,.0);
+    transition:outline-color .2s, background-color .2s, box-shadow .2s;
+    min-width:200px;
+    min-height:1.2em;
+    padding-right:6px;
+    border-radius:6px;
+  }
+  [contenteditable="true"]:empty:before{
+    content: attr(data-placeholder);
+    color: rgba(255,255,255,.38);
+    pointer-events:none;
+  }
+  [contenteditable="true"]:empty{
+    background: rgba(255,255,255,.08);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.14);
+  }
+  [contenteditable="true"]:focus{
+    outline:2px dashed rgba(255,255,255,.28);
+    background: rgba(255,255,255,.10);
+  }
   [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
-  .pill{font-size:11px;padding:2px 6px;border-radius:999px;background:#efefef;color:#444;margin-left:6px}
+  .pill{font-size:11px;padding-right:6px;border-radius:999px;background:#efefef;color:#444;margin-left:6px}
 
   /* 控制面板（底部） */
   .panel{
@@ -127,7 +167,7 @@
   }
   .panel button,.panel input[type="checkbox"]{cursor:pointer}
   .panel button{border:0;outline:0;padding:4px 8px;background:#fff;color:#111;border-radius:6px;}
-  .panel .val{min-width:42px;display:inline-block;text-align:center;background:#222;color:#fff;padding:2px 6px;border-radius:6px}
+  .panel .val{min-width:42px;display:inline-block;text-align:center;background:#222;color:#fff;padding-right:6px;border-radius:6px}
   .fs-panel{left:12px;bottom:12px;}
   .lh-panel{left:12px;bottom:56px;}
   .mg-panel{left:12px;bottom:100px;}
@@ -138,7 +178,7 @@
   .audit-tip{display:none;}
   .counter{
     position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;
-    background:#111;color:#fff;padding:2px 6px;border-radius:6px;
+    background:#111;color:#fff;padding-right:6px;border-radius:6px;
     pointer-events:none;user-select:none;
   }
 
@@ -190,7 +230,7 @@
   /* 背景縮放控制（APP & PC 都有） */
   .bg-scale-panel{position:absolute;right:0;top:-46px;z-index:20;display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px}
   .bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px}
-  .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:2px 6px;font-weight:700}
+  .bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding-right:6px;font-weight:700}
 
   /* Modal / Nudge / Toast */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9998;}
@@ -470,6 +510,19 @@
   display:none !important;
 }
 
+
+/* 英文數字額外上移 */
+.en-up{
+  position:relative;
+  top:-3px;
+}
+
+
+/* 日期區塊往下 1px */
+.date{
+  transform: translateY(1px) !important;
+}
+
 </style>
 
 <!-- Modified: applied hbn-like frontend sizes/coords (best-effort). -->
@@ -638,7 +691,7 @@
 
   .cta .text{
     position:relative;
-    top:-2px;
+    top:-3px;
     white-space:nowrap;
   }
 
@@ -940,7 +993,7 @@
   }
   .dd-canvas .dd-cta .text{
     position:relative;
-    top:-2px;
+    top:-3px;
     white-space:nowrap;
   }
   .dd-canvas .dd-cta .triangle{
@@ -1051,7 +1104,7 @@
     background:#222;
     color:#fff;
     border-radius:6px;
-    padding:2px 6px;
+    padding-right:6px;
     font-weight:700;
   }
   .dd-canvas .dd-product::after{
@@ -1187,6 +1240,11 @@
   }
 </style>
 
+
+<style id="contenteditable-empty-caret-fix">
+  [contenteditable="true"]{ min-width:0.5em; min-height:1em; cursor:text; }
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -1230,9 +1288,9 @@
 
       <div class="brand" id="brandH"></div>
       <div class="stack">
-        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1">99購物節開跑<span class="counter" aria-hidden="true"></span></div>
-        <div id="h2-h" class="h2" contenteditable="true" data-limit="7" data-role="h2">滿$990享8折<span class="counter" aria-hidden="true"></span></div>
-        <div id="date-h" class="date" contenteditable="true" data-limit="14" data-role="date">9/9 - 9/11<span class="counter" aria-hidden="true"></span></div>
+        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">99購物節開跑<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-h" class="h2" contenteditable="true" data-limit="7" data-role="h2" data-placeholder="請輸入副標">滿$990享8折<span class="counter" aria-hidden="true"></span></div>
+        <div id="date-h" class="date" contenteditable="true" data-limit="14" data-role="date" data-placeholder="請輸入日期">9/9 - 9/11<span class="counter" aria-hidden="true"></span></div>
       </div>
       <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
@@ -1343,9 +1401,9 @@
 
       <div class="brand"><div class="logo-box"><img id="brandImgS" /></div></div>
       <div class="stack">
-        <div id="h1-s" class="h1" contenteditable="true" data-limit="8" data-role="h1">指定商務品滿8千<span class="counter" aria-hidden="true"></span></div>
-        <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
-        <div id="date-s" class="date" contenteditable="true" data-limit="14" data-role="date">9/1 - 9/30<span class="counter" aria-hidden="true"></span></div>
+        <div id="h1-s" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">指定商務品滿8千<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2" data-placeholder="請輸入副標">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
+        <div id="date-s" class="date" contenteditable="true" data-limit="14" data-role="date" data-placeholder="請輸入日期">9/1 - 9/30<span class="counter" aria-hidden="true"></span></div>
       </div>
       <div class="cta" id="cta-s"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
@@ -5458,29 +5516,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 
-<script id="ddcard-download">
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btnH = document.createElement('button');
-  btnH.textContent = '下載 DDCard（橫）';
-  btnH.style.marginLeft = '8px';
-  document.getElementById('dl-h')?.parentElement?.appendChild(btnH);
-
-  const btnS = document.createElement('button');
-  btnS.textContent = '下載 DDCard（方）';
-  btnS.style.marginLeft = '8px';
-  document.getElementById('dl-s')?.parentElement?.appendChild(btnS);
-
-  btnH.addEventListener('click', ()=>{
-    if(window.downloadJpgFor) downloadJpgFor('ddHorizCanvas','bg-color-h','ddcard-h.jpg');
-  });
-
-  btnS.addEventListener('click', ()=>{
-    if(window.downloadJpgFor) downloadJpgFor('ddSquareCanvas','bg-color-s','ddcard-s.jpg');
-  });
-});
-</script>
-
-
 <script id="ddcard-hbn-parity-patch">
 (function(){
   const DD_LIMITS = {
@@ -5712,99 +5747,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
-
-<script id="hbn-export-product-ratio-fix">
-(function(){
-  if(window.__hbnExportRatioPatched) return;
-  window.__hbnExportRatioPatched = true;
-
-  const original = window.downloadJpgFor;
-  if(typeof original !== 'function') return;
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    const isHbn = canvasId === 'horiz' || canvasId === 'square' || canvasId === 'pcH' || canvasId === 'pcS';
-    if(!isHbn){
-      return original(canvasId, bgColorInputId, filename);
-    }
-
-    const node = document.getElementById(canvasId);
-    if(!node){
-      return original(canvasId, bgColorInputId, filename);
-    }
-
-    const imgs = Array.from(node.querySelectorAll('.editor-item:not(.editor-bg) img'));
-    const prev = imgs.map(img => ({
-      img,
-      width: img.style.width,
-      height: img.style.height,
-      maxWidth: img.style.maxWidth,
-      maxHeight: img.style.maxHeight,
-      objectFit: img.style.objectFit,
-      left: img.style.left,
-      top: img.style.top,
-      position: img.style.position
-    }));
-
-    imgs.forEach(img => {
-      img.style.width = 'auto';
-      img.style.height = 'auto';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.objectFit = 'contain';
-    });
-
-    try{
-      return await original(canvasId, bgColorInputId, filename);
-    }finally{
-      prev.forEach(x => {
-        x.img.style.width = x.width;
-        x.img.style.height = x.height;
-        x.img.style.maxWidth = x.maxWidth;
-        x.img.style.maxHeight = x.maxHeight;
-        x.img.style.objectFit = x.objectFit;
-        x.img.style.left = x.left;
-        x.img.style.top = x.top;
-        x.img.style.position = x.position;
-      });
-    }
-  };
-})();
-</script>
-
-
-
-
-
-<script id="ddcard-hide-resize-icon-export">
-(function(){
-  if(window.__ddcardIconExportPatched) return;
-  window.__ddcardIconExportPatched = true;
-
-  const original = window.downloadJpgFor;
-  if(typeof original !== 'function') return;
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
-    if(!isDd){
-      return original(canvasId, bgColorInputId, filename);
-    }
-
-    const node = document.getElementById(canvasId);
-    if(!node){
-      return original(canvasId, bgColorInputId, filename);
-    }
-
-    // hide resize pseudo icon via class toggle
-    node.classList.add('hide-dd-icons');
-
-    try{
-      return await original(canvasId, bgColorInputId, filename);
-    }finally{
-      node.classList.remove('hide-dd-icons');
-    }
-  };
-})();
-</script>
 
 <style id="ddcard-hide-resize-icon-style">
 .hide-dd-icons .dd-product::after{
@@ -6077,6 +6019,512 @@ document.addEventListener('DOMContentLoaded', ()=>{
         return result;
       };
     }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+<script id="hbn-hard-product-boundary">
+(function(){
+  function hardClampHbnProducts(){
+    ['editorH','editorS'].forEach(editorId=>{
+      const editor = document.getElementById(editorId);
+      if(!editor) return;
+      const canvas = editor.closest('.canvas');
+      if(!canvas) return;
+      const minX = (typeof getCanvasProductMinX === 'function') ? getCanvasProductMinX(canvas) : (canvas.id === 'square' ? 612 : 547);
+      const maxW = canvas.clientWidth;
+      const maxH = canvas.clientHeight;
+
+      editor.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box=>{
+        const w = box.offsetWidth || parseFloat(box.style.width) || 0;
+        const h = box.offsetHeight || parseFloat(box.style.height) || 0;
+        let left = parseFloat(box.style.left) || 0;
+        let top = parseFloat(box.style.top) || 0;
+
+        if(left < minX) left = minX;
+        if(left + w > maxW) left = Math.max(minX, maxW - w);
+        if(top < 0) top = 0;
+        if(top + h > maxH) top = Math.max(0, maxH - h);
+
+        box.style.left = left + 'px';
+        box.style.top = top + 'px';
+      });
+    });
+  }
+
+  function bindHardClamp(){
+    if(window.__hbnHardClampBound) return;
+    window.__hbnHardClampBound = true;
+
+    document.addEventListener('mouseup', ()=>setTimeout(hardClampHbnProducts, 0), true);
+    window.addEventListener('resize', hardClampHbnProducts);
+    document.addEventListener('DOMContentLoaded', ()=>setTimeout(hardClampHbnProducts, 100));
+    setInterval(hardClampHbnProducts, 500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindHardClamp);
+  }else{
+    bindHardClamp();
+  }
+})();
+</script>
+
+
+<script id="ddcard-hard-top-boundary">
+(function(){
+  function getDdTopLimit(prefix){
+    return prefix === 'ddSquare' ? 370 : 330;
+  }
+  function getDdBottomLimit(prefix){
+    return 674;
+  }
+
+  function hardClampDdProducts(){
+    ['ddHorizProducts','ddSquareProducts'].forEach(rootId=>{
+      const root = document.getElementById(rootId);
+      if(!root) return;
+      const canvas = root.closest('.dd-canvas');
+      if(!canvas) return;
+
+      const prefix = canvas.classList.contains('square') ? 'ddSquare' : 'ddHoriz';
+      const topLimit = getDdTopLimit(prefix);
+      const bottomLimit = getDdBottomLimit(prefix);
+      const maxW = canvas.clientWidth || 531;
+
+      root.querySelectorAll('.dd-product').forEach(box=>{
+        const w = box.offsetWidth || parseFloat(box.style.width) || 0;
+        const h = box.offsetHeight || parseFloat(box.style.height) || 0;
+        let left = parseFloat(box.style.left) || 0;
+        let top = parseFloat(box.style.top) || 0;
+
+        if(left < 0) left = 0;
+        if(left + w > maxW) left = Math.max(0, maxW - w);
+        if(top < topLimit) top = topLimit;
+        if(top + h > bottomLimit) top = Math.max(topLimit, bottomLimit - h);
+
+        box.style.left = left + 'px';
+        box.style.top = top + 'px';
+
+        const key = box.dataset.key;
+        if(window.ddEditState && window.ddEditState[prefix] && window.ddEditState[prefix].products && key){
+          const state = window.ddEditState[prefix].products[key] || {};
+          state.left = left;
+          state.top = top;
+          state.width = w;
+          state.height = h;
+          window.ddEditState[prefix].products[key] = state;
+        }
+      });
+    });
+  }
+
+  function bindDdHardClamp(){
+    if(window.__ddHardClampBound) return;
+    window.__ddHardClampBound = true;
+
+    document.addEventListener('mouseup', ()=>setTimeout(hardClampDdProducts, 0), true);
+    window.addEventListener('resize', hardClampDdProducts);
+    document.addEventListener('DOMContentLoaded', ()=>setTimeout(hardClampDdProducts, 100));
+    setInterval(hardClampDdProducts, 500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindDdHardClamp);
+  }else{
+    bindDdHardClamp();
+  }
+})();
+</script>
+
+
+<style id="export-dd-resize-hide-style">
+.hide-dd-icons .dd-product::after{
+  display:none !important;
+}
+</style>
+
+
+<script id="download-button-bind-fix">
+(function(){
+  function bindOnce(el, key, handler){
+    if(!el || el.dataset[key] === '1') return;
+    el.dataset[key] = '1';
+    el.addEventListener('click', function(e){
+      e.preventDefault();
+      if(typeof window.downloadJpgFor !== 'function'){
+        if(typeof showToast === 'function') showToast('下載功能尚未初始化', 'err', 1800);
+        return;
+      }
+      handler();
+    });
+  }
+
+  function ensureDdButton(id, text, anchorBtn){
+    var btn = document.getElementById(id);
+    if(!btn){
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = id;
+      btn.textContent = text;
+      btn.style.marginLeft = '8px';
+      if(anchorBtn && anchorBtn.parentElement){
+        anchorBtn.parentElement.appendChild(btn);
+      }
+    }
+    return btn;
+  }
+
+  function bindAll(){
+    var dlH = document.getElementById('dl-h');
+    var dlS = document.getElementById('dl-s');
+
+    bindOnce(dlH, 'fixedDownloadBound', function(){
+      window.downloadJpgFor('horiz', 'bg-color-h', 'horiz.jpg');
+    });
+
+    bindOnce(dlS, 'fixedDownloadBound', function(){
+      if(typeof window.copyHorizCtaToSquare === 'function') window.copyHorizCtaToSquare();
+      window.downloadJpgFor('square', 'bg-color-s', 'square.jpg');
+    });
+
+    var ddH = ensureDdButton('dl-dd-h', '下載 DDCard（橫）', dlH);
+    var ddS = ensureDdButton('dl-dd-s', '下載 DDCard（方）', dlS);
+
+    bindOnce(ddH, 'fixedDownloadBound', function(){
+      window.downloadJpgFor('ddHorizCanvas', 'bg-color-h', 'ddcard-h.jpg');
+    });
+
+    bindOnce(ddS, 'fixedDownloadBound', function(){
+      window.downloadJpgFor('ddSquareCanvas', 'bg-color-s', 'ddcard-s.jpg');
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindAll);
+  }else{
+    bindAll();
+  }
+})();
+</script>
+
+
+<script id="hbn-edited-product-export-fix">
+(function(){
+  function hexToRgb(hex){
+    const h = String(hex || '#ffffff').replace('#','');
+    const b = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return {
+      r: parseInt(b.slice(0,2), 16) || 255,
+      g: parseInt(b.slice(2,4), 16) || 255,
+      b: parseInt(b.slice(4,6), 16) || 255
+    };
+  }
+
+  async function exportNodeExact(node, bgColorInputId, filename, options){
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
+
+    const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+
+    const snap = await html2canvas(node, {
+      backgroundColor: null,
+      scale: 1,
+      useCORS: true,
+      allowTaint: false,
+      removeContainer: true,
+      letterRendering: true,
+      logging: false,
+      width: node.clientWidth,
+      height: node.clientHeight,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+      ignoreElements: function(el){
+        if(!el || !el.classList) return false;
+        return el.classList.contains('panel') ||
+               el.classList.contains('bg-scale-panel') ||
+               el.classList.contains('toggle-tag') ||
+               el.classList.contains('float-meter') ||
+               el.classList.contains('modal') ||
+               el.classList.contains('nudge') ||
+               el.classList.contains('ui-only') ||
+               el.classList.contains('ctrl');
+      },
+      onclone: function(doc){
+        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el => el.remove());
+        const clonedNode = doc.getElementById(node.id);
+        if(clonedNode) clonedNode.style.overflow = 'hidden';
+        if(options && typeof options.onclone === 'function'){
+          options.onclone(doc, clonedNode);
+        }
+      }
+    });
+
+    const outC = document.createElement('canvas');
+    outC.width = snap.width;
+    outC.height = snap.height;
+    const ctx = outC.getContext('2d');
+    const rgb = hexToRgb(bgHex);
+    ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+    ctx.fillRect(0, 0, outC.width, outC.height);
+    ctx.drawImage(snap, 0, 0);
+
+    function toBlob(type, quality){
+      return new Promise(res => outC.toBlob(b => res(b), type, quality));
+    }
+
+    let outName = (filename || 'banner').replace(/\.png$/i,'').replace(/\.jpg$/i,'') + '.jpg';
+    let quality = 1.0;
+    let blob = await toBlob('image/jpeg', quality);
+
+    if(blob && blob.size > 145 * 1024){
+      while(blob && blob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.05).toFixed(2));
+        blob = await toBlob('image/jpeg', quality);
+      }
+    }
+
+    if(!blob) throw new Error('產生圖檔失敗');
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = outName;
+    document.body.appendChild(a);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url, '_blank');
+    else a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    if(typeof showToast === 'function'){
+      showToast('已下載：' + Math.round(blob.size/1024) + 'KB（JPG ' + (blob.size <= 145*1024 ? '未壓縮' : '已壓縮') + '）', 'ok', 2500);
+    }
+  }
+
+  function buildHbnProductLocks(node){
+    const nodeRect = node.getBoundingClientRect();
+    const locks = [];
+    let i = 0;
+
+    node.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
+      const img = box.querySelector('img');
+      if(!img) return;
+
+      const boxRect = box.getBoundingClientRect();
+      const imgRect = img.getBoundingClientRect();
+
+      const boxId = 'export-box-' + (++i);
+      box.setAttribute('data-export-box-id', boxId);
+
+      locks.push({
+        boxId: boxId,
+        src: img.currentSrc || img.src || '',
+        zIndex: getComputedStyle(box).zIndex || '4',
+        left: imgRect.left - nodeRect.left,
+        top: imgRect.top - nodeRect.top,
+        width: imgRect.width,
+        height: imgRect.height
+      });
+    });
+
+    return locks;
+  }
+
+  function clearHbnProductLocks(node){
+    node.querySelectorAll('[data-export-box-id]').forEach(el => el.removeAttribute('data-export-box-id'));
+  }
+
+  function applyHbnCloneOverlay(clonedNode, locks){
+    if(!clonedNode) return;
+
+    clonedNode.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
+      box.style.visibility = 'hidden';
+    });
+
+    const overlayRoot = document.createElement('div');
+    overlayRoot.style.position = 'absolute';
+    overlayRoot.style.left = '0';
+    overlayRoot.style.top = '0';
+    overlayRoot.style.width = '100%';
+    overlayRoot.style.height = '100%';
+    overlayRoot.style.pointerEvents = 'none';
+    overlayRoot.style.zIndex = '999';
+
+    locks.forEach(lock => {
+      const img = document.createElement('img');
+      img.src = lock.src;
+      img.style.position = 'absolute';
+      img.style.left = lock.left + 'px';
+      img.style.top = lock.top + 'px';
+      img.style.width = lock.width + 'px';
+      img.style.height = lock.height + 'px';
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = 'none';
+      img.style.objectFit = 'fill';
+      img.style.display = 'block';
+      img.style.zIndex = String(lock.zIndex);
+      overlayRoot.appendChild(img);
+    });
+
+    clonedNode.appendChild(overlayRoot);
+  }
+
+  const original = window.downloadJpgFor;
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    const node = document.getElementById(canvasId);
+    if(!node){
+      if(typeof original === 'function') return original(canvasId, bgColorInputId, filename);
+      return;
+    }
+
+    const isHbn = canvasId === 'horiz' || canvasId === 'square' || canvasId === 'pcH' || canvasId === 'pcS';
+    const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+
+    if(!isHbn && !isDd){
+      if(typeof original === 'function') return original(canvasId, bgColorInputId, filename);
+      return;
+    }
+
+    let locks = [];
+    if(isHbn){
+      locks = buildHbnProductLocks(node);
+    }
+
+    try{
+      await exportNodeExact(node, bgColorInputId, filename, {
+        onclone: function(doc, clonedNode){
+          if(isHbn){
+            applyHbnCloneOverlay(clonedNode, locks);
+          }
+          if(isDd && clonedNode){
+            clonedNode.classList.add('hide-dd-icons');
+          }
+        }
+      });
+    } finally {
+      if(isHbn){
+        clearHbnProductLocks(node);
+      }
+    }
+  };
+})();
+</script>
+
+<style id="dd-export-hide-icons-style">
+.hide-dd-icons .dd-product::after{
+  display:none !important;
+}
+</style>
+
+
+<script id="banwords-excel-loader">
+(function(){
+  async function loadBanwordsFromExcel(){
+    if(!window.banwordEngine || typeof window.banwordEngine.loadRulesFromExcelArrayBuffer !== 'function') return;
+    if(!window.XLSX) return;
+    try{
+      const res = await fetch('./程式檔案/禁用語.xlsx', { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const buf = await res.arrayBuffer();
+      const rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
+      if(Array.isArray(rules) && rules.length){
+        document.querySelectorAll('[contenteditable="true"]').forEach(function(el){
+          if(typeof processBanwordElement === 'function') processBanwordElement(el);
+        });
+        console.log('禁用語已從 Excel 載入，共 ' + rules.length + ' 條');
+      }
+    }catch(err){
+      console.error('讀取禁用語.xlsx 失敗，將沿用 banwords-engine-hbn.js 內建規則', err);
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', loadBanwordsFromExcel);
+  }else{
+    loadBanwordsFromExcel();
+  }
+})();
+</script>
+
+
+<script id="contenteditable-empty-caret-fix-script">
+(function(){
+  function isVisuallyEmpty(el){
+    if(!el) return true;
+    const html = (el.innerHTML || '')
+      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .trim();
+    const text = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
+    return text === '' && (html === '' || html === '<br>' || html === '<div><br></div>');
+  }
+
+  function placeCaretAtStart(el){
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(el);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function ensureEditablePlaceholder(el){
+    if(!el || !isVisuallyEmpty(el)) return;
+    const counter = el.querySelector('.counter');
+    if(counter){
+      el.insertBefore(document.createElement('br'), counter);
+    }else{
+      el.innerHTML = '<br>';
+    }
+    placeCaretAtStart(el);
+  }
+
+  function cleanupEditablePlaceholder(el){
+    if(!el) return;
+    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
+    if(raw !== '') return;
+    el.querySelectorAll('br').forEach(function(br){ br.remove(); });
+    const html = (el.innerHTML || '')
+      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .trim();
+    if(html === ''){
+      el.innerHTML = '';
+      const counter = el.querySelector('.counter');
+      if(counter) el.appendChild(counter);
+    }
+  }
+
+  function bindEmptyCaretFix(el){
+    if(!el || el.dataset.emptyCaretFixBound === '1') return;
+    el.dataset.emptyCaretFixBound = '1';
+
+    el.addEventListener('focus', function(){
+      ensureEditablePlaceholder(el);
+    });
+
+    el.addEventListener('mousedown', function(){
+      if(isVisuallyEmpty(el)){
+        requestAnimationFrame(function(){ ensureEditablePlaceholder(el); });
+      }
+    });
+
+    el.addEventListener('blur', function(){
+      cleanupEditablePlaceholder(el);
+    });
+  }
+
+  function init(){
+    document.querySelectorAll('[contenteditable="true"]').forEach(bindEmptyCaretFix);
   }
 
   if(document.readyState === 'loading'){
