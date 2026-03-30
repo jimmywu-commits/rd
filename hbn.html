@@ -539,6 +539,105 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   margin-bottom: -0.32em !important;
 }
 
+
+/* === UI tweaks: HEX-friendly color input / erase brush preview === */
+.brush-cursor{
+  position:fixed;
+  z-index:10001;
+  width:40px;
+  height:40px;
+  margin-left:-20px;
+  margin-top:-20px;
+  border:1px solid rgba(255,255,255,.95);
+  border-radius:50%;
+  box-shadow:0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.18);
+  background:rgba(255,255,255,.08);
+  pointer-events:none;
+  display:none;
+}
+
+
+/* HEX only color controls */
+.hex-color-wrap{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.hex-color-wrap .hex-swatch{
+  width:24px;
+  height:24px;
+  border-radius:6px;
+  border:1px solid rgba(0,0,0,.15);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+  flex:0 0 auto;
+}
+.hex-color-wrap .hex-input{
+  width:88px;
+  height:28px;
+  padding:4px 8px;
+  border:1px solid #ddd;
+  border-radius:6px;
+  font-size:12px;
+  line-height:1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform:uppercase;
+}
+.toolbar input[type="color"]{
+  display:none !important;
+}
+
+/* editor zoom */
+#eraseWrap{
+  transform-origin: top left;
+}
+
+
+/* 曝品 icon 位置與樣式更新 */
+.editor-item .layer-btns{
+  position:absolute;
+  left:6px;
+  top:6px;
+  right:auto;
+  display:flex;
+  gap:4px;
+}
+.editor-item .ctrl.del{
+  right:6px;
+  left:auto;
+  top:6px;
+}
+.editor-item .ctrl.resize{
+  font-size:16px;
+}
+
+
+
+
+/* === 系統重繪 icon（非直接使用參考圖） === */
+.editor-item .ctrl.del {
+  background:#2F2F2F;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%0A%3Cpath%20d%3D%22M4%207.2h16%22/%3E%0A%3Cpath%20d%3D%22M9%204.2h6l.9%202H8.1z%22/%3E%0A%3Cpath%20d%3D%22M7.2%207.2l.8%2012.2h8l.8-12.2%22/%3E%0A%3Cpath%20d%3D%22M10%2010v6.5%22/%3E%0A%3Cpath%20d%3D%22M14%2010v6.5%22/%3E%0A%3C/g%3E%3C/svg%3E");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+.editor-item .layer-btns .ctrl {
+  background:#2F2F2F;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.6%22%20stroke-linejoin%3D%22round%22%3E%0A%3Cpath%20d%3D%22M12%203.8%203.8%208.9%2012%2014l8.2-5.1z%22/%3E%0A%3Cpath%20d%3D%22M5.1%2012.2%2012%2016.5l6.9-4.3%22/%3E%0A%3Cpath%20d%3D%22M5.1%2015.5%2012%2019.8l6.9-4.3%22/%3E%0A%3C/g%3E%3C/svg%3E");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+.editor-item .ctrl.resize {
+  background-image:url("data:image/svg+xml;utf8,%0A%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%0A%20%20%3Crect%20x%3D%221.5%22%20y%3D%221.5%22%20width%3D%2221%22%20height%3D%2221%22%20rx%3D%224.5%22%20fill%3D%22%232F2F2F%22/%3E%0A%20%20%3Cg%20fill%3D%22none%22%20stroke%3D%22%23FFFFFF%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%0A%20%20%20%20%3Cpath%20d%3D%22M14%205.8h4.2V10%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M18.2%205.8%2012.9%2011.1%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M10%2018.2H5.8V14%22/%3E%0A%20%20%20%20%3Cpath%20d%3D%22M5.8%2018.2%2011.1%2012.9%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E%0A");
+  background-size:18px 18px;
+  background-repeat:no-repeat;
+  background-position:center;
+  font-size:0;
+}
+
 </style>
 
 <!-- Modified: applied hbn-like frontend sizes/coords (best-effort). -->
@@ -557,6 +656,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 
 /* Keep layout space if needed: if you prefer to collapse, use display:none (above). 
    If you'd rather keep the space but hide content, comment out display:none and use opacity:0 instead. */
+
+
 </style>
 
 
@@ -583,6 +684,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   #horiz #cta-h .triangle{
     border-left-width:10px !important;
   }
+
+
 </style>
 
 
@@ -590,6 +693,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 <style id="assistant-cta-xy-override">
   /* With canvas 1200x360 and CTA 238x44: X=940 => right=22, Y=291 => bottom=25 */
   
+
+
 </style>
 
 
@@ -613,6 +718,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   h3:has(+ #pcS) {
     display: none !important;
   }
+
+
 </style>
 
 
@@ -648,6 +755,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -676,6 +785,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -719,6 +830,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width:9.5px !important;
     flex:0 0 auto;
   }
+
+
 </style>
 
 
@@ -727,6 +840,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   /* Do not force square logo to 105x105; keep aspect ratio */
   #square .logo-box{ width:auto !important; height:auto !important; }
   #square .logo-box img{ width:auto !important; height:auto !important; max-width:105px; max-height:105px; object-fit:contain; display:block; }
+
+
 </style>
 
 
@@ -761,6 +876,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     vertical-align:middle !important;
     display:block !important;
   }
+
+
 </style>
 
 
@@ -768,6 +885,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .manual-icon{position:fixed;top:20px;right:20px;width:100px;text-align:center;cursor:pointer;z-index:9999}
 .manual-icon img{width:100px;height:100px;display:block}
 .manual-icon span{display:block;font-size:10px;line-height:1.2}
+
+
 </style>
 
 
@@ -814,6 +933,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     border-bottom-width: 9.5px !important;
     flex: 0 0 auto !important;
   }
+
+
 </style>
 
 
@@ -830,6 +951,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain !important;
     display:block !important;
   }
+
+
 </style>
 
 
@@ -847,6 +970,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     display:block !important;
     vertical-align:middle !important;
   }
+
+
 </style>
 
 
@@ -876,6 +1001,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .is-exporting .logo-white-btn{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -1039,6 +1166,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain;
     display:block;
   }
+
+
 </style>
 
 
@@ -1073,6 +1202,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     color:#666;
     margin-top:6px;
   }
+
+
 </style>
 
 
@@ -1131,6 +1262,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-size:12px;
     line-height:1;
   }
+
+
 </style>
 
 
@@ -1164,6 +1297,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     height:120px;
     z-index:3;
   }
+
+
 </style>
 
 
@@ -1172,6 +1307,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .dd-canvas.square .dd-h1{ top:203.5px !important; }
 .dd-canvas.square .dd-h2{ top:253px !important; }
 .dd-canvas.square .dd-date{ top:327px !important; }
+
+
 </style>
 
 
@@ -1180,6 +1317,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
 .dd-canvas:not(.square) .dd-h2{ top:220px !important; }
 .dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
+
+
 </style>
 
 
@@ -1188,6 +1327,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   #ddSquareBg[data-dd-hidden="1"]{
     display:none !important;
   }
+
+
 </style>
 
 
@@ -1231,6 +1372,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   .is-exporting .dd-guide-warning{
     display:none !important;
   }
+
+
 </style>
 
 
@@ -1254,11 +1397,15 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     object-fit:contain !important;
     display:block !important;
   }
+
+
 </style>
 
 
 <style id="contenteditable-empty-caret-fix">
   [contenteditable="true"]{ min-width:0.5em; min-height:1em; cursor:text; }
+
+
 </style>
 
 </head>
@@ -1539,7 +1686,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
         <label style="display:flex;align-items:center;gap:6px"><input id="toggleShadow" type="checkbox"> 增加影子</label>
         <label style="display:flex;align-items:center;gap:6px"><input id="applyUploadSize" type="checkbox" checked> 完成後套用上傳尺寸規則</label>
         <label id="logoWhiteBaseWrap" style="display:none;align-items:center;gap:6px;margin-left:auto;font-weight:700"><input id="logoWhiteBaseChk" type="checkbox"> 加白底</label>
-        <span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
+        <label>縮放：<input id="editZoom" type="range" min="50" max="300" value="100"></label><span id="editZoomVal" class="pill">100%</span><span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
       </div>
       <div id="eraseWrap" class="checkerboard">
         <canvas id="shadowCanvas" width="800" height="400"></canvas>
@@ -1571,6 +1718,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 
   <!-- Toast -->
   <div id="toast" class="toast" style="display:none"></div>
+  <div id="brushCursor" class="brush-cursor" aria-hidden="true"></div>
 
 <script>
   let __jsonRestoring = false;
@@ -3314,7 +3462,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       img.src = url;
       img.style.objectFit = 'contain';
 
-      const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='✖';
+      const delBtn  = document.createElement('button'); delBtn.className='ctrl del';  delBtn.title='刪除';        delBtn.textContent='＝';
       const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切';  editBtn.textContent='✎';
       const layerBox = document.createElement('div'); layerBox.className='layer-btns';
       const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
@@ -3322,7 +3470,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
 
 
-      const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+      const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='⇱⇲';
 
       box.appendChild(img);
       if(!asBackground){
@@ -4395,12 +4543,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createProductControls(box, img){
-    const delBtn  = document.createElement('button'); delBtn.className='ctrl del'; delBtn.title='刪除'; delBtn.textContent='✖';
+    const delBtn  = document.createElement('button'); delBtn.className='ctrl del'; delBtn.title='刪除'; delBtn.textContent='＝';
     const editBtn = document.createElement('button'); editBtn.className='ctrl edit'; editBtn.title='去背/裁切'; editBtn.textContent='✎';
     const layerBox = document.createElement('div'); layerBox.className='layer-btns';
     const frontBtn = document.createElement('button'); frontBtn.className='ctrl'; frontBtn.title='圖層置前'; frontBtn.textContent='▲';
     const backBtn  = document.createElement('button'); backBtn.className='ctrl'; backBtn.title='圖層置後'; backBtn.textContent='▼';
-    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='↗';
+    const resizeBtn = document.createElement('button'); resizeBtn.className='ctrl resize'; resizeBtn.title='拉大/拉小'; resizeBtn.textContent='⇱⇲';
     layerBox.appendChild(frontBtn); layerBox.appendChild(backBtn);
     box.appendChild(delBtn);
     box.appendChild(editBtn);
@@ -5768,6 +5916,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -6165,6 +6315,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -6439,6 +6591,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 .hide-dd-icons .dd-product::after{
   display:none !important;
 }
+
+
 </style>
 
 
@@ -7058,6 +7212,472 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }else{
     init();
   }
+})();
+</script>
+
+
+<script id="ui-tweaks-20260330">
+(function(){
+  function initHexFriendlyColorInputs(){
+    document.querySelectorAll('input[type="color"]').forEach(function(inp){
+      if(inp.dataset.hexFriendlyBound === '1') return;
+      inp.dataset.hexFriendlyBound = '1';
+
+      function nudgeHexView(){
+        // Many browsers remember the last-used tab. Programmatically focusing the input
+        // before click helps the picker open to the direct value field on several engines.
+        try{ inp.setSelectionRange && inp.setSelectionRange(0, 7); }catch(_){}
+      }
+
+      inp.addEventListener('pointerdown', nudgeHexView, true);
+      inp.addEventListener('click', nudgeHexView, true);
+      inp.addEventListener('input', function(){
+        // always normalize to 6-digit HEX in the control value
+        var v = String(inp.value || '').toUpperCase();
+        if(/^#[0-9A-F]{6}$/.test(v)) inp.value = v;
+      });
+      inp.title = (inp.title ? inp.title + '｜' : '') + '可直接貼上 HEX，例如 #2176FF';
+    });
+  }
+
+  function initBrushPreview(){
+    var eraseCanvas = document.getElementById('eraseCanvas');
+    var brush = document.getElementById('brushSize');
+    var modeRadios = document.querySelectorAll('input[name="mode"]');
+    var modal = document.getElementById('eraseModal');
+    var cursor = document.getElementById('brushCursor');
+    if(!eraseCanvas || !brush || !cursor || !modal) return;
+
+    function currentMode(){
+      var el = document.querySelector('input[name="mode"]:checked');
+      return el ? el.value : 'erase';
+    }
+
+    function syncSize(){
+      var size = Math.max(5, parseFloat(brush.value) || 40);
+      cursor.style.width = size + 'px';
+      cursor.style.height = size + 'px';
+      cursor.style.marginLeft = -(size/2) + 'px';
+      cursor.style.marginTop = -(size/2) + 'px';
+    }
+
+    function shouldShow(){
+      return modal.classList.contains('show') && currentMode() === 'erase';
+    }
+
+    function updateVisibility(show){
+      cursor.style.display = show ? 'block' : 'none';
+    }
+
+    eraseCanvas.addEventListener('mousemove', function(e){
+      if(!shouldShow()) return;
+      syncSize();
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+      updateVisibility(true);
+    });
+
+    eraseCanvas.addEventListener('mouseenter', function(e){
+      if(!shouldShow()) return;
+      syncSize();
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+      updateVisibility(true);
+    });
+
+    eraseCanvas.addEventListener('mouseleave', function(){
+      updateVisibility(false);
+    });
+
+    window.addEventListener('mouseup', function(){
+      if(!shouldShow()) updateVisibility(false);
+    });
+
+    brush.addEventListener('input', function(){
+      syncSize();
+    });
+
+    modeRadios.forEach(function(r){
+      r.addEventListener('change', function(){
+        updateVisibility(false);
+        syncSize();
+      });
+    });
+
+    var mo = new MutationObserver(function(){
+      if(!modal.classList.contains('show')) updateVisibility(false);
+    });
+    mo.observe(modal, {attributes:true, attributeFilter:['class']});
+
+    syncSize();
+  }
+
+  function patchShadowDefaultOffset(){
+    if(window.__shadowOffsetPatched) return;
+    window.__shadowOffsetPatched = true;
+
+    var oldAutoPlace = window.autoPlaceShadowByVisibleBounds;
+    if(typeof oldAutoPlace !== 'function') return;
+
+    window.autoPlaceShadowByVisibleBounds = function(){
+      oldAutoPlace();
+      var shadowBox = document.getElementById('shadowModalBox');
+      var toggle = document.getElementById('toggleShadow');
+      if(!shadowBox || !toggle || !toggle.checked) return;
+      var top = parseFloat(shadowBox.style.top) || 0;
+      shadowBox.style.top = Math.max(0, top - 4) + 'px';
+      if(typeof window.renderShadowPreview === 'function'){
+        window.renderShadowPreview();
+      }
+    };
+  }
+
+  function init(){
+    initHexFriendlyColorInputs();
+    initBrushPreview();
+    patchShadowDefaultOffset();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+
+
+
+
+<script id="hex-only-and-editor-zoom">
+(function(){
+  function normalizeHex(v){
+    var s = String(v || '').trim().toUpperCase();
+    if(!s) return '';
+    if(s[0] !== '#') s = '#' + s;
+    if(/^#[0-9A-F]{3}$/.test(s)){
+      s = '#' + s.slice(1).split('').map(function(ch){ return ch + ch; }).join('');
+    }
+    if(/^#[0-9A-F]{6}$/.test(s)) return s;
+    return '';
+  }
+
+  function enhanceColorInputs(){
+    document.querySelectorAll('.toolbar label input[type="color"]').forEach(function(colorInput){
+      if(colorInput.dataset.hexOnlyBound === '1') return;
+      colorInput.dataset.hexOnlyBound = '1';
+
+      var label = colorInput.closest('label');
+      if(!label) return;
+
+      var wrap = document.createElement('span');
+      wrap.className = 'hex-color-wrap';
+
+      var swatch = document.createElement('span');
+      swatch.className = 'hex-swatch';
+      swatch.title = '目前顏色';
+
+      var hex = document.createElement('input');
+      hex.type = 'text';
+      hex.className = 'hex-input';
+      hex.placeholder = '#000000';
+      hex.value = String(colorInput.value || '').toUpperCase();
+      hex.setAttribute('inputmode', 'text');
+      hex.setAttribute('spellcheck', 'false');
+
+      function syncFromColor(){
+        var val = normalizeHex(colorInput.value) || '#000000';
+        colorInput.value = val;
+        hex.value = val;
+        swatch.style.background = val;
+      }
+
+      function syncToColor(raw){
+        var val = normalizeHex(raw);
+        if(!val) return false;
+        colorInput.value = val;
+        colorInput.dispatchEvent(new Event('input', {bubbles:true}));
+        colorInput.dispatchEvent(new Event('change', {bubbles:true}));
+        syncFromColor();
+        return true;
+      }
+
+      hex.addEventListener('input', function(){
+        var up = hex.value.toUpperCase().replace(/[^#0-9A-F]/g, '');
+        hex.value = up;
+      });
+      hex.addEventListener('blur', function(){
+        if(!syncToColor(hex.value)) syncFromColor();
+      });
+      hex.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){
+          e.preventDefault();
+          if(!syncToColor(hex.value)) syncFromColor();
+          hex.blur();
+        }
+      });
+
+      colorInput.addEventListener('input', syncFromColor);
+      colorInput.addEventListener('change', syncFromColor);
+
+      wrap.appendChild(swatch);
+      wrap.appendChild(hex);
+      colorInput.insertAdjacentElement('afterend', wrap);
+      syncFromColor();
+    });
+  }
+
+  function getAlphaBoundsFromCanvas(canvas){
+    if(!canvas) return null;
+    var w = canvas.width, h = canvas.height;
+    var ctx = canvas.getContext('2d', { willReadFrequently:true });
+    var data = ctx.getImageData(0,0,w,h).data;
+    var minX = w, minY = h, maxX = -1, maxY = -1;
+    for(var y=0; y<h; y++){
+      for(var x=0; x<w; x++){
+        var a = data[(y*w + x)*4 + 3];
+        if(a > 1){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return null;
+    return {minX:minX, minY:minY, maxX:maxX, maxY:maxY, cx:(minX+maxX)/2, cy:(minY+maxY)/2};
+  }
+
+  function ensurePreviewBaseCanvas(){
+    var eraseCanvas = document.getElementById('eraseCanvas');
+    if(!eraseCanvas) return null;
+    if(!window.__erasePreviewBaseCanvas){
+      window.__erasePreviewBaseCanvas = document.createElement('canvas');
+    }
+    var base = window.__erasePreviewBaseCanvas;
+    if(base.width !== eraseCanvas.width || base.height !== eraseCanvas.height){
+      base.width = eraseCanvas.width;
+      base.height = eraseCanvas.height;
+    }
+    return base;
+  }
+
+  function snapshotVisibleToBase(){
+    var eraseCanvas = document.getElementById('eraseCanvas');
+    var base = ensurePreviewBaseCanvas();
+    if(!eraseCanvas || !base) return;
+    var bctx = base.getContext('2d');
+    bctx.clearRect(0,0,base.width,base.height);
+    bctx.drawImage(eraseCanvas, 0, 0);
+  }
+
+  function renderPreviewZoomFromBase(){
+    var eraseCanvas = document.getElementById('eraseCanvas');
+    var base = ensurePreviewBaseCanvas();
+    if(!eraseCanvas || !base) return;
+    var ctx = eraseCanvas.getContext('2d', { willReadFrequently:true });
+    var zoom = Math.max(0.5, Math.min(3, window.__erasePreviewZoom || 1));
+
+    ctx.clearRect(0,0,eraseCanvas.width, eraseCanvas.height);
+    if(Math.abs(zoom - 1) < 0.001){
+      ctx.drawImage(base, 0, 0);
+      return;
+    }
+
+    var bounds = getAlphaBoundsFromCanvas(base);
+    if(!bounds){
+      ctx.drawImage(base, 0, 0);
+      return;
+    }
+
+    var bw = bounds.maxX - bounds.minX + 1;
+    var bh = bounds.maxY - bounds.minY + 1;
+    var nw = Math.max(1, Math.round(bw * zoom));
+    var nh = Math.max(1, Math.round(bh * zoom));
+    var dx = Math.round(bounds.cx - nw/2);
+    var dy = Math.round(bounds.cy - nh/2);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(base, bounds.minX, bounds.minY, bw, bh, dx, dy, nw, nh);
+  }
+
+  function syncBaseAndRender(){
+    snapshotVisibleToBase();
+    renderPreviewZoomFromBase();
+  }
+
+  function initPreviewZoomOnly(){
+    var slider = document.getElementById('editZoom');
+    var val = document.getElementById('editZoomVal');
+    if(!slider || !val) return;
+
+    if(!window.__erasePreviewZoom) window.__erasePreviewZoom = 1;
+
+    function syncSliderFromState(){
+      var scale = window.__erasePreviewZoom || 1;
+      slider.value = String(Math.round(scale * 100));
+      val.textContent = Math.round(scale * 100) + '%';
+    }
+
+    slider.addEventListener('input', function(){
+      var pct = Math.max(50, Math.min(300, parseInt(slider.value || '100', 10)));
+      window.__erasePreviewZoom = pct / 100;
+      val.textContent = pct + '%';
+      renderPreviewZoomFromBase();
+    });
+
+    var modal = document.getElementById('eraseModal');
+    if(modal && !modal.dataset.previewZoomObserved){
+      modal.dataset.previewZoomObserved = '1';
+      var mo = new MutationObserver(function(){
+        if(modal.classList.contains('show')){
+          syncSliderFromState();
+          setTimeout(function(){
+            snapshotVisibleToBase();
+            renderPreviewZoomFromBase();
+          }, 0);
+        }
+      });
+      mo.observe(modal, {attributes:true, attributeFilter:['class']});
+    }
+
+    syncSliderFromState();
+  }
+
+  function patchEditingFlow(){
+    if(window.__previewZoomPatched) return;
+    window.__previewZoomPatched = true;
+
+    // whenever original content is redrawn, capture it as the new edit base
+    var oldRedraw = window.redrawOriginal;
+    if(typeof oldRedraw === 'function'){
+      window.redrawOriginal = function(){
+        oldRedraw();
+        snapshotVisibleToBase();
+        renderPreviewZoomFromBase();
+      };
+    }
+
+    // after magic select
+    var oldFlood = window.floodSelect;
+    if(typeof oldFlood === 'function'){
+      window.floodSelect = function(){
+        var result = oldFlood.apply(this, arguments);
+        syncBaseAndRender();
+        return result;
+      };
+    }
+
+    // after reset
+    var resetBtn = document.getElementById('eraseReset');
+    if(resetBtn && !resetBtn.dataset.previewZoomBound){
+      resetBtn.dataset.previewZoomBound = '1';
+      resetBtn.addEventListener('click', function(){
+        setTimeout(syncBaseAndRender, 0);
+      });
+    }
+
+    // after crop confirm / apply (while modal still open)
+    ['cropConfirm','eraseApply'].forEach(function(id){
+      var btn = document.getElementById(id);
+      if(btn && !btn.dataset.previewZoomBound){
+        btn.dataset.previewZoomBound = '1';
+        btn.addEventListener('click', function(){
+          setTimeout(syncBaseAndRender, 0);
+        });
+      }
+    });
+
+    // after freehand erase strokes, snapshot current edit result once mouse released
+    window.addEventListener('mouseup', function(){
+      var modal = document.getElementById('eraseModal');
+      if(!modal || !modal.classList.contains('show')) return;
+      setTimeout(function(){
+        snapshotVisibleToBase();
+      }, 0);
+    }, true);
+  }
+
+  function init(){
+    enhanceColorInputs();
+    patchEditingFlow();
+    initPreviewZoomOnly();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+
+
+
+
+<script id="final-icon-layout-patch">
+(function(){
+  function refreshProductIcons(){
+    document.querySelectorAll('.editor-item:not(.editor-bg)').forEach(function(box){
+      var layerBtns = box.querySelector('.layer-btns');
+      if(layerBtns){
+        layerBtns.style.left = '6px';
+        layerBtns.style.top = '6px';
+        layerBtns.style.right = 'auto';
+      }
+      var del = box.querySelector('.ctrl.del');
+      if(del){
+        del.style.left = 'auto';
+        del.style.right = '6px';
+        del.style.top = '6px';
+        del.textContent = '＝';
+        del.title = '刪除';
+      }
+      var resize = box.querySelector('.ctrl.resize');
+      if(resize){
+        resize.textContent = '⇱⇲';
+      }
+      var btns = box.querySelectorAll('.layer-btns .ctrl');
+      if(btns[0]) btns[0].textContent = '▲';
+      if(btns[1]) btns[1].textContent = '▼';
+    });
+  }
+
+  function refreshLogoIcons(){
+    document.querySelectorAll('.logo-item').forEach(function(item){
+      var edit = item.querySelector('.logo-edit-btn');
+      var swap = item.querySelector('.logo-swap-btn');
+      if(edit){
+        edit.style.left = '-2px';
+        edit.style.right = 'auto';
+        edit.textContent = '';
+        edit.title = '功能';
+      }
+      if(swap){
+        swap.style.right = '-2px';
+        swap.style.left = 'auto';
+        swap.textContent = '⇄';
+        swap.title = '交換位置';
+      }
+    });
+  }
+
+  function run(){
+    refreshProductIcons();
+    refreshLogoIcons();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', run);
+  }else{
+    run();
+  }
+  setTimeout(run, 200);
+  setTimeout(run, 800);
 })();
 </script>
 
