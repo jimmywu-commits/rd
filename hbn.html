@@ -646,6 +646,38 @@ label:has(#editZoom){
   display:none !important;
 }
 
+
+/* export clean: hide all UI / tool icons when exporting */
+.is-exporting .ctrl,
+.is-exporting .logo-edit-btn,
+.is-exporting .logo-swap-btn,
+.is-exporting .logo-white-btn,
+.is-exporting .toggle-tag,
+.is-exporting .panel,
+.is-exporting .bg-scale-panel,
+.is-exporting .guide-line,
+.is-exporting .guide-warning,
+.is-exporting .guide-doc-overlay,
+.is-exporting .dd-guide-line,
+.is-exporting .dd-guide-warning,
+.is-exporting .float-meter,
+.is-exporting .modal,
+.is-exporting .nudge,
+.is-exporting .json-toolbar,
+.is-exporting .manual-icon,
+.is-exporting .brush-cursor{
+  display:none !important;
+}
+
+
+/* logo editor stability */
+.logo-item img,
+#brandImgS,
+#brandPHImg,
+#brandPSImg{
+  object-fit:contain;
+}
+
 </style>
 
 <!-- Modified: applied hbn-like frontend sizes/coords (best-effort). -->
@@ -1687,7 +1719,7 @@ label:has(#editZoom){
     <div class="modal-panel">
       <div class="modal-toolbar">
         <label><input type="radio" name="mode" value="erase" checked> 擦除</label>
-        <label><input type="radio" name="mode" value="select"> 智慧選取</label>
+        <label><input type="radio" name="mode" value="select"> 去背</label>
         <label><input type="radio" name="mode" value="crop"> 裁切</label>
         <label>筆刷：<input id="brushSize" type="range" min="5" max="120" value="40"></label>
         <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
@@ -6901,35 +6933,127 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
     if(window.__downloadInFlight) return;
     window.__downloadInFlight = true;
+
     const node = document.getElementById(canvasId);
     if(!node){
       window.__downloadInFlight = false;
       return;
     }
 
-    const isHbn = canvasId === 'horiz' || canvasId === 'square' || canvasId === 'pcH' || canvasId === 'pcS';
-    const isDd = canvasId === 'ddHorizCanvas' || canvasId === 'ddSquareCanvas';
+    const exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
+    const exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
 
-    let locks = [];
-    if(isHbn){
-      locks = buildHbnProductLocksFixed(node);
+    function exportIgnoreStrict(el){
+      if(!el) return false;
+      if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
+      if(!el.classList) return false;
+      return el.classList.contains('ctrl') ||
+             el.classList.contains('logo-edit-btn') ||
+             el.classList.contains('logo-swap-btn') ||
+             el.classList.contains('logo-white-btn') ||
+             el.classList.contains('toggle-tag') ||
+             el.classList.contains('panel') ||
+             el.classList.contains('bg-scale-panel') ||
+             el.classList.contains('guide-line') ||
+             el.classList.contains('guide-warning') ||
+             el.classList.contains('guide-doc-overlay') ||
+             el.classList.contains('dd-guide-line') ||
+             el.classList.contains('dd-guide-warning') ||
+             el.classList.contains('float-meter') ||
+             el.classList.contains('modal') ||
+             el.classList.contains('nudge') ||
+             el.classList.contains('json-toolbar') ||
+             el.classList.contains('manual-icon') ||
+             el.classList.contains('brush-cursor') ||
+             el.classList.contains('ui-only');
+    }
+
+    function toBlobAsync(canvas, type, quality){
+      return new Promise(resolve => canvas.toBlob(blob => resolve(blob), type, quality));
+    }
+
+    function triggerDownload(blob, name){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if(isIOS) window.open(url, '_blank');
+      else a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1200);
     }
 
     try{
-      await exportNodeExactFixed(node, bgColorInputId, filename, {
-        onclone: function(doc, clonedNode){
-          if(isHbn){
-            applyHbnCloneOverlayFixed(clonedNode, locks);
-          }
-          if(isDd && clonedNode){
-            clonedNode.querySelectorAll('.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
+      try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){}
+
+      node.classList.add('is-exporting');
+      document.body.classList.add('is-exporting');
+
+      const snap = await html2canvas(node, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        removeContainer: true,
+        logging: false,
+        width: node.clientWidth,
+        height: node.clientHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        ignoreElements: exportIgnoreStrict,
+        onclone: function(doc){
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
+          const clonedNode = doc.getElementById(canvasId);
+          if(clonedNode){
+            clonedNode.style.overflow = 'hidden';
+            clonedNode.classList.add('hide-dd-icons');
           }
         }
       });
-    } finally {
-      if(isHbn){
-        clearHbnProductLocksFixed(node);
+
+      const out = document.createElement('canvas');
+      out.width = exportW;
+      out.height = exportH;
+      const ctx = out.getContext('2d');
+
+      const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+      const rgb = hexToRgb2(bgHex);
+      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+      ctx.fillRect(0, 0, exportW, exportH);
+
+      // Export with the canvas's real on-screen pixel dimensions so HBN / DDCard sizes stay correct.
+      ctx.drawImage(snap, 0, 0, exportW, exportH);
+
+      const base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
+      const pngBlob = await toBlobAsync(out, 'image/png');
+
+      if(pngBlob && pngBlob.size <= 145 * 1024){
+        triggerDownload(pngBlob, base + '.png');
+        if(typeof showToast === 'function'){
+          showToast('已下載 1200px 圖片（PNG 未壓縮，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        }
+        return;
       }
+
+      let quality = 0.98;
+      let jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function'){
+        showToast('已下載 1200px 圖片（超過 145KB 才壓縮，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
+      }
+    } finally {
+      node.classList.remove('is-exporting');
+      document.body.classList.remove('is-exporting');
       window.__downloadInFlight = false;
     }
   };
@@ -7733,5 +7857,1387 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script id="logo-smartselect-shrink-fix">
+(function(){
+  function trimAlphaTight(srcCanvas, alphaThreshold=1, padding=2){
+    if(!srcCanvas) return srcCanvas;
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d', {willReadFrequently:true});
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if(maxX < minX || maxY < minY){
+      return srcCanvas;
+    }
+
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(w - 1, maxX + padding);
+    maxY = Math.min(h - 1, maxY + padding);
+
+    const tw = Math.max(1, maxX - minX + 1);
+    const th = Math.max(1, maxY - minY + 1);
+    if(tw === w && th === h && minX === 0 && minY === 0){
+      return srcCanvas;
+    }
+
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+    return out;
+  }
+
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function' && !window.__logoShrinkFixPatched){
+    window.__logoShrinkFixPatched = true;
+
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const imgEl = window.editingTargetImg;
+
+      if(!isLogo || !imgEl){
+        return oldApply.apply(this, arguments);
+      }
+
+      // Build result from current editor state, then tightly trim transparent margins.
+      let outCanvas = (typeof window.getCroppedCanvasFromSelection === 'function' && window.cropStart && window.cropEnd)
+        ? (window.getCroppedCanvasFromSelection() || document.getElementById('eraseCanvas'))
+        : document.getElementById('eraseCanvas');
+
+      if(!outCanvas) return oldApply.apply(this, arguments);
+
+      // Mirror original logic: remove editor padding if the whole editor canvas is being used.
+      const eraseCanvas = document.getElementById('eraseCanvas');
+      const EDIT_PADDING = (typeof window.EDIT_PADDING !== 'undefined') ? window.EDIT_PADDING : 100;
+      if(outCanvas === eraseCanvas){
+        const pad = EDIT_PADDING;
+        const cw = eraseCanvas.width, ch = eraseCanvas.height;
+        const ex = document.createElement('canvas');
+        ex.width = Math.max(1, cw - pad*2);
+        ex.height = Math.max(1, ch - pad*2);
+        ex.getContext('2d').drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+        outCanvas = ex;
+      }
+
+      // Key fix: remove transparent margins after smart select / erase,
+      // otherwise the visual logo becomes smaller when rendered at fixed logo height.
+      outCanvas = trimAlphaTight(outCanvas, 1, 2);
+
+      if(window.logoWhiteBaseEnabled && typeof window.addWhiteBaseToLogoCanvas === 'function'){
+        outCanvas = window.addWhiteBaseToLogoCanvas(outCanvas);
+      }
+
+      let finalUrl = '';
+      try{
+        finalUrl = outCanvas.toDataURL('image/png');
+      }catch(err){
+        console.error(err);
+        if(typeof showToast === 'function') showToast('Logo 套用失敗', 'err', 1800);
+        return;
+      }
+
+      imgEl.dataset.logoWhiteBaseEnabled = window.logoWhiteBaseEnabled ? '1' : '';
+      imgEl.dataset.logoWhiteBaseRatio = outCanvas.height > 0 ? String(outCanvas.width / outCanvas.height) : '';
+      imgEl.src = finalUrl;
+
+      const isSquareLogo = imgEl.id === 'brandImgS';
+      const mirror = document.getElementById(isSquareLogo ? 'brandPSImg' : 'brandPHImg');
+      if(mirror){
+        mirror.src = finalUrl;
+        mirror.dataset.logoWhiteBaseEnabled = imgEl.dataset.logoWhiteBaseEnabled || '';
+        mirror.dataset.logoWhiteBaseRatio = imgEl.dataset.logoWhiteBaseRatio || '';
+      }
+
+      setTimeout(function(){
+        if(typeof syncLogoDisplaySize === 'function'){
+          syncLogoDisplaySize(imgEl);
+          if(mirror) syncLogoDisplaySize(mirror);
+        }
+      }, 0);
+
+      if(closeAfter){
+        const eraseModal = document.getElementById('eraseModal');
+        if(eraseModal) eraseModal.classList.remove('show');
+        const toggle = document.getElementById('toggleShadow');
+        const shadowWrap = toggle && (toggle.closest('label') || toggle.parentElement);
+        const shadowBoxUi = document.getElementById('shadowModalBox');
+        if(shadowWrap) shadowWrap.style.display = '';
+        if(shadowBoxUi) shadowBoxUi.style.display = '';
+        window.editingModeIsLogo = false;
+        window.logoWhiteBaseEnabled = false;
+        const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+        const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
+        if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+        if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
+        window.editingTargetImg = null;
+        window.editingTargetBox = null;
+      }else{
+        const tmp = new Image();
+        tmp.onload = function(){
+          window.originalImg = tmp;
+          const eraseCanvas2 = document.getElementById('eraseCanvas');
+          const shadowCanvas = document.getElementById('shadowCanvas');
+          if(eraseCanvas2){
+            eraseCanvas2.width = Math.max(1, tmp.naturalWidth + 200);
+            eraseCanvas2.height = Math.max(1, tmp.naturalHeight + 200);
+          }
+          if(shadowCanvas && eraseCanvas2){
+            shadowCanvas.width = eraseCanvas2.width;
+            shadowCanvas.height = eraseCanvas2.height;
+          }
+          if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+          window.cropStart = null;
+          window.cropEnd = null;
+          window.cropping = false;
+        };
+        tmp.src = finalUrl;
+      }
+
+      if(typeof showToast === 'function'){
+        showToast(closeAfter ? 'Logo 已完成並維持原視覺大小' : 'Logo 已套用裁切', 'ok', 1400);
+      }
+      return true;
+    };
+  }
+})();
+</script>
+
+
+<script id="logo-size-stability-deep-fix">
+(function(){
+  function getLogoRenderBox(img){
+    if(!img) return null;
+    const rect = img.getBoundingClientRect();
+    return {
+      width: rect.width || img.clientWidth || 0,
+      height: rect.height || img.clientHeight || 0
+    };
+  }
+
+  function rememberLogoVisualSize(img){
+    if(!img) return;
+    const box = getLogoRenderBox(img);
+    if(!box || !box.width || !box.height) return;
+    img.dataset.logoVisualWidth = String(box.width);
+    img.dataset.logoVisualHeight = String(box.height);
+  }
+
+  function applyRememberedLogoVisualSize(img){
+    if(!img) return;
+    const h = parseFloat(img.dataset.logoVisualHeight || '');
+    const w = parseFloat(img.dataset.logoVisualWidth || '');
+    const wrap = img.closest('.logo-item, .logo-box, .brand');
+    if(h > 0){
+      img.style.height = h + 'px';
+      img.style.maxHeight = h + 'px';
+      img.style.width = 'auto';
+      img.style.maxWidth = 'none';
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      if(wrap && wrap.classList.contains('logo-item')){
+        wrap.style.height = h + 'px';
+        wrap.style.width = 'auto';
+        wrap.style.display = 'flex';
+        wrap.style.alignItems = 'center';
+        wrap.style.justifyContent = 'center';
+      }
+      if(wrap && wrap.classList.contains('logo-box')){
+        wrap.style.height = h + 'px';
+        if(w > 0) wrap.style.width = w + 'px';
+      }
+    }
+  }
+
+  function trimAlphaTight(srcCanvas, alphaThreshold, padding){
+    if(!srcCanvas) return srcCanvas;
+    alphaThreshold = alphaThreshold == null ? 1 : alphaThreshold;
+    padding = padding == null ? 2 : padding;
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d', {willReadFrequently:true});
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return srcCanvas;
+
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(w - 1, maxX + padding);
+    maxY = Math.min(h - 1, maxY + padding);
+    const tw = Math.max(1, maxX - minX + 1);
+    const th = Math.max(1, maxY - minY + 1);
+
+    if(tw === w && th === h && minX === 0 && minY === 0) return srcCanvas;
+
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+    return out;
+  }
+
+  // patch syncLogoDisplaySize so remembered visual size wins after editing
+  const oldSyncLogoDisplaySize = window.syncLogoDisplaySize;
+  if(typeof oldSyncLogoDisplaySize === 'function' && !window.__logoSyncPatchedDeep){
+    window.__logoSyncPatchedDeep = true;
+    window.syncLogoDisplaySize = function(imgEl){
+      const result = oldSyncLogoDisplaySize.apply(this, arguments);
+      if(imgEl && imgEl.dataset && imgEl.dataset.logoVisualHeight){
+        applyRememberedLogoVisualSize(imgEl);
+      }
+      return result;
+    };
+  }
+
+  // remember exact visual size when opening logo editor
+  const oldOpen = window.openEraseEditor;
+  if(typeof oldOpen === 'function' && !window.__logoOpenRememberPatched){
+    window.__logoOpenRememberPatched = true;
+    window.openEraseEditor = function(imgEl, options){
+      const isLogo = !!((options && options.isLogoEdit) || window.editingModeIsLogo || (imgEl && (
+        imgEl.id === 'brandImgS' || imgEl.id === 'brandPHImg' || imgEl.id === 'brandPSImg' || imgEl.closest('.logo-item, .logo-box, .brand')
+      )));
+      if(isLogo && imgEl){
+        rememberLogoVisualSize(imgEl);
+        const isSquare = imgEl.id === 'brandImgS';
+        const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+        if(mirror){
+          mirror.dataset.logoVisualWidth = imgEl.dataset.logoVisualWidth || '';
+          mirror.dataset.logoVisualHeight = imgEl.dataset.logoVisualHeight || '';
+        }
+      }
+      return oldOpen.apply(this, arguments);
+    };
+  }
+
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function' && !window.__logoApplyDeepPatched){
+    window.__logoApplyDeepPatched = true;
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const imgEl = window.editingTargetImg;
+      if(!isLogo || !imgEl){
+        return oldApply.apply(this, arguments);
+      }
+
+      // Preserve currently displayed logo size from canvas before applying edited result
+      rememberLogoVisualSize(imgEl);
+
+      let outCanvas = (typeof window.getCroppedCanvasFromSelection === 'function' && window.cropStart && window.cropEnd)
+        ? (window.getCroppedCanvasFromSelection() || document.getElementById('eraseCanvas'))
+        : document.getElementById('eraseCanvas');
+
+      if(!outCanvas) return oldApply.apply(this, arguments);
+
+      const eraseCanvas = document.getElementById('eraseCanvas');
+      const EDIT_PADDING = (typeof window.EDIT_PADDING !== 'undefined') ? window.EDIT_PADDING : 100;
+      if(outCanvas === eraseCanvas){
+        const pad = EDIT_PADDING;
+        const ex = document.createElement('canvas');
+        ex.width = Math.max(1, eraseCanvas.width - pad * 2);
+        ex.height = Math.max(1, eraseCanvas.height - pad * 2);
+        ex.getContext('2d').drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+        outCanvas = ex;
+      }
+
+      // hard trim transparent area so smart select does not leave large transparent margins
+      outCanvas = trimAlphaTight(outCanvas, 1, 2);
+
+      if(window.logoWhiteBaseEnabled && typeof window.addWhiteBaseToLogoCanvas === 'function'){
+        outCanvas = window.addWhiteBaseToLogoCanvas(outCanvas);
+      }
+
+      let finalUrl = '';
+      try{
+        finalUrl = outCanvas.toDataURL('image/png');
+      }catch(err){
+        console.error(err);
+        if(typeof showToast === 'function') showToast('Logo 套用失敗', 'err', 1800);
+        return false;
+      }
+
+      imgEl.dataset.logoWhiteBaseEnabled = window.logoWhiteBaseEnabled ? '1' : '';
+      imgEl.dataset.logoWhiteBaseRatio = outCanvas.height > 0 ? String(outCanvas.width / outCanvas.height) : '';
+      imgEl.src = finalUrl;
+
+      const isSquare = imgEl.id === 'brandImgS';
+      const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+      if(mirror){
+        mirror.src = finalUrl;
+        mirror.dataset.logoWhiteBaseEnabled = imgEl.dataset.logoWhiteBaseEnabled || '';
+        mirror.dataset.logoWhiteBaseRatio = imgEl.dataset.logoWhiteBaseRatio || '';
+        mirror.dataset.logoVisualWidth = imgEl.dataset.logoVisualWidth || '';
+        mirror.dataset.logoVisualHeight = imgEl.dataset.logoVisualHeight || '';
+      }
+
+      setTimeout(function(){
+        if(typeof oldSyncLogoDisplaySize === 'function'){
+          oldSyncLogoDisplaySize(imgEl);
+          if(mirror) oldSyncLogoDisplaySize(mirror);
+        }
+        applyRememberedLogoVisualSize(imgEl);
+        if(mirror) applyRememberedLogoVisualSize(mirror);
+      }, 0);
+
+      if(closeAfter){
+        const eraseModal = document.getElementById('eraseModal');
+        if(eraseModal) eraseModal.classList.remove('show');
+        const toggle = document.getElementById('toggleShadow');
+        const shadowWrap = toggle && (toggle.closest('label') || toggle.parentElement);
+        const shadowBoxUi = document.getElementById('shadowModalBox');
+        if(shadowWrap) shadowWrap.style.display = '';
+        if(shadowBoxUi) shadowBoxUi.style.display = '';
+        window.editingModeIsLogo = false;
+        window.logoWhiteBaseEnabled = false;
+        const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+        const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
+        if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+        if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
+        window.editingTargetImg = null;
+        window.editingTargetBox = null;
+      }else{
+        const tmp = new Image();
+        tmp.onload = function(){
+          window.originalImg = tmp;
+          const eraseCanvas2 = document.getElementById('eraseCanvas');
+          const shadowCanvas = document.getElementById('shadowCanvas');
+          if(eraseCanvas2){
+            eraseCanvas2.width = Math.max(1, tmp.naturalWidth + 200);
+            eraseCanvas2.height = Math.max(1, tmp.naturalHeight + 200);
+          }
+          if(shadowCanvas && eraseCanvas2){
+            shadowCanvas.width = eraseCanvas2.width;
+            shadowCanvas.height = eraseCanvas2.height;
+          }
+          if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+          window.cropStart = null;
+          window.cropEnd = null;
+          window.cropping = false;
+        };
+        tmp.src = finalUrl;
+      }
+
+      if(typeof showToast === 'function'){
+        showToast(closeAfter ? 'Logo 已完成，不會回畫布變小' : 'Logo 已套用裁切', 'ok', 1500);
+      }
+      return true;
+    };
+  }
+
+  function initExistingLabels(){
+    document.querySelectorAll('label').forEach(function(label){
+      if(label.textContent && label.textContent.indexOf('智慧選取') !== -1){
+        label.innerHTML = label.innerHTML.replace(/智慧選取/g, '去背');
+      }
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initExistingLabels);
+  }else{
+    initExistingLabels();
+  }
+})();
+</script>
+
+
+<script id="logo-root-cause-size-lock-fix">
+(function(){
+  function getLogoVisualBox(img){
+    if(!img) return null;
+    const rect = img.getBoundingClientRect();
+    const w = rect.width || img.clientWidth || parseFloat(getComputedStyle(img).width) || 0;
+    const h = rect.height || img.clientHeight || parseFloat(getComputedStyle(img).height) || 0;
+    if(!w || !h) return null;
+    return { width:w, height:h };
+  }
+
+  function storeLogoVisualBox(img){
+    const box = getLogoVisualBox(img);
+    if(!img || !box) return;
+    img.dataset.logoVisualWidth = String(box.width);
+    img.dataset.logoVisualHeight = String(box.height);
+    const wrap = img.closest('.logo-item, .logo-box, .brand');
+    if(wrap){
+      wrap.dataset.logoVisualWidth = String(box.width);
+      wrap.dataset.logoVisualHeight = String(box.height);
+    }
+  }
+
+  function applyLockedLogoBox(img){
+    if(!img) return;
+    const w = parseFloat(img.dataset.logoVisualWidth || '');
+    const h = parseFloat(img.dataset.logoVisualHeight || '');
+    if(!(w > 0 && h > 0)) return;
+
+    const wrap = img.closest('.logo-item, .logo-box, .brand');
+
+    // KEY FIX:
+    // lock BOTH width and height to the exact pre-edit rendered box.
+    // Previously only height was preserved, so after smart-select trimming,
+    // width was recalculated from the new natural ratio and appeared smaller.
+    img.style.width = w + 'px';
+    img.style.height = h + 'px';
+    img.style.maxWidth = w + 'px';
+    img.style.maxHeight = h + 'px';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.style.flex = '0 0 auto';
+
+    if(wrap){
+      wrap.style.width = w + 'px';
+      wrap.style.height = h + 'px';
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.justifyContent = 'center';
+      wrap.style.overflow = 'visible';
+      wrap.dataset.logoVisualWidth = String(w);
+      wrap.dataset.logoVisualHeight = String(h);
+    }
+  }
+
+  function trimAlphaTight(srcCanvas, alphaThreshold, padding){
+    if(!srcCanvas) return srcCanvas;
+    alphaThreshold = alphaThreshold == null ? 1 : alphaThreshold;
+    padding = padding == null ? 2 : padding;
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d', {willReadFrequently:true});
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return srcCanvas;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(w - 1, maxX + padding);
+    maxY = Math.min(h - 1, maxY + padding);
+    const tw = Math.max(1, maxX - minX + 1);
+    const th = Math.max(1, maxY - minY + 1);
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+    return out;
+  }
+
+  // Make the built-in logo sizing respect the locked visual box if it exists.
+  const oldSync = window.syncLogoDisplaySize;
+  if(typeof oldSync === 'function' && !window.__logoLockedBoxSyncPatched){
+    window.__logoLockedBoxSyncPatched = true;
+    window.syncLogoDisplaySize = function(imgEl){
+      const result = oldSync.apply(this, arguments);
+      if(imgEl && imgEl.dataset && imgEl.dataset.logoVisualWidth && imgEl.dataset.logoVisualHeight){
+        applyLockedLogoBox(imgEl);
+      }
+      return result;
+    };
+  }
+
+  // Remember exact on-canvas logo box before entering editor.
+  const oldOpen = window.openEraseEditor;
+  if(typeof oldOpen === 'function' && !window.__logoLockedBoxOpenPatched){
+    window.__logoLockedBoxOpenPatched = true;
+    window.openEraseEditor = function(imgEl, options){
+      const isLogo = !!((options && options.isLogoEdit) || (imgEl && (
+        imgEl.closest('.logo-item') || imgEl.id === 'brandImgS' || imgEl.id === 'brandPHImg' || imgEl.id === 'brandPSImg'
+      )));
+      if(isLogo && imgEl){
+        storeLogoVisualBox(imgEl);
+        const isSquare = imgEl.id === 'brandImgS';
+        const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+        if(mirror){
+          mirror.dataset.logoVisualWidth = imgEl.dataset.logoVisualWidth || '';
+          mirror.dataset.logoVisualHeight = imgEl.dataset.logoVisualHeight || '';
+        }
+      }
+      return oldOpen.apply(this, arguments);
+    };
+  }
+
+  // Final apply fix: lock exact pre-edit box after smart select / crop / apply.
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function' && !window.__logoLockedBoxApplyPatched){
+    window.__logoLockedBoxApplyPatched = true;
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const imgEl = window.editingTargetImg;
+      if(!isLogo || !imgEl){
+        return oldApply.apply(this, arguments);
+      }
+
+      storeLogoVisualBox(imgEl);
+
+      let outCanvas = (typeof window.getCroppedCanvasFromSelection === 'function' && window.cropStart && window.cropEnd)
+        ? (window.getCroppedCanvasFromSelection() || document.getElementById('eraseCanvas'))
+        : document.getElementById('eraseCanvas');
+
+      if(!outCanvas) return oldApply.apply(this, arguments);
+
+      const eraseCanvas = document.getElementById('eraseCanvas');
+      const pad = 100;
+      if(outCanvas === eraseCanvas){
+        const ex = document.createElement('canvas');
+        ex.width = Math.max(1, eraseCanvas.width - pad * 2);
+        ex.height = Math.max(1, eraseCanvas.height - pad * 2);
+        ex.getContext('2d').drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+        outCanvas = ex;
+      }
+
+      // Keep only the visible logo body.
+      outCanvas = trimAlphaTight(outCanvas, 1, 2);
+
+      if(window.logoWhiteBaseEnabled && typeof window.addWhiteBaseToLogoCanvas === 'function'){
+        outCanvas = window.addWhiteBaseToLogoCanvas(outCanvas);
+      }
+
+      const finalUrl = outCanvas.toDataURL('image/png');
+
+      imgEl.dataset.logoWhiteBaseEnabled = window.logoWhiteBaseEnabled ? '1' : '';
+      imgEl.dataset.logoWhiteBaseRatio = outCanvas.height > 0 ? String(outCanvas.width / outCanvas.height) : '';
+      imgEl.src = finalUrl;
+
+      const isSquare = imgEl.id === 'brandImgS';
+      const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+      if(mirror){
+        mirror.src = finalUrl;
+        mirror.dataset.logoWhiteBaseEnabled = imgEl.dataset.logoWhiteBaseEnabled || '';
+        mirror.dataset.logoWhiteBaseRatio = imgEl.dataset.logoWhiteBaseRatio || '';
+        mirror.dataset.logoVisualWidth = imgEl.dataset.logoVisualWidth || '';
+        mirror.dataset.logoVisualHeight = imgEl.dataset.logoVisualHeight || '';
+      }
+
+      setTimeout(function(){
+        if(typeof window.syncLogoDisplaySize === 'function'){
+          window.syncLogoDisplaySize(imgEl);
+          if(mirror) window.syncLogoDisplaySize(mirror);
+        }
+        applyLockedLogoBox(imgEl);
+        if(mirror) applyLockedLogoBox(mirror);
+      }, 0);
+
+      if(closeAfter){
+        const eraseModal = document.getElementById('eraseModal');
+        if(eraseModal) eraseModal.classList.remove('show');
+        const toggle = document.getElementById('toggleShadow');
+        const shadowWrap = toggle && (toggle.closest('label') || toggle.parentElement);
+        const shadowBoxUi = document.getElementById('shadowModalBox');
+        if(shadowWrap) shadowWrap.style.display = '';
+        if(shadowBoxUi) shadowBoxUi.style.display = '';
+        window.editingModeIsLogo = false;
+        window.logoWhiteBaseEnabled = false;
+        const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+        const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
+        if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+        if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
+        window.editingTargetImg = null;
+        window.editingTargetBox = null;
+      }else{
+        const tmp = new Image();
+        tmp.onload = function(){
+          window.originalImg = tmp;
+          const eraseCanvas2 = document.getElementById('eraseCanvas');
+          const shadowCanvas = document.getElementById('shadowCanvas');
+          if(eraseCanvas2){
+            eraseCanvas2.width = Math.max(1, tmp.naturalWidth + 200);
+            eraseCanvas2.height = Math.max(1, tmp.naturalHeight + 200);
+          }
+          if(shadowCanvas && eraseCanvas2){
+            shadowCanvas.width = eraseCanvas2.width;
+            shadowCanvas.height = eraseCanvas2.height;
+          }
+          if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+          window.cropStart = null;
+          window.cropEnd = null;
+          window.cropping = false;
+        };
+        tmp.src = finalUrl;
+      }
+
+      if(typeof showToast === 'function'){
+        showToast(closeAfter ? '已鎖定 Logo 畫布大小，不會回畫布變小' : 'Logo 已套用', 'ok', 1600);
+      }
+      return true;
+    };
+  }
+})();
+</script>
+
+
+<script id="logo-hardlock-size-fix-v2">
+(function(){
+  function px(v){ return Math.round(parseFloat(v || 0) * 1000) / 1000; }
+
+  function getLogoWrap(img){
+    return img ? img.closest('.logo-item, .logo-box, .brand') : null;
+  }
+
+  function captureLogoLock(img){
+    if(!img) return null;
+    const wrap = getLogoWrap(img);
+    const imgRect = img.getBoundingClientRect();
+    const wrapRect = wrap ? wrap.getBoundingClientRect() : imgRect;
+    const lock = {
+      imgW: px(imgRect.width || img.clientWidth || 0),
+      imgH: px(imgRect.height || img.clientHeight || 0),
+      wrapW: px(wrapRect.width || 0),
+      wrapH: px(wrapRect.height || 0)
+    };
+    img.dataset.logoLockImgW = String(lock.imgW || '');
+    img.dataset.logoLockImgH = String(lock.imgH || '');
+    img.dataset.logoLockWrapW = String(lock.wrapW || '');
+    img.dataset.logoLockWrapH = String(lock.wrapH || '');
+    if(wrap){
+      wrap.dataset.logoLockImgW = img.dataset.logoLockImgW || '';
+      wrap.dataset.logoLockImgH = img.dataset.logoLockImgH || '';
+      wrap.dataset.logoLockWrapW = img.dataset.logoLockWrapW || '';
+      wrap.dataset.logoLockWrapH = img.dataset.logoLockWrapH || '';
+    }
+    return lock;
+  }
+
+  function readLogoLock(img){
+    if(!img) return null;
+    const imgW = parseFloat(img.dataset.logoLockImgW || '');
+    const imgH = parseFloat(img.dataset.logoLockImgH || '');
+    const wrapW = parseFloat(img.dataset.logoLockWrapW || '');
+    const wrapH = parseFloat(img.dataset.logoLockWrapH || '');
+    if(!(imgW > 0 && imgH > 0)) return null;
+    return { imgW, imgH, wrapW, wrapH };
+  }
+
+  function applyLogoLock(img){
+    if(!img) return;
+    const lock = readLogoLock(img);
+    if(!lock) return;
+    const wrap = getLogoWrap(img);
+
+    // Hard lock exact rendered size, do not let later ratio-based logic resize it.
+    img.style.width = lock.imgW + 'px';
+    img.style.height = lock.imgH + 'px';
+    img.style.maxWidth = lock.imgW + 'px';
+    img.style.maxHeight = lock.imgH + 'px';
+    img.style.minWidth = lock.imgW + 'px';
+    img.style.minHeight = lock.imgH + 'px';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.style.flex = '0 0 auto';
+
+    if(wrap){
+      const ww = (lock.wrapW > 0 ? lock.wrapW : lock.imgW);
+      const wh = (lock.wrapH > 0 ? lock.wrapH : lock.imgH);
+      wrap.style.width = ww + 'px';
+      wrap.style.height = wh + 'px';
+      wrap.style.minWidth = ww + 'px';
+      wrap.style.minHeight = wh + 'px';
+      wrap.style.maxWidth = ww + 'px';
+      wrap.style.maxHeight = wh + 'px';
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.justifyContent = 'center';
+      wrap.style.overflow = 'visible';
+      wrap.style.flex = '0 0 auto';
+    }
+  }
+
+  function trimAlpha(srcCanvas, alphaThreshold, padding){
+    if(!srcCanvas) return srcCanvas;
+    alphaThreshold = alphaThreshold == null ? 1 : alphaThreshold;
+    padding = padding == null ? 2 : padding;
+    const w = srcCanvas.width, h = srcCanvas.height;
+    const ctx = srcCanvas.getContext('2d', {willReadFrequently:true});
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return srcCanvas;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(w - 1, maxX + padding);
+    maxY = Math.min(h - 1, maxY + padding);
+    const tw = Math.max(1, maxX - minX + 1);
+    const th = Math.max(1, maxY - minY + 1);
+    const out = document.createElement('canvas');
+    out.width = tw;
+    out.height = th;
+    out.getContext('2d').drawImage(srcCanvas, minX, minY, tw, th, 0, 0, tw, th);
+    return out;
+  }
+
+  // Re-apply lock anytime syncLogoDisplaySize runs.
+  const oldSync = window.syncLogoDisplaySize;
+  if(typeof oldSync === 'function' && !window.__logoHardlockSyncBound){
+    window.__logoHardlockSyncBound = true;
+    window.syncLogoDisplaySize = function(imgEl){
+      const result = oldSync.apply(this, arguments);
+      applyLogoLock(imgEl);
+      return result;
+    };
+  }
+
+  // Before opening logo editor, freeze the current on-canvas rendered size.
+  const oldOpen = window.openEraseEditor;
+  if(typeof oldOpen === 'function' && !window.__logoHardlockOpenBound){
+    window.__logoHardlockOpenBound = true;
+    window.openEraseEditor = function(imgEl, options){
+      const isLogo = !!((options && options.isLogoEdit) || (imgEl && (
+        imgEl.closest('.logo-item') || imgEl.id === 'brandImgS' || imgEl.id === 'brandPHImg' || imgEl.id === 'brandPSImg'
+      )));
+      if(isLogo && imgEl){
+        captureLogoLock(imgEl);
+        const isSquare = imgEl.id === 'brandImgS';
+        const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+        if(mirror){
+          mirror.dataset.logoLockImgW = imgEl.dataset.logoLockImgW || '';
+          mirror.dataset.logoLockImgH = imgEl.dataset.logoLockImgH || '';
+          mirror.dataset.logoLockWrapW = imgEl.dataset.logoLockWrapW || '';
+          mirror.dataset.logoLockWrapH = imgEl.dataset.logoLockWrapH || '';
+        }
+      }
+      return oldOpen.apply(this, arguments);
+    };
+  }
+
+  // Strong override: when logo apply finishes, always restore exact locked size.
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function' && !window.__logoHardlockApplyBound){
+    window.__logoHardlockApplyBound = true;
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const imgEl = window.editingTargetImg;
+      if(!isLogo || !imgEl){
+        return oldApply.apply(this, arguments);
+      }
+
+      captureLogoLock(imgEl);
+
+      let outCanvas = (typeof window.getCroppedCanvasFromSelection === 'function' && window.cropStart && window.cropEnd)
+        ? (window.getCroppedCanvasFromSelection() || document.getElementById('eraseCanvas'))
+        : document.getElementById('eraseCanvas');
+
+      if(!outCanvas) return oldApply.apply(this, arguments);
+
+      const eraseCanvas = document.getElementById('eraseCanvas');
+      const pad = 100;
+      if(outCanvas === eraseCanvas){
+        const ex = document.createElement('canvas');
+        ex.width = Math.max(1, eraseCanvas.width - pad * 2);
+        ex.height = Math.max(1, eraseCanvas.height - pad * 2);
+        ex.getContext('2d').drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+        outCanvas = ex;
+      }
+
+      outCanvas = trimAlpha(outCanvas, 1, 2);
+
+      if(window.logoWhiteBaseEnabled && typeof window.addWhiteBaseToLogoCanvas === 'function'){
+        outCanvas = window.addWhiteBaseToLogoCanvas(outCanvas);
+      }
+
+      const finalUrl = outCanvas.toDataURL('image/png');
+      imgEl.dataset.logoWhiteBaseEnabled = window.logoWhiteBaseEnabled ? '1' : '';
+      imgEl.dataset.logoWhiteBaseRatio = outCanvas.height > 0 ? String(outCanvas.width / outCanvas.height) : '';
+
+      // Apply source first
+      imgEl.src = finalUrl;
+
+      const isSquare = imgEl.id === 'brandImgS';
+      const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+      if(mirror){
+        mirror.src = finalUrl;
+        mirror.dataset.logoWhiteBaseEnabled = imgEl.dataset.logoWhiteBaseEnabled || '';
+        mirror.dataset.logoWhiteBaseRatio = imgEl.dataset.logoWhiteBaseRatio || '';
+        mirror.dataset.logoLockImgW = imgEl.dataset.logoLockImgW || '';
+        mirror.dataset.logoLockImgH = imgEl.dataset.logoLockImgH || '';
+        mirror.dataset.logoLockWrapW = imgEl.dataset.logoLockWrapW || '';
+        mirror.dataset.logoLockWrapH = imgEl.dataset.logoLockWrapH || '';
+      }
+
+      // IMPORTANT:
+      // apply hard lock repeatedly after src change, because other onload / sync code runs later.
+      const relock = function(){
+        applyLogoLock(imgEl);
+        if(mirror) applyLogoLock(mirror);
+      };
+      setTimeout(relock, 0);
+      setTimeout(relock, 30);
+      setTimeout(relock, 120);
+      setTimeout(relock, 300);
+
+      if(closeAfter){
+        const eraseModal = document.getElementById('eraseModal');
+        if(eraseModal) eraseModal.classList.remove('show');
+        const toggle = document.getElementById('toggleShadow');
+        const shadowWrap = toggle && (toggle.closest('label') || toggle.parentElement);
+        const shadowBoxUi = document.getElementById('shadowModalBox');
+        if(shadowWrap) shadowWrap.style.display = '';
+        if(shadowBoxUi) shadowBoxUi.style.display = '';
+        window.editingModeIsLogo = false;
+        window.logoWhiteBaseEnabled = false;
+        const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+        const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
+        if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+        if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
+        window.editingTargetImg = null;
+        window.editingTargetBox = null;
+      }else{
+        const tmp = new Image();
+        tmp.onload = function(){
+          window.originalImg = tmp;
+          const eraseCanvas2 = document.getElementById('eraseCanvas');
+          const shadowCanvas = document.getElementById('shadowCanvas');
+          if(eraseCanvas2){
+            eraseCanvas2.width = Math.max(1, tmp.naturalWidth + 200);
+            eraseCanvas2.height = Math.max(1, tmp.naturalHeight + 200);
+          }
+          if(shadowCanvas && eraseCanvas2){
+            shadowCanvas.width = eraseCanvas2.width;
+            shadowCanvas.height = eraseCanvas2.height;
+          }
+          if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+          window.cropStart = null;
+          window.cropEnd = null;
+          window.cropping = false;
+        };
+        tmp.src = finalUrl;
+      }
+
+      if(typeof showToast === 'function'){
+        showToast('Logo 去背後已直接鎖住寬高，不會回畫布縮小', 'ok', 1800);
+      }
+      return true;
+    };
+  }
+
+  // Initial pass for existing logos if they already exist on canvas.
+  function initLocks(){
+    document.querySelectorAll('#brandH .logo-item img, #brandImgS, #brandPHImg, #brandPSImg').forEach(function(img){
+      if(img && (img.clientWidth || img.clientHeight)){
+        captureLogoLock(img);
+      }
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initLocks);
+  }else{
+    initLocks();
+  }
+})();
+</script>
+
+
+<script id="logo-detect-content-bounds-fit-height">
+(function(){
+  function getAlphaBounds(canvas, alphaThreshold){
+    if(!canvas) return null;
+    alphaThreshold = alphaThreshold == null ? 1 : alphaThreshold;
+    const w = canvas.width, h = canvas.height;
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return null;
+    return {
+      minX, minY, maxX, maxY,
+      width: maxX - minX + 1,
+      height: maxY - minY + 1
+    };
+  }
+
+  function trimToBounds(canvas, bounds, padding){
+    if(!canvas || !bounds) return canvas;
+    padding = padding == null ? 2 : padding;
+    const x = Math.max(0, bounds.minX - padding);
+    const y = Math.max(0, bounds.minY - padding);
+    const w = Math.min(canvas.width - x, bounds.width + padding * 2);
+    const h = Math.min(canvas.height - y, bounds.height + padding * 2);
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, Math.round(w));
+    out.height = Math.max(1, Math.round(h));
+    out.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, out.width, out.height);
+    return out;
+  }
+
+  function rememberLogoSlot(img){
+    if(!img) return;
+    const wrap = img.closest('.logo-item, .logo-box, .brand');
+    const wrapRect = wrap ? wrap.getBoundingClientRect() : null;
+    const imgRect = img.getBoundingClientRect();
+    const slotH = (wrapRect && wrapRect.height) ? wrapRect.height : (imgRect.height || img.clientHeight || 0);
+    img.dataset.logoSlotHeight = String(slotH || '');
+    if(wrap) wrap.dataset.logoSlotHeight = String(slotH || '');
+  }
+
+  function applyLogoByDetectedContent(img){
+    if(!img) return;
+    const wrap = img.closest('.logo-item, .logo-box, .brand');
+    const slotH = parseFloat(img.dataset.logoSlotHeight || (wrap && wrap.dataset.logoSlotHeight) || '');
+    if(!(slotH > 0)) return;
+
+    img.style.height = slotH + 'px';
+    img.style.maxHeight = slotH + 'px';
+    img.style.minHeight = slotH + 'px';
+    img.style.width = 'auto';
+    img.style.maxWidth = 'none';
+    img.style.minWidth = '0';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.style.flex = '0 0 auto';
+
+    if(wrap){
+      wrap.style.height = slotH + 'px';
+      wrap.style.minHeight = slotH + 'px';
+      wrap.style.width = 'auto';
+      wrap.style.maxWidth = 'none';
+      wrap.style.minWidth = '0';
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.justifyContent = 'center';
+      wrap.style.overflow = 'visible';
+      wrap.style.flex = '0 0 auto';
+    }
+  }
+
+  const oldOpen = window.openEraseEditor;
+  if(typeof oldOpen === 'function' && !window.__logoDetectBoundsOpenBound){
+    window.__logoDetectBoundsOpenBound = true;
+    window.openEraseEditor = function(imgEl, options){
+      const isLogo = !!((options && options.isLogoEdit) || (imgEl && (
+        imgEl.closest('.logo-item') || imgEl.id === 'brandImgS' || imgEl.id === 'brandPHImg' || imgEl.id === 'brandPSImg'
+      )));
+      if(isLogo && imgEl){
+        rememberLogoSlot(imgEl);
+        const isSquare = imgEl.id === 'brandImgS';
+        const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+        if(mirror){
+          mirror.dataset.logoSlotHeight = imgEl.dataset.logoSlotHeight || '';
+        }
+      }
+      return oldOpen.apply(this, arguments);
+    };
+  }
+
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function' && !window.__logoDetectBoundsApplyBound){
+    window.__logoDetectBoundsApplyBound = true;
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const imgEl = window.editingTargetImg;
+      if(!isLogo || !imgEl){
+        return oldApply.apply(this, arguments);
+      }
+
+      rememberLogoSlot(imgEl);
+
+      let outCanvas = (typeof window.getCroppedCanvasFromSelection === 'function' && window.cropStart && window.cropEnd)
+        ? (window.getCroppedCanvasFromSelection() || document.getElementById('eraseCanvas'))
+        : document.getElementById('eraseCanvas');
+
+      if(!outCanvas) return oldApply.apply(this, arguments);
+
+      const eraseCanvas = document.getElementById('eraseCanvas');
+      const pad = 100;
+      if(outCanvas === eraseCanvas){
+        const ex = document.createElement('canvas');
+        ex.width = Math.max(1, eraseCanvas.width - pad * 2);
+        ex.height = Math.max(1, eraseCanvas.height - pad * 2);
+        ex.getContext('2d').drawImage(eraseCanvas, pad, pad, ex.width, ex.height, 0, 0, ex.width, ex.height);
+        outCanvas = ex;
+      }
+
+      const bounds = getAlphaBounds(outCanvas, 1);
+      if(bounds){
+        outCanvas = trimToBounds(outCanvas, bounds, 2);
+      }
+
+      if(window.logoWhiteBaseEnabled && typeof window.addWhiteBaseToLogoCanvas === 'function'){
+        outCanvas = window.addWhiteBaseToLogoCanvas(outCanvas);
+      }
+
+      const finalUrl = outCanvas.toDataURL('image/png');
+      imgEl.dataset.logoWhiteBaseEnabled = window.logoWhiteBaseEnabled ? '1' : '';
+      imgEl.dataset.logoWhiteBaseRatio = outCanvas.height > 0 ? String(outCanvas.width / outCanvas.height) : '';
+      imgEl.src = finalUrl;
+
+      const isSquare = imgEl.id === 'brandImgS';
+      const mirror = document.getElementById(isSquare ? 'brandPSImg' : 'brandPHImg');
+      if(mirror){
+        mirror.src = finalUrl;
+        mirror.dataset.logoWhiteBaseEnabled = imgEl.dataset.logoWhiteBaseEnabled || '';
+        mirror.dataset.logoWhiteBaseRatio = imgEl.dataset.logoWhiteBaseRatio || '';
+        mirror.dataset.logoSlotHeight = imgEl.dataset.logoSlotHeight || '';
+      }
+
+      const relayout = function(){
+        applyLogoByDetectedContent(imgEl);
+        if(typeof window.syncLogoDisplaySize === 'function') window.syncLogoDisplaySize(imgEl);
+        applyLogoByDetectedContent(imgEl);
+        if(mirror){
+          applyLogoByDetectedContent(mirror);
+          if(typeof window.syncLogoDisplaySize === 'function') window.syncLogoDisplaySize(mirror);
+          applyLogoByDetectedContent(mirror);
+        }
+      };
+
+      setTimeout(relayout, 0);
+      setTimeout(relayout, 50);
+      setTimeout(relayout, 180);
+      setTimeout(relayout, 360);
+
+      if(closeAfter){
+        const eraseModal = document.getElementById('eraseModal');
+        if(eraseModal) eraseModal.classList.remove('show');
+        const toggle = document.getElementById('toggleShadow');
+        const shadowWrap = toggle && (toggle.closest('label') || toggle.parentElement);
+        const shadowBoxUi = document.getElementById('shadowModalBox');
+        if(shadowWrap) shadowWrap.style.display = '';
+        if(shadowBoxUi) shadowBoxUi.style.display = '';
+        window.editingModeIsLogo = false;
+        window.logoWhiteBaseEnabled = false;
+        const logoWhiteBaseWrap = document.getElementById('logoWhiteBaseWrap');
+        const logoWhiteBaseChk = document.getElementById('logoWhiteBaseChk');
+        if(logoWhiteBaseWrap) logoWhiteBaseWrap.style.display = 'none';
+        if(logoWhiteBaseChk) logoWhiteBaseChk.checked = false;
+        window.editingTargetImg = null;
+        window.editingTargetBox = null;
+      }else{
+        const tmp = new Image();
+        tmp.onload = function(){
+          window.originalImg = tmp;
+          const eraseCanvas2 = document.getElementById('eraseCanvas');
+          const shadowCanvas = document.getElementById('shadowCanvas');
+          if(eraseCanvas2){
+            eraseCanvas2.width = Math.max(1, tmp.naturalWidth + 200);
+            eraseCanvas2.height = Math.max(1, tmp.naturalHeight + 200);
+          }
+          if(shadowCanvas && eraseCanvas2){
+            shadowCanvas.width = eraseCanvas2.width;
+            shadowCanvas.height = eraseCanvas2.height;
+          }
+          if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+          window.cropStart = null;
+          window.cropEnd = null;
+          window.cropping = false;
+        };
+        tmp.src = finalUrl;
+      }
+
+      if(typeof showToast === 'function'){
+        showToast('已依內容實際範圍偵測，回畫布維持原高度、寬度 auto', 'ok', 1800);
+      }
+      return true;
+    };
+  }
+})();
+</script>
+
+
+
+<script id="erase-live-bounds-refresh">
+(function(){
+  function getLiveAlphaBounds(canvas, alphaThreshold){
+    if(!canvas) return null;
+    alphaThreshold = alphaThreshold == null ? 1 : alphaThreshold;
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    const w = canvas.width, h = canvas.height;
+    const data = ctx.getImageData(0,0,w,h).data;
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for(let y=0; y<h; y++){
+      for(let x=0; x<w; x++){
+        const a = data[(y*w + x)*4 + 3];
+        if(a > alphaThreshold){
+          if(x < minX) minX = x;
+          if(y < minY) minY = y;
+          if(x > maxX) maxX = x;
+          if(y > maxY) maxY = y;
+        }
+      }
+    }
+    if(maxX < minX || maxY < minY) return null;
+    return {
+      minX:minX, minY:minY, maxX:maxX, maxY:maxY,
+      width:maxX - minX + 1,
+      height:maxY - minY + 1,
+      cx:(minX + maxX) / 2,
+      cy:(minY + maxY) / 2
+    };
+  }
+
+  function cropCanvasToBounds(srcCanvas, bounds, padding){
+    if(!srcCanvas || !bounds) return srcCanvas;
+    padding = padding == null ? 2 : padding;
+    const sx = Math.max(0, Math.floor(bounds.minX - padding));
+    const sy = Math.max(0, Math.floor(bounds.minY - padding));
+    const sw = Math.min(srcCanvas.width - sx, Math.ceil(bounds.width + padding * 2));
+    const sh = Math.min(srcCanvas.height - sy, Math.ceil(bounds.height + padding * 2));
+    const out = document.createElement('canvas');
+    out.width = Math.max(1, sw);
+    out.height = Math.max(1, sh);
+    out.getContext('2d').drawImage(srcCanvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+    return out;
+  }
+
+  function rebuildEditorPreviewFromVisibleBounds(){
+    const eraseCanvas = document.getElementById('eraseCanvas');
+    if(!eraseCanvas || !window.originalImg) return false;
+
+    const bounds = getLiveAlphaBounds(eraseCanvas, 1);
+    if(!bounds) return false;
+
+    const cropped = cropCanvasToBounds(eraseCanvas, bounds, 2);
+    if(!cropped || !cropped.width || !cropped.height) return false;
+
+    const nextImg = new Image();
+    nextImg.onload = function(){
+      window.originalImg = nextImg;
+      const EDIT_PADDING = (typeof window.EDIT_PADDING !== 'undefined') ? window.EDIT_PADDING : 100;
+      eraseCanvas.width = Math.max(800, Math.round(nextImg.naturalWidth) + EDIT_PADDING * 2);
+      eraseCanvas.height = Math.max(600, Math.round(nextImg.naturalHeight) + EDIT_PADDING * 2);
+      const shadowCanvas = document.getElementById('shadowCanvas');
+      if(shadowCanvas){
+        shadowCanvas.width = eraseCanvas.width;
+        shadowCanvas.height = eraseCanvas.height;
+      }
+      if(typeof window.redrawOriginal === 'function') window.redrawOriginal();
+      window.cropStart = null;
+      window.cropEnd = null;
+      window.cropping = false;
+      if(window.shadowToggle && window.shadowToggle.checked && typeof window.autoPlaceShadowByVisibleBounds === 'function'){
+        window.autoPlaceShadowByVisibleBounds();
+      }
+      if(typeof window.showToast === 'function'){
+        window.showToast('已依去背後內容重算範圍', 'ok', 1000);
+      }
+    };
+    nextImg.src = cropped.toDataURL('image/png');
+    return true;
+  }
+
+  window.rebuildEditorPreviewFromVisibleBounds = rebuildEditorPreviewFromVisibleBounds;
+
+  const oldFloodSelect = window.floodSelect;
+  if(typeof oldFloodSelect === 'function' && !window.__liveBoundsFloodPatched){
+    window.__liveBoundsFloodPatched = true;
+    window.floodSelect = function(){
+      const result = oldFloodSelect.apply(this, arguments);
+      setTimeout(function(){
+        if(document.getElementById('eraseModal')?.classList.contains('show')){
+          rebuildEditorPreviewFromVisibleBounds();
+        }
+      }, 0);
+      return result;
+    };
+  }
+
+  const eraseReset = document.getElementById('eraseReset');
+  if(eraseReset && !eraseReset.dataset.liveBoundsBound){
+    eraseReset.dataset.liveBoundsBound = '1';
+    eraseReset.addEventListener('click', function(){
+      setTimeout(function(){
+        if(document.getElementById('eraseModal')?.classList.contains('show')){
+          rebuildEditorPreviewFromVisibleBounds();
+        }
+      }, 0);
+    });
+  }
+
+  const eraseCanvas = document.getElementById('eraseCanvas');
+  if(eraseCanvas && !eraseCanvas.dataset.liveEraseBound){
+    eraseCanvas.dataset.liveEraseBound = '1';
+    let wasErasing = false;
+    eraseCanvas.addEventListener('mousedown', function(){
+      const mode = document.querySelector('input[name="mode"]:checked')?.value;
+      wasErasing = (mode === 'erase');
+    }, true);
+    window.addEventListener('mouseup', function(){
+      if(!wasErasing) return;
+      wasErasing = false;
+      if(document.getElementById('eraseModal')?.classList.contains('show')){
+        setTimeout(function(){ rebuildEditorPreviewFromVisibleBounds(); }, 0);
+      }
+    }, true);
+  }
+})();
+</script>
+
+
+<script id="confirm-only-visible-bounds-patch">
+(function(){
+  const oldRebuild = window.rebuildEditorPreviewFromVisibleBounds;
+  if(typeof oldRebuild === 'function' && !window.__confirmOnlyBoundsWrapped){
+    window.__confirmOnlyBoundsWrapped = true;
+    window.__rebuildBoundsOnlyOnConfirm = true;
+    window.__allowConfirmRebuildOnce = false;
+    window.rebuildEditorPreviewFromVisibleBounds = function(){
+      if(window.__rebuildBoundsOnlyOnConfirm && !window.__allowConfirmRebuildOnce){
+        return false;
+      }
+      window.__allowConfirmRebuildOnce = false;
+      return oldRebuild.apply(this, arguments);
+    };
+  }
+
+  function bindButtons(){
+    const applyBtn = document.getElementById('eraseApply');
+    if(applyBtn && !applyBtn.dataset.confirmOnlyBound){
+      const clone = applyBtn.cloneNode(true);
+      applyBtn.parentNode.replaceChild(clone, applyBtn);
+      clone.dataset.confirmOnlyBound = '1';
+      clone.addEventListener('click', function(){
+        const modal = document.getElementById('eraseModal');
+        const mode = document.querySelector('input[name="mode"]:checked')?.value || 'erase';
+        const shouldRebuild = modal && modal.classList.contains('show') && mode !== 'crop' && typeof oldRebuild === 'function';
+        if(shouldRebuild){
+          window.__allowConfirmRebuildOnce = true;
+          const rebuilt = window.rebuildEditorPreviewFromVisibleBounds();
+          if(rebuilt){
+            setTimeout(function(){
+              if(typeof window.applyCroppedToTarget === 'function') window.applyCroppedToTarget(true);
+            }, 60);
+            return;
+          }
+        }
+        if(typeof window.applyCroppedToTarget === 'function') window.applyCroppedToTarget(true);
+      });
+    }
+
+    const cropBtn = document.getElementById('cropConfirm');
+    if(cropBtn && !cropBtn.dataset.confirmOnlyBound){
+      const clone = cropBtn.cloneNode(true);
+      cropBtn.parentNode.replaceChild(clone, cropBtn);
+      clone.dataset.confirmOnlyBound = '1';
+      clone.addEventListener('click', function(){
+        if(typeof window.applyCroppedToTarget === 'function') window.applyCroppedToTarget(false);
+        if(!window.editingModeIsLogo && window.shadowToggle && window.shadowToggle.checked && typeof window.autoPlaceShadowByVisibleBounds === 'function'){
+          window.autoPlaceShadowByVisibleBounds();
+        }
+        if(typeof window.showToast === 'function') window.showToast('已套用裁切（可繼續編輯）','ok',1600);
+      });
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindButtons);
+  }else{
+    bindButtons();
+  }
+})();
+</script>
+
+
+
+<script id="file-input-click-compat-fix">
+(function(){
+  function openPicker(input){
+    if(!input) return;
+    try{
+      if(typeof input.showPicker === 'function'){
+        input.showPicker();
+        return;
+      }
+    }catch(_){ }
+    try{ input.click(); }catch(_){ }
+  }
+
+  function enhanceFileInput(input){
+    if(!input || input.dataset.fileCompatBound === '1') return;
+    input.dataset.fileCompatBound = '1';
+
+    input.style.pointerEvents = 'auto';
+    input.style.position = 'relative';
+    input.style.zIndex = '2';
+    input.style.opacity = '1';
+
+    const label = input.closest('label');
+    if(label){
+      label.style.pointerEvents = 'auto';
+      label.style.position = 'relative';
+      label.style.zIndex = '2';
+      label.style.cursor = 'pointer';
+
+      label.addEventListener('click', function(e){
+        if(e.target === input) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openPicker(input);
+      }, true);
+
+      label.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          openPicker(input);
+        }
+      });
+    }
+  }
+
+  function bindAll(){
+    [
+      'logo-horiz','bg-horiz','items-h',
+      'logo-square','bg-square','items-s',
+      'jsonImportInput'
+    ].forEach(function(id){
+      enhanceFileInput(document.getElementById(id));
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bindAll);
+  }else{
+    bindAll();
+  }
+})();
+</script>
 </body>
 </html>
