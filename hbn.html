@@ -9240,234 +9240,177 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
-<script id="live-product-contain-rect-export-20260401c">
+<script id="warn-only-no-pushback-20260401">
 (function(){
-  function hexToRgbSafe(hex){
-    const h = String(hex || '#ffffff').replace('#','').trim();
-    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
-    return {
-      r: parseInt(full.slice(0,2), 16) || 255,
-      g: parseInt(full.slice(2,4), 16) || 255,
-      b: parseInt(full.slice(4,6), 16) || 255
-    };
+  function showGuideWarningFor(box){
+    const canvas = box && box.closest('.canvas');
+    if(!canvas) return;
+    const tip = canvas.querySelector('.guide-warning');
+    if(!tip) return;
+    clearTimeout(tip._hideTimer);
+    tip.classList.add('show');
+    tip._hideTimer = setTimeout(function(){ tip.classList.remove('show'); }, 1400);
   }
 
-  function ignoreUi(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    const c = el.classList;
-    if(!c) return false;
-    return c.contains('ctrl') ||
-           c.contains('logo-edit-btn') ||
-           c.contains('logo-swap-btn') ||
-           c.contains('logo-white-btn') ||
-           c.contains('toggle-tag') ||
-           c.contains('panel') ||
-           c.contains('bg-scale-panel') ||
-           c.contains('guide-line') ||
-           c.contains('guide-warning') ||
-           c.contains('guide-doc-overlay') ||
-           c.contains('dd-guide-line') ||
-           c.contains('dd-guide-warning') ||
-           c.contains('float-meter') ||
-           c.contains('modal') ||
-           c.contains('nudge') ||
-           c.contains('json-toolbar') ||
-           c.contains('manual-icon') ||
-           c.contains('brush-cursor') ||
-           c.contains('ui-only');
+  function showDdGuideWarning(prefix){
+    const tip = document.getElementById(prefix + 'GuideWarning');
+    if(!tip) return;
+    clearTimeout(tip._hideTimer);
+    tip.classList.add('show');
+    tip._hideTimer = setTimeout(function(){ tip.classList.remove('show'); }, 1400);
   }
 
-  function loadImage(src){
-    return new Promise(function(resolve, reject){
-      const img = new Image();
-      img.onload = function(){ resolve(img); };
-      img.onerror = reject;
-      img.src = src;
-    });
+  function rectsOverlap(a, b){
+    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
   }
 
-  function getContainRect(boxW, boxH, imgW, imgH){
-    if(!(boxW > 0 && boxH > 0 && imgW > 0 && imgH > 0)){
-      return { left: 0, top: 0, width: boxW || 0, height: boxH || 0 };
-    }
-    const boxRatio = boxW / boxH;
-    const imgRatio = imgW / imgH;
-    let drawW, drawH, dx, dy;
-    if(imgRatio > boxRatio){
-      drawW = boxW;
-      drawH = drawW / imgRatio;
-      dx = 0;
-      dy = (boxH - drawH) / 2;
-    }else{
-      drawH = boxH;
-      drawW = drawH * imgRatio;
-      dy = 0;
-      dx = (boxW - drawW) / 2;
-    }
-    return { left: dx, top: dy, width: drawW, height: drawH };
+  function getCanvasProductMinX(canvas){
+    return canvas && canvas.id === 'square' ? 612 : 547;
   }
 
-  function getLiveProductDraws(root){
-    const rootRect = root.getBoundingClientRect();
-    const items = [];
-    root.querySelectorAll('.editor-item:not(.editor-bg), .dd-product').forEach(function(box){
-      const img = box.querySelector('img');
-      if(!img) return;
-      const boxRect = box.getBoundingClientRect();
-      const cs = getComputedStyle(img);
-      const natW = img.naturalWidth || 0;
-      const natH = img.naturalHeight || 0;
+  function getCanvasGuideLinesX(canvas){
+    return [getCanvasProductMinX(canvas) - 1];
+  }
 
-      let drawLeft = boxRect.left - rootRect.left;
-      let drawTop = boxRect.top - rootRect.top;
-      let drawWidth = boxRect.width;
-      let drawHeight = boxRect.height;
+  const GUIDE_LINES_Y = [34, 318];
+  const GUIDE_GAP = 2;
+  const CTA_SAFE_MARGIN = 6;
 
-      if((cs.objectFit || 'fill') === 'contain'){
-        const fit = getContainRect(boxRect.width, boxRect.height, natW, natH);
-        drawLeft += fit.left;
-        drawTop += fit.top;
-        drawWidth = fit.width;
-        drawHeight = fit.height;
-      }
+  function getRestrictedRects(canvas, maxW, maxH){
+    const productMinX = getCanvasProductMinX(canvas);
+    const guideLinesX = getCanvasGuideLinesX(canvas);
 
-      items.push({
-        src: img.currentSrc || img.src || '',
-        left: drawLeft,
-        top: drawTop,
-        width: drawWidth,
-        height: drawHeight,
-        zIndex: parseInt(getComputedStyle(box).zIndex || '4', 10) || 4,
-        opacity: parseFloat(cs.opacity || '1') || 1
+    const rects = [{
+      left: 0,
+      top: 0,
+      right: productMinX,
+      bottom: maxH,
+      type: 'left-forbidden'
+    }];
+
+    GUIDE_LINES_Y.forEach(function(y){
+      rects.push({
+        left: productMinX,
+        top: y - GUIDE_GAP,
+        right: maxW,
+        bottom: y + GUIDE_GAP,
+        type: 'guide-y'
       });
     });
-    items.sort(function(a, b){ return a.zIndex - b.zIndex; });
-    return items;
+
+    guideLinesX.forEach(function(x){
+      rects.push({
+        left: x - GUIDE_GAP,
+        top: 0,
+        right: x + GUIDE_GAP,
+        bottom: maxH,
+        type: 'guide-x'
+      });
+    });
+
+    // keep CTA in list only for warning, not pushback
+    canvas.querySelectorAll('.cta').forEach(function(cta){
+      rects.push({
+        left: cta.offsetLeft - CTA_SAFE_MARGIN,
+        top: cta.offsetTop - CTA_SAFE_MARGIN,
+        right: cta.offsetLeft + cta.offsetWidth + CTA_SAFE_MARGIN,
+        bottom: cta.offsetTop + cta.offsetHeight + CTA_SAFE_MARGIN,
+        type: 'cta'
+      });
+    });
+
+    return rects;
   }
 
-  async function renderBase(root){
-    return await html2canvas(root, {
-      backgroundColor: null,
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      removeContainer: true,
-      logging: false,
-      width: Math.round(root.clientWidth),
-      height: Math.round(root.clientHeight),
-      x: 0,
-      y: 0,
-      scrollX: 0,
-      scrollY: 0,
-      ignoreElements: function(el){
-        if(ignoreUi(el)) return true;
-        if(el.matches && (el.matches('.editor-item:not(.editor-bg)') || el.matches('.dd-product'))) return true;
-        return false;
-      }
+  function clampItemToCanvas(box, maxW, maxH){
+    let left = parseFloat(box.style.left) || 0;
+    let top = parseFloat(box.style.top) || 0;
+    const w = box.offsetWidth || parseFloat(box.style.width) || 0;
+    const h = box.offsetHeight || parseFloat(box.style.height) || 0;
+    left = Math.max(0, Math.min(left, maxW - w));
+    top = Math.max(0, Math.min(top, maxH - h));
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+  }
+
+  function avoidRestrictedAreas(box, maxW, maxH){
+    if(!box || box.classList.contains('editor-bg')) return;
+    clampItemToCanvas(box, maxW, maxH);
+    const canvas = box.closest('.canvas');
+    if(!canvas) return;
+
+    const rect = {
+      left: parseFloat(box.style.left) || 0,
+      top: parseFloat(box.style.top) || 0,
+      w: box.offsetWidth || parseFloat(box.style.width) || 0,
+      h: box.offsetHeight || parseFloat(box.style.height) || 0
+    };
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
+
+    const hit = getRestrictedRects(canvas, maxW, maxH).some(function(zone){
+      return rectsOverlap(rect, zone);
+    });
+
+    if(hit) showGuideWarningFor(box);
+  }
+
+  const DD_GUIDE_LINES = {
+    ddHoriz: [330, 674],
+    ddSquare: [370, 674]
+  };
+  const DD_GUIDE_GAP = 2;
+
+  function getDdRestrictedRects(prefix, canvas, maxW, maxH){
+    const ys = DD_GUIDE_LINES[prefix] || [];
+    return ys.map(function(y){
+      return {
+        left: 0,
+        top: y - DD_GUIDE_GAP,
+        right: maxW,
+        bottom: y + DD_GUIDE_GAP,
+        type: 'guide-y'
+      };
     });
   }
 
-  async function renderExact(root, bgColorInputId){
-    try{
-      if(document.fonts && document.fonts.ready) await document.fonts.ready;
-    }catch(_){}
+  function applyHbnLikeDdBounds(prefix, box, state){
+    const canvas = document.getElementById(prefix + 'Canvas');
+    if(!canvas || !box || !state) return;
+    const maxW = canvas.clientWidth || 531;
+    const maxH = canvas.clientHeight || 792;
 
-    const baseSnap = await renderBase(root);
-    const out = document.createElement('canvas');
-    out.width = Math.round(root.clientWidth);
-    out.height = Math.round(root.clientHeight);
-    const ctx = out.getContext('2d');
+    const rect = {
+      left: state.left != null ? state.left : (parseFloat(box.style.left) || 0),
+      top: state.top != null ? state.top : (parseFloat(box.style.top) || 0),
+      w: state.width != null ? state.width : (parseFloat(box.style.width) || box.offsetWidth || 0),
+      h: state.height != null ? state.height : (parseFloat(box.style.height) || box.offsetHeight || 0)
+    };
+    rect.right = rect.left + rect.w;
+    rect.bottom = rect.top + rect.h;
 
-    const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
-    const rgb = hexToRgbSafe(bgHex);
-    ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(baseSnap, 0, 0, out.width, out.height);
+    const hit = getDdRestrictedRects(prefix, canvas, maxW, maxH).some(function(zone){
+      return rectsOverlap(rect, zone);
+    });
 
-    const draws = getLiveProductDraws(root);
-    for(const item of draws){
-      if(!item.src || !(item.width > 0) || !(item.height > 0)) continue;
-      try{
-        const img = await loadImage(item.src);
-        ctx.save();
-        ctx.globalAlpha = item.opacity;
-        ctx.drawImage(img, item.left, item.top, item.width, item.height);
-        ctx.restore();
-      }catch(err){
-        console.error('product draw failed', err);
-      }
-    }
+    // warn only; do not move
+    if(hit) showDdGuideWarning(prefix);
 
-    return out;
+    // keep only canvas bounds
+    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
+    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
+
+    state.left = rect.left;
+    state.top = rect.top;
+    state.width = rect.w;
+    state.height = rect.h;
   }
 
-  async function toBestBlob(out){
-    const toBlob = (type, quality) => new Promise(resolve => out.toBlob(resolve, type, quality));
-
-    const pngBlob = await toBlob('image/png');
-    if(pngBlob && pngBlob.size <= 145 * 1024){
-      return { blob: pngBlob, ext: '.png' };
-    }
-
-    let quality = 0.98;
-    let jpgBlob = await toBlob('image/jpeg', quality);
-    while(jpgBlob && jpgBlob.size > 145 * 1024 && quality > 0.4){
-      quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
-      jpgBlob = await toBlob('image/jpeg', quality);
-    }
-    return { blob: jpgBlob, ext: '.jpg' };
-  }
-
-  function triggerDownload(blob, filename){
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if(isIOS) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__containRectExportBusy) return;
-    window.__containRectExportBusy = true;
-
-    const root = document.getElementById(canvasId);
-    if(!root){
-      window.__containRectExportBusy = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1800);
-      return;
-    }
-
-    try{
-      root.classList.add('is-exporting');
-      document.body.classList.add('is-exporting');
-
-      const out = await renderExact(root, bgColorInputId);
-      const result = await toBestBlob(out);
-      if(!result || !result.blob) throw new Error('產生圖檔失敗');
-
-      const base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      triggerDownload(result.blob, base + result.ext);
-
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(result.blob.size / 1024) + 'KB（依 object-fit contain 實際可視範圍輸出）', 'ok', 2400);
-      }
-    }catch(err){
-      console.error(err);
-      if(typeof showToast === 'function'){
-        showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 2600);
-      }
-    }finally{
-      root.classList.remove('is-exporting');
-      document.body.classList.remove('is-exporting');
-      window.__containRectExportBusy = false;
-    }
-  };
+  window.showGuideWarningFor = showGuideWarningFor;
+  window.showDdGuideWarning = showDdGuideWarning;
+  window.clampItemToCanvas = clampItemToCanvas;
+  window.avoidRestrictedAreas = avoidRestrictedAreas;
+  window.applyHbnLikeDdBounds = applyHbnLikeDdBounds;
 })();
 </script>
 
