@@ -1500,6 +1500,14 @@ label:has(#editZoom){
 
 </style>
 
+
+<style id="hide-mall-tag-feature">
+.mall-tag,
+.toggle-tag{
+  display:none !important;
+}
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -4389,6 +4397,7 @@ backBtn.addEventListener('click', ()=>{
   }
 
   document.querySelectorAll('.toggle-tag').forEach(btn=>{
+    btn.style.display = 'none';
     btn.addEventListener('click', ()=>toggleTag(btn));
     btn.title = '切換掛標（空白／紅／白，同步 APP 與 PC）';
   });
@@ -9841,6 +9850,35 @@ document.addEventListener('DOMContentLoaded', ()=>{
     bind();
   }
   setTimeout(bind, 200);
+})();
+</script>
+
+
+<script id="force-hide-mall-tags">
+(function(){
+  function hideAllMallTags(){
+    ['tagH','tagPH','tagS','tagPS','ddHorizTag','ddSquareTag'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){
+        el.style.display = 'none';
+        el.style.visibility = 'hidden';
+        el.style.opacity = '0';
+        el.dataset.tagState = 'blank';
+      }
+    });
+    document.querySelectorAll('.toggle-tag').forEach(function(btn){
+      btn.style.display = 'none';
+      btn.setAttribute('hidden', 'hidden');
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', hideAllMallTags);
+  }else{
+    hideAllMallTags();
+  }
+  setTimeout(hideAllMallTags, 100);
+  setTimeout(hideAllMallTags, 500);
 })();
 </script>
 
