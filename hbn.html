@@ -590,6 +590,58 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 #eraseWrap{
   transform-origin: top left;
 }
+#previewStage{
+  position:relative;
+  left:0;
+  top:0;
+  width:800px;
+  height:400px;
+  transform-origin: top left;
+  will-change: transform;
+}
+#shadowModalBox{
+  z-index:5;
+}
+
+.editor-zoom-hud{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  background:rgba(17,17,17,.86);
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+}
+.editor-zoom-hud button{
+  width:30px;
+  height:30px;
+  border:0;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  color:#111;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+.editor-zoom-hud .zoom-readout{
+  min-width:56px;
+  text-align:center;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  user-select:none;
+}
+.editor-zoom-hud .zoom-caption{
+  color:rgba(255,255,255,.72);
+  font-size:11px;
+  user-select:none;
+}
 
 
 /* 曝品 icon 位置與樣式更新 */
@@ -1718,9 +1770,9 @@ label:has(#editZoom){
   <div class="modal" id="eraseModal" aria-hidden="true">
     <div class="modal-panel">
       <div class="modal-toolbar">
-        <label><input type="radio" name="mode" value="erase" checked> 擦除</label>
-        <label><input type="radio" name="mode" value="select"> 去背</label>
         <label><input type="radio" name="mode" value="crop"> 裁切</label>
+        <label><input type="radio" name="mode" value="select"> 去背</label>
+        <label><input type="radio" name="mode" value="erase" checked> 擦除</label>
         <label>筆刷：<input id="brushSize" type="range" min="5" max="120" value="40"></label>
         <label>容差：<input id="tolerance" type="range" min="0" max="80" value="20"></label>
         <label style="display:flex;align-items:center;gap:6px"><input id="toggleShadow" type="checkbox"> 增加影子</label>
@@ -1729,11 +1781,19 @@ label:has(#editZoom){
         <label>縮放：<input id="editZoom" type="range" min="50" max="300" value="100"></label><span id="editZoomVal" class="pill">100%</span><span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
       </div>
       <div id="eraseWrap" class="checkerboard">
-        <canvas id="shadowCanvas" width="800" height="400"></canvas>
-        <canvas id="eraseCanvas" width="800" height="400"></canvas>
+        <div id="previewStage">
+          <canvas id="shadowCanvas" width="800" height="400"></canvas>
+          <canvas id="eraseCanvas" width="800" height="400"></canvas>
+        </div>
         <div id="shadowModalBox" class="shadow-modal-box" aria-hidden="true" style="display:none;">
           <img id="shadowModalImg" src="bg.png" alt="shadow" draggable="false">
           <div class="shadow-modal-handle" title="縮放"></div>
+        </div>
+        <div id="editorZoomHud" class="editor-zoom-hud" aria-label="視覺縮放控制">
+          <button id="zoomOutBtn" type="button" title="縮小預覽">−</button>
+          <span id="zoomHudReadout" class="zoom-readout">100%</span>
+          <button id="zoomInBtn" type="button" title="放大預覽">＋</button>
+          <span class="zoom-caption">視覺縮放</span>
         </div>
       </div>
       <div class="modal-actions">
@@ -2214,7 +2274,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     ensureCounter(el);
     updateCounter(el);
     if(result && result.message){
-      showToast(result.message, 'err', 2300, el);
+      showToast(result.message, 'err', result.duration || 4000, el);
     }
   }
 
@@ -2441,15 +2501,53 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
+  function getEditorVisualZoom(){
+    return Math.max(0.5, Math.min(3, window.__editorVisualZoom || 1));
+  }
+
+  function clientToCanvasPoint(e){
+    const rect = eraseCanvas.getBoundingClientRect();
+    const scaleX = rect.width > 0 ? (eraseCanvas.width / rect.width) : 1;
+    const scaleY = rect.height > 0 ? (eraseCanvas.height / rect.height) : 1;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  function setShadowBoxLogical(x, y, w, h){
+    if(!shadowBox) return;
+    const z = getEditorVisualZoom();
+    shadowBox.style.left = Math.round(x * z) + 'px';
+    shadowBox.style.top = Math.round(y * z) + 'px';
+    shadowBox.style.width = Math.round(w * z) + 'px';
+    shadowBox.style.height = Math.round(h * z) + 'px';
+  }
+
+  function getShadowBoxLogical(){
+    if(!shadowBox) return {x:0,y:0,w:0,h:0};
+    const z = getEditorVisualZoom();
+    return {
+      x: (parseFloat(shadowBox.style.left) || 0) / z,
+      y: (parseFloat(shadowBox.style.top) || 0) / z,
+      w: (shadowBox.offsetWidth || parseFloat(shadowBox.style.width) || 0) / z,
+      h: (shadowBox.offsetHeight || parseFloat(shadowBox.style.height) || 0) / z
+    };
+  }
+
+  window.__setShadowBoxLogical = setShadowBoxLogical;
+  window.__getShadowBoxLogical = getShadowBoxLogical;
+
   function renderShadowPreview(){
     if(!shadowCtx || !shadowCanvas) return;
     shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height);
     if(!shadowToggle?.checked) return;
     if(!shadowImg || !shadowImg.complete || shadowImg.naturalWidth<=0) return;
-    const x = parseFloat(shadowBox.style.left)||0;
-    const y = parseFloat(shadowBox.style.top)||0;
-    const w = shadowBox.offsetWidth||0;
-    const h = shadowBox.offsetHeight||0;
+    const boxRect = getShadowBoxLogical();
+    const x = boxRect.x;
+    const y = boxRect.y;
+    const w = boxRect.w;
+    const h = boxRect.h;
     if(w<=0||h<=0) return;
     shadowCtx.drawImage(shadowImg, x, y, w, h);
   }
@@ -2487,10 +2585,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     x = clamp(x, 0, Math.max(0, cw - shadowWidth));
     y = clamp(y, 0, Math.max(0, ch - shadowHeight));
 
-    shadowBox.style.width  = Math.round(shadowWidth) + 'px';
-    shadowBox.style.height = Math.round(shadowHeight) + 'px';
-    shadowBox.style.left   = Math.round(x) + 'px';
-    shadowBox.style.top    = Math.round(y) + 'px';
+    setShadowBoxLogical(shadowWidth ? x : 0, shadowHeight ? y : 0, shadowWidth, shadowHeight);
     renderShadowPreview();
   }
 
@@ -2549,7 +2644,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
     window.addEventListener('mousemove', (e)=>{
       if(!dragging && !resizing) return;
-      const cw = eraseCanvas.width, ch = eraseCanvas.height;
+      const z = getEditorVisualZoom();
+      const cw = eraseCanvas.width * z, ch = eraseCanvas.height * z;
       const dx = e.clientX - sx, dy = e.clientY - sy;
 
       if(dragging){
@@ -2563,7 +2659,6 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         shadowBox.style.top  = nt + 'px';
         renderShadowPreview();
       } else if(resizing){
-        // Free resize within canvas bounds
         const pad2 = 0;
         const maxW = Math.max(20, (cw - pad2) - startL);
         const maxH = Math.max(20, (ch - pad2) - startT);
@@ -2583,16 +2678,16 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   eraseCanvas.addEventListener('mousedown', (e)=>{
     if(!drawn) return;
     const mode = document.querySelector('input[name="mode"]:checked').value;
-    const rect = eraseCanvas.getBoundingClientRect();
-    lastX = e.clientX - rect.left; lastY = e.clientY - rect.top;
+    const pt = clientToCanvasPoint(e);
+    lastX = pt.x; lastY = pt.y;
     if(mode==='erase'){ drawing = true; }
     else if(mode==='select'){ floodSelect(Math.round(lastX), Math.round(lastY), Number(toleranceSlider.value)); }
     else if(mode==='crop'){ cropping = true; cropStart = {x:lastX, y:lastY}; cropEnd = {x:lastX, y:lastY}; drawCropRect(); }
   });
   window.addEventListener('mousemove', (e)=>{
     const mode = document.querySelector('input[name="mode"]:checked').value;
-    const rect = eraseCanvas.getBoundingClientRect();
-    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+    const pt = clientToCanvasPoint(e);
+    const x = pt.x; const y = pt.y;
     if(mode==='erase' && drawing){
       eCtx.save(); eCtx.globalCompositeOperation = 'destination-out';
       eCtx.beginPath(); eCtx.lineCap = 'round'; eCtx.lineJoin = 'round';
@@ -3155,31 +3250,57 @@ function applyCroppedToTarget(closeAfter){
       const _boxHasSize = !!(box.style.width && box.style.height);
       const _applyUploadRule = !!(document.getElementById('applyUploadSize')?.checked);
       const _editorEl = box.parentElement;
-      const _canvasH = _editorEl ? _editorEl.clientHeight : (box.closest('.canvas')?.clientHeight || 0);
+      const _canvasEl = box.closest('.canvas');
+      const _canvasH = _editorEl ? _editorEl.clientHeight : (_canvasEl?.clientHeight || 0);
+      const _canvasW = _editorEl ? _editorEl.clientWidth : (_canvasEl?.clientWidth || 0);
+      const _prevW = box.offsetWidth || parseFloat(box.style.width) || 0;
+      const _prevH = box.offsetHeight || parseFloat(box.style.height) || 0;
+      const _prevLeft = box.offsetLeft || parseFloat(box.style.left) || 0;
+      const _prevTop = box.offsetTop || parseFloat(box.style.top) || 0;
+      const _prevCenterX = _prevLeft + _prevW / 2;
+      const _prevCenterY = _prevTop + _prevH / 2;
 
-      editingTargetImg.onload = ()=>{
-        if(_applyUploadRule || !_boxHasSize){
-          const ratio = (finalH>0) ? (finalW / finalH) : 1;
-          const targetH = Math.round(_canvasH * 0.7);
-          const targetW = Math.max(1, Math.round(targetH * ratio));
-
-          const cx = (box.offsetLeft || 0) + (box.offsetWidth  || 0) / 2;
-          const cy = (box.offsetTop  || 0) + (box.offsetHeight || 0) / 2;
-
-          box.style.width  = targetW + 'px';
-          box.style.height = targetH + 'px';
-          box.style.left   = Math.round(cx - targetW/2) + 'px';
-          box.style.top    = Math.round(cy - targetH/2) + 'px';
-
-          box.dataset.fixedW = String(targetW);
-          box.dataset.fixedH = String(targetH);
-        }
-      };
       editingTargetImg.style.objectFit = 'contain';
       editingTargetImg.onload = ()=>{
         if(editingModeIsLogo){
           editingTargetImg.dataset.logoWhiteBaseRatio = finalH > 0 ? String(finalW / finalH) : '';
+        }else{
+          const ratio = (finalH > 0) ? (finalW / finalH) : 1;
+          let targetW = _prevW;
+          let targetH = _prevH;
+
+          if(_applyUploadRule || !_boxHasSize){
+            targetH = Math.round(_canvasH * 0.7);
+            targetW = Math.max(1, Math.round(targetH * ratio));
+          }else{
+            targetH = Math.max(20, Math.round(_prevH));
+            targetW = Math.max(1, Math.round(targetH * ratio));
+          }
+
+          if(_canvasW > 0 && targetW > _canvasW){
+            const shrink = _canvasW / targetW;
+            targetW = Math.max(20, Math.round(targetW * shrink));
+            targetH = Math.max(20, Math.round(targetH * shrink));
+          }
+
+          let left = Math.round(_prevCenterX - targetW / 2);
+          let top = Math.round(_prevCenterY - targetH / 2);
+
+          if(_canvasW > 0) left = Math.max(0, Math.min(left, _canvasW - targetW));
+          if(_canvasH > 0) top = Math.max(0, Math.min(top, _canvasH - targetH));
+
+          box.style.width  = targetW + 'px';
+          box.style.height = targetH + 'px';
+          box.style.left   = left + 'px';
+          box.style.top    = top + 'px';
+          box.dataset.fixedW = String(targetW);
+          box.dataset.fixedH = String(targetH);
+
+          if(typeof avoidRestrictedAreas === 'function' && _canvasW > 0 && _canvasH > 0){
+            avoidRestrictedAreas(box, _canvasW, _canvasH);
+          }
         }
+
         syncLogoDisplaySize(editingTargetImg);
         const isSquareLogo = editingTargetImg.id === 'brandImgS';
         const pcMirror = document.getElementById(isSquareLogo ? 'brandPSImg' : 'brandPHImg');
@@ -6399,7 +6520,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
 
     bindOnce(dlS, 'fixedDownloadBound', function(){
-      if(typeof window.copyHorizCtaToSquare === 'function') window.copyHorizCtaToSquare();
+      // 保留方 LOGO 畫布目前自己的 CTA 顏色，不在下載前覆寫成橫 LOGO 的 CTA
       window.downloadJpgFor('square', 'bg-color-s', 'square.jpg');
     });
 
@@ -6565,7 +6686,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     overlayRoot.style.width = '100%';
     overlayRoot.style.height = '100%';
     overlayRoot.style.pointerEvents = 'none';
-    overlayRoot.style.zIndex = '999';
+    overlayRoot.style.zIndex = '4';
 
     locks.forEach(lock => {
       const img = document.createElement('img');
@@ -6636,24 +6757,74 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </style>
 
 
+
+
+
 <script id="banwords-excel-loader">
 (function(){
+  function ensureExcelPicker(){
+    var wrap = document.getElementById('excelManualLoader');
+    if(wrap) return wrap;
+    wrap = document.createElement('div');
+    wrap.id = 'excelManualLoader';
+    wrap.style.position = 'fixed';
+    wrap.style.right = '20px';
+    wrap.style.bottom = '90px';
+    wrap.style.zIndex = '100002';
+    wrap.style.background = 'rgba(220,38,38,.96)';
+    wrap.style.color = '#fff';
+    wrap.style.padding = '12px 14px';
+    wrap.style.borderRadius = '12px';
+    wrap.style.boxShadow = '0 8px 24px rgba(0,0,0,.28)';
+    wrap.style.fontSize = '13px';
+    wrap.style.lineHeight = '1.5';
+    wrap.style.maxWidth = '360px';
+    wrap.style.display = 'none';
+    wrap.innerHTML = '' +
+      '<div style="font-weight:700;margin-bottom:6px;">讀取 ./禁用語.xlsx 失敗</div>' +
+      '<div style="margin-bottom:8px;">若你是直接雙擊 HTML 開啟，瀏覽器通常會擋掉本機 Excel 的 fetch。請按下方按鈕手動選取同層的「禁用語.xlsx」。</div>' +
+      '<button type="button" id="excelManualBtn" style="border:0;background:#fff;color:#111;padding:6px 10px;border-radius:8px;cursor:pointer;">手動選取禁用語.xlsx</button>' +
+      '<input type="file" id="excelManualInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">';
+    document.body.appendChild(wrap);
+    wrap.querySelector('#excelManualBtn').addEventListener('click', function(){
+      wrap.querySelector('#excelManualInput').click();
+    });
+    wrap.querySelector('#excelManualInput').addEventListener('change', async function(e){
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      try{
+        var buf = await file.arrayBuffer();
+        var rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
+        console.log('禁用語已從手動選取 Excel 載入，共 ' + (Array.isArray(rules) ? rules.length : 0) + ' 條（工作表：禁用語）');
+        if(typeof showToast === 'function') showToast('已手動載入禁用語.xlsx', 'ok', 2200);
+        wrap.style.display = 'none';
+      }catch(err){
+        console.error('手動載入禁用語.xlsx 失敗', err);
+        if(typeof showToast === 'function') showToast('手動載入 Excel 失敗', 'err', 2200);
+      }
+    });
+    return wrap;
+  }
+
+  async function fetchBanwordWorkbook(){
+    var res = await fetch('./禁用語.xlsx', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ./禁用語.xlsx');
+    return await res.arrayBuffer();
+  }
+
   async function loadBanwordsFromExcel(){
     if(!window.banwordEngine || typeof window.banwordEngine.loadRulesFromExcelArrayBuffer !== 'function') return;
     if(!window.XLSX) return;
     try{
-      const res = await fetch('./程式檔案/禁用語.xlsx', { cache: 'no-store' });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      const buf = await res.arrayBuffer();
-      const rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
+      var buf = await fetchBanwordWorkbook();
+      var rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
       if(Array.isArray(rules) && rules.length){
-        document.querySelectorAll('[contenteditable="true"]').forEach(function(el){
-          if(typeof processBanwordElement === 'function') processBanwordElement(el);
-        });
-        console.log('禁用語已從 Excel 載入，共 ' + rules.length + ' 條');
+        console.log('禁用語已從 Excel 載入，共 ' + rules.length + ' 條（來源：./禁用語.xlsx；工作表：禁用語）');
       }
     }catch(err){
-      console.error('讀取禁用語.xlsx 失敗，將沿用 banwords-engine-hbn.js 內建規則', err);
+      console.error('讀取 ./禁用語.xlsx 失敗', err);
+      ensureExcelPicker().style.display = 'block';
+      if(typeof showToast === 'function') showToast('讀取 ./禁用語.xlsx 失敗，請手動選取', 'err', 2600);
     }
   }
 
@@ -7061,291 +7232,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 
-<script id="autotrim-product-upload-and-export-match">
-(function(){
-  function loadImage(src){
-    return new Promise((resolve, reject)=>{
-      const img = new Image();
-      img.onload = ()=>resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
-  }
-
-  function getPixel(data, w, x, y){
-    const i = (y * w + x) * 4;
-    return [data[i], data[i+1], data[i+2], data[i+3]];
-  }
-
-  function isBgLike(r, g, b, a){
-    // transparent
-    if(a <= 8) return true;
-    // white-ish edge background
-    return a >= 180 && r >= 242 && g >= 242 && b >= 242;
-  }
-
-  async function trimProductImageSource(src){
-    const img = await loadImage(src);
-    const w = img.naturalWidth || img.width;
-    const h = img.naturalHeight || img.height;
-    if(!w || !h) return { changed:false, src, width:w, height:h };
-
-    const c = document.createElement('canvas');
-    c.width = w;
-    c.height = h;
-    const ctx = c.getContext('2d', { willReadFrequently:true });
-    ctx.drawImage(img, 0, 0);
-    const imageData = ctx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-
-    const visited = new Uint8Array(w * h);
-    const queue = [];
-    function tryPush(x, y){
-      if(x < 0 || y < 0 || x >= w || y >= h) return;
-      const idx = y * w + x;
-      if(visited[idx]) return;
-      const i = idx * 4;
-      if(!isBgLike(data[i], data[i+1], data[i+2], data[i+3])) return;
-      visited[idx] = 1;
-      queue.push(idx);
-    }
-
-    for(let x=0; x<w; x++){
-      tryPush(x, 0);
-      tryPush(x, h - 1);
-    }
-    for(let y=0; y<h; y++){
-      tryPush(0, y);
-      tryPush(w - 1, y);
-    }
-
-    while(queue.length){
-      const idx = queue.pop();
-      const x = idx % w;
-      const y = (idx / w) | 0;
-      tryPush(x - 1, y);
-      tryPush(x + 1, y);
-      tryPush(x, y - 1);
-      tryPush(x, y + 1);
-    }
-
-    let minX = w, minY = h, maxX = -1, maxY = -1;
-    for(let y=0; y<h; y++){
-      for(let x=0; x<w; x++){
-        const idx = y * w + x;
-        const i = idx * 4;
-        const a = data[i+3];
-        if(a <= 8) continue;
-        if(visited[idx]) continue;
-        if(x < minX) minX = x;
-        if(y < minY) minY = y;
-        if(x > maxX) maxX = x;
-        if(y > maxY) maxY = y;
-      }
-    }
-
-    // fallback: pure transparent trim only
-    if(maxX < minX || maxY < minY){
-      minX = w; minY = h; maxX = -1; maxY = -1;
-      for(let y=0; y<h; y++){
-        for(let x=0; x<w; x++){
-          const a = data[(y * w + x) * 4 + 3];
-          if(a <= 8) continue;
-          if(x < minX) minX = x;
-          if(y < minY) minY = y;
-          if(x > maxX) maxX = x;
-          if(y > maxY) maxY = y;
-        }
-      }
-    }
-
-    if(maxX < minX || maxY < minY){
-      return { changed:false, src, width:w, height:h };
-    }
-
-    const pad = 1;
-    minX = Math.max(0, minX - pad);
-    minY = Math.max(0, minY - pad);
-    maxX = Math.min(w - 1, maxX + pad);
-    maxY = Math.min(h - 1, maxY + pad);
-
-    const tw = maxX - minX + 1;
-    const th = maxY - minY + 1;
-
-    if(tw === w && th === h && minX === 0 && minY === 0){
-      return { changed:false, src, width:w, height:h };
-    }
-
-    const out = document.createElement('canvas');
-    out.width = tw;
-    out.height = th;
-    out.getContext('2d').drawImage(c, minX, minY, tw, th, 0, 0, tw, th);
-    return {
-      changed:true,
-      src: out.toDataURL('image/png'),
-      width: tw,
-      height: th,
-      originalWidth: w,
-      originalHeight: h
-    };
-  }
-
-  function fitContain(boxW, boxH, natW, natH){
-    if(!boxW || !boxH || !natW || !natH){
-      return { width: boxW || 0, height: boxH || 0 };
-    }
-    const boxRatio = boxW / boxH;
-    const imgRatio = natW / natH;
-    let width, height;
-    if(imgRatio > boxRatio){
-      width = boxW;
-      height = width / imgRatio;
-    }else{
-      height = boxH;
-      width = height * imgRatio;
-    }
-    return { width, height };
-  }
-
-  async function normalizeProductBox(box){
-    if(!box || box.classList.contains('editor-bg')) return;
-    const img = box.querySelector('img');
-    if(!img) return;
-
-    const src = img.currentSrc || img.src || '';
-    if(!src) return;
-    if(box.dataset.autotrimBusy === '1') return;
-    if(box.dataset.autotrimNormalized === src) return;
-
-    const natW = img.naturalWidth || 0;
-    const natH = img.naturalHeight || 0;
-    const boxW = box.offsetWidth || parseFloat(box.style.width) || 0;
-    const boxH = box.offsetHeight || parseFloat(box.style.height) || 0;
-    const left = parseFloat(box.style.left) || 0;
-    const top = parseFloat(box.style.top) || 0;
-    const boxCenterX = left + boxW / 2;
-    const boxCenterY = top + boxH / 2;
-    const visible = fitContain(boxW, boxH, natW, natH);
-
-    box.dataset.autotrimBusy = '1';
-    try{
-      const trimmed = await trimProductImageSource(src);
-
-      const finalSrc = trimmed.src;
-      const finalNatW = trimmed.width || natW || 1;
-      const finalNatH = trimmed.height || natH || 1;
-
-      // 新框尺寸 = 原本畫布上「實際看得到的內容尺寸」
-      let newW = Math.max(20, visible.width || boxW || finalNatW);
-      let newH = Math.max(20, visible.height || boxH || finalNatH);
-
-      // 如果原本還沒成形，退回 70% 高規則，但用裁切後比例
-      if(!boxW || !boxH){
-        const editor = box.parentElement;
-        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
-        const canvasH = canvas ? canvas.clientHeight : 360;
-        newH = Math.round(canvasH * 0.7);
-        newW = Math.max(20, Math.round(newH * (finalNatW / finalNatH)));
-      }
-
-      box.style.width = newW + 'px';
-      box.style.height = newH + 'px';
-      box.style.left = Math.round(boxCenterX - newW / 2) + 'px';
-      box.style.top = Math.round(boxCenterY - newH / 2) + 'px';
-      box.dataset.fixedW = String(Math.round(newW));
-      box.dataset.fixedH = String(Math.round(newH));
-      box.dataset.baseSrc = finalSrc;
-      box.dataset.autotrimNormalized = finalSrc;
-
-      if(finalSrc !== src){
-        await new Promise((resolve)=>{
-          img.onload = ()=>resolve();
-          img.src = finalSrc;
-        });
-      }
-
-      if(typeof clampItemToCanvas === 'function'){
-        const editor = box.parentElement;
-        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
-        if(canvas) clampItemToCanvas(box, canvas.clientWidth, canvas.clientHeight);
-      }
-      if(typeof avoidRestrictedAreas === 'function'){
-        const editor = box.parentElement;
-        const canvas = editor && (editor.closest('.canvas') || editor.closest('.pc-canvas'));
-        if(canvas && canvas.classList && canvas.classList.contains('canvas')){
-          avoidRestrictedAreas(box, canvas.clientWidth, canvas.clientHeight);
-        }
-      }
-    }catch(err){
-      console.error('auto trim failed', err);
-      box.dataset.autotrimNormalized = src;
-    }finally{
-      box.dataset.autotrimBusy = '0';
-    }
-  }
-
-  function scanEditor(editorId){
-    const editor = document.getElementById(editorId);
-    if(!editor) return;
-    editor.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box => {
-      normalizeProductBox(box);
-    });
-  }
-
-  function bindAutoTrimObserver(editorId){
-    const editor = document.getElementById(editorId);
-    if(!editor || editor.dataset.autotrimBound === '1') return;
-    editor.dataset.autotrimBound = '1';
-
-    const mo = new MutationObserver((mutations)=>{
-      let needScan = false;
-      for(const m of mutations){
-        if(m.type === 'childList'){
-          needScan = true;
-          break;
-        }
-        if(m.type === 'attributes' && m.target.tagName === 'IMG' && m.attributeName === 'src'){
-          needScan = true;
-          break;
-        }
-      }
-      if(needScan) setTimeout(()=>scanEditor(editorId), 30);
-    });
-
-    mo.observe(editor, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['src']
-    });
-  }
-
-  function bindInputRescan(inputId, editorId){
-    const input = document.getElementById(inputId);
-    if(!input || input.dataset.autotrimInputBound === '1') return;
-    input.dataset.autotrimInputBound = '1';
-    input.addEventListener('change', ()=>{
-      setTimeout(()=>scanEditor(editorId), 80);
-      setTimeout(()=>scanEditor(editorId), 220);
-    });
-  }
-
-  function init(){
-    bindAutoTrimObserver('editorH');
-    bindAutoTrimObserver('editorS');
-    bindInputRescan('items-h', 'editorH');
-    bindInputRescan('items-s', 'editorS');
-    setTimeout(()=>scanEditor('editorH'), 120);
-    setTimeout(()=>scanEditor('editorS'), 120);
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  }else{
-    init();
-  }
-})();
-</script>
 
 
 <script id="ui-tweaks-20260330">
@@ -8544,25 +8430,24 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!lock) return;
     const wrap = getLogoWrap(img);
 
-    // Hard lock exact rendered size, do not let later ratio-based logic resize it.
-    img.style.width = lock.imgW + 'px';
+    // 只鎖高度，不鎖寬度，讓寬度依原圖比例自動計算，避免方 logo 匯出被拉寬
+    img.style.width = 'auto';
     img.style.height = lock.imgH + 'px';
-    img.style.maxWidth = lock.imgW + 'px';
+    img.style.maxWidth = 'none';
     img.style.maxHeight = lock.imgH + 'px';
-    img.style.minWidth = lock.imgW + 'px';
+    img.style.minWidth = '0';
     img.style.minHeight = lock.imgH + 'px';
     img.style.objectFit = 'contain';
     img.style.display = 'block';
     img.style.flex = '0 0 auto';
 
     if(wrap){
-      const ww = (lock.wrapW > 0 ? lock.wrapW : lock.imgW);
       const wh = (lock.wrapH > 0 ? lock.wrapH : lock.imgH);
-      wrap.style.width = ww + 'px';
+      wrap.style.width = 'auto';
       wrap.style.height = wh + 'px';
-      wrap.style.minWidth = ww + 'px';
+      wrap.style.minWidth = '0';
       wrap.style.minHeight = wh + 'px';
-      wrap.style.maxWidth = ww + 'px';
+      wrap.style.maxWidth = 'none';
       wrap.style.maxHeight = wh + 'px';
       wrap.style.display = 'flex';
       wrap.style.alignItems = 'center';
@@ -9411,6 +9296,551 @@ document.addEventListener('DOMContentLoaded', ()=>{
   window.clampItemToCanvas = clampItemToCanvas;
   window.avoidRestrictedAreas = avoidRestrictedAreas;
   window.applyHbnLikeDdBounds = applyHbnLikeDdBounds;
+})();
+</script>
+
+
+
+<style id="excel-rule-count-float-style">
+#excelRuleCountNotice{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:100001;
+  background:rgba(17,17,17,.94);
+  color:#fff;
+  padding:10px 14px;
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  font-size:13px;
+  line-height:1.4;
+  min-width:220px;
+  max-width:360px;
+  display:none;
+}
+#excelRuleCountNotice .title{font-weight:700; margin-bottom:4px;}
+#excelRuleCountNotice .meta{opacity:.9; font-size:12px;}
+#excelRuleCountNotice .close{
+  position:absolute;
+  top:6px;
+  right:8px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  cursor:pointer;
+  font-size:16px;
+  line-height:1;
+}
+</style>
+
+
+
+
+<script id="hbn-export-parity-fix-20260408">
+(function(){
+  function exportIgnoreStrict(el){
+    if(!el) return false;
+    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
+    if(!el.classList) return false;
+    return el.classList.contains('ctrl') ||
+           el.classList.contains('logo-edit-btn') ||
+           el.classList.contains('logo-swap-btn') ||
+           el.classList.contains('logo-white-btn') ||
+           el.classList.contains('toggle-tag') ||
+           el.classList.contains('panel') ||
+           el.classList.contains('bg-scale-panel') ||
+           el.classList.contains('guide-line') ||
+           el.classList.contains('guide-warning') ||
+           el.classList.contains('guide-doc-overlay') ||
+           el.classList.contains('dd-guide-line') ||
+           el.classList.contains('dd-guide-warning') ||
+           el.classList.contains('float-meter') ||
+           el.classList.contains('modal') ||
+           el.classList.contains('nudge') ||
+           el.classList.contains('json-toolbar') ||
+           el.classList.contains('manual-icon') ||
+           el.classList.contains('brush-cursor') ||
+           el.classList.contains('ui-only');
+  }
+
+  function hexToRgb(hex){
+    const h = String(hex || '#ffffff').replace('#','');
+    const b = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return {
+      r: parseInt(b.slice(0,2), 16) || 255,
+      g: parseInt(b.slice(2,4), 16) || 255,
+      b: parseInt(b.slice(4,6), 16) || 255
+    };
+  }
+
+  function toBlobAsync(canvas, type, quality){
+    return new Promise(resolve => canvas.toBlob(blob => resolve(blob), type, quality));
+  }
+
+  function triggerDownload(blob, name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url, '_blank');
+    else a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1200);
+  }
+
+  async function exportCanvas(node, bgColorInputId, filename){
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
+
+    const exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
+    const exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
+    const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+
+    node.classList.add('is-exporting');
+    document.body.classList.add('is-exporting');
+
+    // Temporarily make HBN product images behave like DDCard during export:
+    // keep their actual on-canvas box, and let the image render as contain inside it.
+    const hbnImgs = Array.from(node.querySelectorAll('.editor-item:not(.editor-bg) img'));
+    const prevStyles = hbnImgs.map(img => ({
+      img,
+      width: img.style.width,
+      height: img.style.height,
+      maxWidth: img.style.maxWidth,
+      maxHeight: img.style.maxHeight,
+      minWidth: img.style.minWidth,
+      minHeight: img.style.minHeight,
+      objectFit: img.style.objectFit,
+      display: img.style.display,
+      position: img.style.position,
+      left: img.style.left,
+      top: img.style.top,
+      transform: img.style.transform
+    }));
+
+    hbnImgs.forEach(img => {
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.minWidth = '0';
+      img.style.minHeight = '0';
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      img.style.position = 'static';
+      img.style.left = 'auto';
+      img.style.top = 'auto';
+      img.style.transform = 'none';
+    });
+
+    try{
+      const snap = await html2canvas(node, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        removeContainer: true,
+        logging: false,
+        width: exportW,
+        height: exportH,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        ignoreElements: exportIgnoreStrict,
+        onclone: function(doc){
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
+          const clonedNode = doc.getElementById(node.id);
+          if(clonedNode){
+            clonedNode.style.overflow = 'hidden';
+            clonedNode.classList.add('hide-dd-icons');
+          }
+          // IMPORTANT: do not create any extra HBN export overlay; export the real DOM as-is.
+          doc.querySelectorAll('#' + node.id + ' .editor-item:not(.editor-bg) img').forEach(img => {
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+            img.style.minWidth = '0';
+            img.style.minHeight = '0';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+            img.style.position = 'static';
+            img.style.left = 'auto';
+            img.style.top = 'auto';
+            img.style.transform = 'none';
+          });
+        }
+      });
+
+      const out = document.createElement('canvas');
+      out.width = exportW;
+      out.height = exportH;
+      const ctx = out.getContext('2d');
+      const rgb = hexToRgb(bgHex);
+      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+      ctx.fillRect(0, 0, exportW, exportH);
+      ctx.drawImage(snap, 0, 0, exportW, exportH);
+
+      const base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
+      const pngBlob = await toBlobAsync(out, 'image/png');
+      if(pngBlob && pngBlob.size <= 145 * 1024){
+        triggerDownload(pngBlob, base + '.png');
+        if(typeof showToast === 'function') showToast('已下載 1200px 圖片（PNG 未壓縮，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        return;
+      }
+
+      let quality = 0.98;
+      let jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載 1200px 圖片（超過 145KB 才壓縮，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
+    } finally {
+      prevStyles.forEach(x => {
+        x.img.style.width = x.width;
+        x.img.style.height = x.height;
+        x.img.style.maxWidth = x.maxWidth;
+        x.img.style.maxHeight = x.maxHeight;
+        x.img.style.minWidth = x.minWidth;
+        x.img.style.minHeight = x.minHeight;
+        x.img.style.objectFit = x.objectFit;
+        x.img.style.display = x.display;
+        x.img.style.position = x.position;
+        x.img.style.left = x.left;
+        x.img.style.top = x.top;
+        x.img.style.transform = x.transform;
+      });
+      node.classList.remove('is-exporting');
+      document.body.classList.remove('is-exporting');
+    }
+  }
+
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    const node = document.getElementById(canvasId);
+    if(!node) return;
+    return exportCanvas(node, bgColorInputId, filename);
+  };
+})();
+</script>
+
+
+<script id="hbn-product-crop-export-parity-final-fix">
+(function(){
+  if(window.__hbnProductCropExportParityFinalFix) return;
+  window.__hbnProductCropExportParityFinalFix = true;
+
+  function captureProductBoxState(box){
+    if(!box) return null;
+    return {
+      width: box.style.width || '',
+      height: box.style.height || '',
+      left: box.style.left || '',
+      top: box.style.top || '',
+      fixedW: box.dataset ? (box.dataset.fixedW || '') : '',
+      fixedH: box.dataset ? (box.dataset.fixedH || '') : ''
+    };
+  }
+
+  function restoreProductBoxState(box, img, state){
+    if(!box || !img || !state) return;
+    if(state.width) box.style.width = state.width;
+    if(state.height) box.style.height = state.height;
+    if(state.left) box.style.left = state.left;
+    if(state.top) box.style.top = state.top;
+    if(box.dataset){
+      if(state.fixedW) box.dataset.fixedW = state.fixedW;
+      else delete box.dataset.fixedW;
+      if(state.fixedH) box.dataset.fixedH = state.fixedH;
+      else delete box.dataset.fixedH;
+    }
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    img.style.minWidth = '0';
+    img.style.minHeight = '0';
+    img.style.objectFit = 'contain';
+    img.style.display = 'block';
+    img.style.position = 'static';
+    img.style.left = 'auto';
+    img.style.top = 'auto';
+    img.style.transform = 'none';
+  }
+
+  const oldApply = window.applyCroppedToTarget;
+  if(typeof oldApply === 'function'){
+    window.applyCroppedToTarget = function(closeAfter){
+      const isLogo = !!window.editingModeIsLogo;
+      const box = !isLogo ? window.editingTargetBox : null;
+      const img = !isLogo ? window.editingTargetImg : null;
+      const prev = (!isLogo && box && img) ? captureProductBoxState(box) : null;
+      const ret = oldApply.apply(this, arguments);
+      if(prev && box && img){
+        const apply = function(){ restoreProductBoxState(box, img, prev); };
+        if(img.complete){
+          requestAnimationFrame(function(){ requestAnimationFrame(apply); });
+        }else{
+          img.addEventListener('load', function(){ requestAnimationFrame(apply); }, { once:true });
+        }
+      }
+      return ret;
+    };
+  }
+
+  function exportIgnoreStrict(el){
+    if(!el) return false;
+    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
+    if(!el.classList) return false;
+    return el.classList.contains('ctrl') ||
+           el.classList.contains('logo-edit-btn') ||
+           el.classList.contains('logo-swap-btn') ||
+           el.classList.contains('logo-white-btn') ||
+           el.classList.contains('toggle-tag') ||
+           el.classList.contains('panel') ||
+           el.classList.contains('bg-scale-panel') ||
+           el.classList.contains('guide-line') ||
+           el.classList.contains('guide-warning') ||
+           el.classList.contains('guide-doc-overlay') ||
+           el.classList.contains('dd-guide-line') ||
+           el.classList.contains('dd-guide-warning') ||
+           el.classList.contains('float-meter') ||
+           el.classList.contains('modal') ||
+           el.classList.contains('nudge') ||
+           el.classList.contains('json-toolbar') ||
+           el.classList.contains('manual-icon') ||
+           el.classList.contains('brush-cursor') ||
+           el.classList.contains('ui-only');
+  }
+
+  function hexToRgb(hex){
+    const h = String(hex || '#ffffff').replace('#','');
+    const b = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    return {
+      r: parseInt(b.slice(0,2), 16) || 255,
+      g: parseInt(b.slice(2,4), 16) || 255,
+      b: parseInt(b.slice(4,6), 16) || 255
+    };
+  }
+
+  function toBlobAsync(canvas, type, quality){
+    return new Promise(resolve => canvas.toBlob(blob => resolve(blob), type, quality));
+  }
+
+  function triggerDownload(blob, name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url, '_blank');
+    else a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
+  }
+
+  function captureVisibleHbnLocks(node){
+    const nodeRect = node.getBoundingClientRect();
+    const locks = [];
+    node.querySelectorAll('.editor-item:not(.editor-bg)').forEach(function(box){
+      const img = box.querySelector('img');
+      if(!img) return;
+      const imgRect = img.getBoundingClientRect();
+      if(!(imgRect.width > 0 && imgRect.height > 0)) return;
+      locks.push({
+        src: img.currentSrc || img.src || '',
+        left: imgRect.left - nodeRect.left,
+        top: imgRect.top - nodeRect.top,
+        width: imgRect.width,
+        height: imgRect.height,
+        zIndex: getComputedStyle(box).zIndex || '4'
+      });
+    });
+    return locks;
+  }
+
+  async function exportCanvas(node, bgColorInputId, filename){
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
+
+    const exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
+    const exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
+    const bgHex = (document.getElementById(bgColorInputId)?.value) || '#ffffff';
+    const isHbn = /^(horiz|square|pcH|pcS)$/.test(node.id);
+    const isDd = /^(ddHorizCanvas|ddSquareCanvas)$/.test(node.id);
+    const hbnLocks = isHbn ? captureVisibleHbnLocks(node) : [];
+
+    node.classList.add('is-exporting');
+    document.body.classList.add('is-exporting');
+    try{
+      const snap = await html2canvas(node, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        removeContainer: true,
+        logging: false,
+        width: exportW,
+        height: exportH,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        ignoreElements: exportIgnoreStrict,
+        onclone: function(doc){
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
+          const clonedNode = doc.getElementById(node.id);
+          if(!clonedNode) return;
+          clonedNode.style.overflow = 'hidden';
+          if(isDd) clonedNode.classList.add('hide-dd-icons');
+
+          if(isHbn){
+            clonedNode.querySelectorAll('.cta').forEach(function(cta){
+              cta.style.position = 'absolute';
+              cta.style.zIndex = '1001';
+            });
+            clonedNode.querySelectorAll('.editor-item:not(.editor-bg)').forEach(function(box){
+              box.style.visibility = 'hidden';
+            });
+            const overlayRoot = doc.createElement('div');
+            overlayRoot.style.position = 'absolute';
+            overlayRoot.style.left = '0';
+            overlayRoot.style.top = '0';
+            overlayRoot.style.width = '100%';
+            overlayRoot.style.height = '100%';
+            overlayRoot.style.pointerEvents = 'none';
+            overlayRoot.style.zIndex = '999';
+            hbnLocks.forEach(function(lock){
+              const img = doc.createElement('img');
+              img.src = lock.src;
+              img.style.position = 'absolute';
+              img.style.left = lock.left + 'px';
+              img.style.top = lock.top + 'px';
+              img.style.width = lock.width + 'px';
+              img.style.height = lock.height + 'px';
+              img.style.maxWidth = 'none';
+              img.style.maxHeight = 'none';
+              img.style.objectFit = 'contain';
+              img.style.display = 'block';
+              img.style.zIndex = String(lock.zIndex);
+              overlayRoot.appendChild(img);
+            });
+            clonedNode.appendChild(overlayRoot);
+          }
+        }
+      });
+
+      const out = document.createElement('canvas');
+      out.width = exportW;
+      out.height = exportH;
+      const ctx = out.getContext('2d');
+      const rgb = hexToRgb(bgHex);
+      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+      ctx.fillRect(0, 0, exportW, exportH);
+      ctx.drawImage(snap, 0, 0, exportW, exportH);
+
+      const base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
+      const pngBlob = await toBlobAsync(out, 'image/png');
+      if(pngBlob && pngBlob.size <= 145 * 1024){
+        triggerDownload(pngBlob, base + '.png');
+        if(typeof showToast === 'function') showToast('已下載 1200px 圖片（PNG 未壓縮，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        return;
+      }
+      let quality = 0.98;
+      let jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載 1200px 圖片（超過 145KB 才壓縮，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
+    } finally {
+      node.classList.remove('is-exporting');
+      document.body.classList.remove('is-exporting');
+    }
+  }
+
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    const node = document.getElementById(canvasId);
+    if(!node) return;
+    return exportCanvas(node, bgColorInputId, filename);
+  };
+})();
+</script>
+
+
+<script id="editor-zoom-hud-visual-only">
+(function(){
+  function getStage(){ return document.getElementById('previewStage'); }
+  function getHud(){ return document.getElementById('zoomHudReadout'); }
+  function getModal(){ return document.getElementById('eraseModal'); }
+
+  function applyZoom(){
+    var stage = getStage();
+    var hud = getHud();
+    var scale = Math.max(0.5, Math.min(3, window.__editorVisualZoom || 1));
+    if(stage) stage.style.transform = 'scale(' + scale + ')';
+    if(hud) hud.textContent = Math.round(scale * 100) + '%';
+  }
+
+  function setZoom(scale){
+    var prevLogical = (typeof window.__getShadowBoxLogical === 'function') ? window.__getShadowBoxLogical() : null;
+    window.__editorVisualZoom = Math.max(0.5, Math.min(3, scale));
+    applyZoom();
+    if(prevLogical && typeof window.__setShadowBoxLogical === 'function'){
+      window.__setShadowBoxLogical(prevLogical.x, prevLogical.y, prevLogical.w, prevLogical.h);
+    }
+    if(typeof window.renderShadowPreview === 'function'){
+      try{ window.renderShadowPreview(); }catch(_){}
+    }
+  }
+
+  function resetZoom(){
+    setZoom(1);
+  }
+
+  function bind(){
+    var plus = document.getElementById('zoomInBtn');
+    var minus = document.getElementById('zoomOutBtn');
+    var hud = getHud();
+    var modal = getModal();
+    if(!plus || !minus || !hud || !modal || plus.dataset.bound === '1') return;
+    plus.dataset.bound = '1';
+
+    plus.addEventListener('click', function(){ setZoom((window.__editorVisualZoom || 1) + 0.1); });
+    minus.addEventListener('click', function(){ setZoom((window.__editorVisualZoom || 1) - 0.1); });
+    hud.addEventListener('click', resetZoom);
+
+    if(!modal.dataset.visualZoomObserved){
+      modal.dataset.visualZoomObserved = '1';
+      var mo = new MutationObserver(function(){
+        if(modal.classList.contains('show')) setTimeout(resetZoom, 0);
+      });
+      mo.observe(modal, {attributes:true, attributeFilter:['class']});
+    }
+
+    ['eraseApply','eraseCancel','cropConfirm','eraseReset'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && !el.dataset.zoomResetBound){
+        el.dataset.zoomResetBound = '1';
+        el.addEventListener('click', function(){ setTimeout(resetZoom, 0); });
+      }
+    });
+
+    applyZoom();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', bind);
+  }else{
+    bind();
+  }
+  setTimeout(bind, 200);
 })();
 </script>
 
