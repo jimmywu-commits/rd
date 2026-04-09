@@ -1592,21 +1592,21 @@ label:has(#editZoom){
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
-      <label>主標色：<input id="h1-color-horiz" type="color" value="#1b5e7a"></label>
-      <label>副標色：<input id="h2-color-horiz" type="color" value="#0b6c4a"></label>
-      <label>日期色：<input id="date-color-horiz" type="color" value="#306b8f"></label>
-      <label>CTA底色：<input id="cta-bg-h" type="color" value="#2176FF"></label>
-      <label>CTA字色：<input id="cta-fg-h" type="color" value="#ffffff"></label>
-      <label>背景色：<input id="bg-color-h" type="color" value="#c2dff3"></label>
-      <button id="dl-h" type="button" style="margin-left:auto;">下載圖片（≤145KB）</button> 
+      <label>主標：<input id="h1-color-horiz" type="color" value="#1b5e7a"></label>
+      <label>副標：<input id="h2-color-horiz" type="color" value="#0b6c4a"></label>
+      <label>日期：<input id="date-color-horiz" type="color" value="#306b8f"></label>
+      <label>CTA底：<input id="cta-bg-h" type="color" value="#2176FF"></label>
+      <label>CTA字：<input id="cta-fg-h" type="color" value="#ffffff"></label>
+      <label>背景：<input id="bg-color-h" type="color" value="#c2dff3"></label>
+      <button id="dl-h" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
     </div>
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>LOGO（橫，最多 3）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
-      <label>底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
-      <label>商品圖（最多3）：<input id="items-h" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 可左右微調與編輯</span>
+      <label>上傳LOGO（最多3張）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <label>上傳底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
+      <label>上傳商品圖（最多3張）：<input id="items-h" type="file" accept="image/*" multiple></label>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字顏色會連動背景色而改變｜Logo 可左右微調與編輯</span>
     </div>
 
     <!-- APP 橫式 -->
@@ -1628,14 +1628,16 @@ label:has(#editZoom){
 
       <div class="brand" id="brandH"></div>
       <div class="stack">
-        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">99購物節開跑<span class="counter" aria-hidden="true"></span></div>
+        <div id="h1-h" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">購物節開跑<span class="counter" aria-hidden="true"></span></div>
         <div id="h2-h" class="h2" contenteditable="true" data-limit="7" data-role="h2" data-placeholder="請輸入副標">滿$990享8折<span class="counter" aria-hidden="true"></span></div>
         <div id="date-h" class="date" contenteditable="true" data-limit="14" data-role="date" data-placeholder="請輸入日期">9/9 - 9/11<span class="counter" aria-hidden="true"></span></div>
       </div>
       <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <div class="bg-scale-panel" id="bgScaleH">
-        <span class="tag">背景圖尺寸</span>
+
+        <span class="tag">&nbsp; &nbsp;HBN橫LOGO 背景圖尺寸 放大縮小鈕&gt;</span>
+
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValH">100%</span>
         <button type="button" data-step="0.05">+</button>
@@ -1644,11 +1646,14 @@ label:has(#editZoom){
 
     
     <div class="dd-preview-wrap" id="ddHorizWrap">
-      <div class="dd-preview-title">DDCard 連動畫布（橫 LOGO）</div>
-      <div class="dd-sync-note">會同步 HBN 橫 LOGO 畫布的大多數操作；商品圖的移動與放大縮小不同步。</div>
-      <div class="dd-edit-tip">DDCard 畫布內可直接拖曳背景、拖曳商品圖，並從右下角縮放。</div>
-      <div class="dd-bg-scale-panel" id="ddBgScaleHoriz"><span class="tag">背景圖尺寸</span><button type="button" data-step="-0.05">–</button><span id="ddBgScaleValHoriz">100%</span><button type="button" data-step="0.05">+</button></div>
-      <div id="ddHorizCanvas" class="dd-canvas">
+      <div  style="font-size: 24px" class="dd-preview-title">DDCard 連動畫布（橫 LOGO）</div>
+  
+      <div class="dd-bg-scale-panel" id="ddBgScaleHoriz">
+
+<span class="tag">&nbsp; &nbsp;DDCard橫LOGO 背景圖尺寸 放大縮小鈕&gt;</span>
+
+<button type="button" data-step="-0.05">–</button><span id="ddBgScaleValHoriz">100%</span><button type="button" data-step="0.05">+</button></div>
+      <div style="margin: auto" id="ddHorizCanvas" class="dd-canvas">
         <div class="dd-guide-line dd-guide-top-h" aria-hidden="true"></div>
         <div class="dd-guide-line dd-guide-bottom-h" aria-hidden="true"></div>
         <div class="dd-guide-warning" id="ddHorizGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
@@ -1669,7 +1674,7 @@ label:has(#editZoom){
 
 
     <!-- PC 橫式 -->
-    <h3 style="margin:10px 0 6px">PC 版位預覽（橫式）</h3>
+    <h3 style="margin:10px 0 6px">xxPC 版位預覽（橫式）</h3>
     <div id="pcH" class="pc-canvas pending-underlay" aria-hidden="false">
       <img class="bg" id="bgPH" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
       <div class="editor" id="editorPH">
@@ -1691,12 +1696,7 @@ label:has(#editZoom){
       <div class="cta" id="cta-ph"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <!-- PC 縮放面板（新） -->
-      <div class="bg-scale-panel" id="bgScalePH">
-        <span class="tag">背景圖尺寸</span>
-        <button type="button" data-step="-0.05">–</button>
-        <span id="bgScaleValPH">100%</span>
-        <button type="button" data-step="0.05">+</button>
-      </div>
+
     </div>
 
     <div class="hr"></div>
@@ -1705,21 +1705,21 @@ label:has(#editZoom){
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
-      <label>主標色：<input id="h1-color-square" type="color" value="#1b5e7a"></label>
-      <label>副標色：<input id="h2-color-square" type="color" value="#0b6c4a"></label>
-      <label>日期色：<input id="date-color-square" type="color" value="#306b8f"></label>
-      <label>CTA底色：<input id="cta-bg-s" type="color" value="#2176FF"></label>
-      <label>CTA字色：<input id="cta-fg-s" type="color" value="#ffffff"></label>
-      <label>背景色：<input id="bg-color-s" type="color" value="#c2dff3"></label>
-      <button id="dl-s" type="button" style="margin-left:auto;">下載圖片（≤145KB）</button> 
+      <label>主標：<input id="h1-color-square" type="color" value="#1b5e7a"></label>
+      <label>副標：<input id="h2-color-square" type="color" value="#0b6c4a"></label>
+      <label>日期：<input id="date-color-square" type="color" value="#306b8f"></label>
+      <label>CTA底：<input id="cta-bg-s" type="color" value="#2176FF"></label>
+      <label>CTA字：<input id="cta-fg-s" type="color" value="#ffffff"></label>
+      <label>背景：<input id="bg-color-s" type="color" value="#c2dff3"></label>
+      <button id="dl-s" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
     </div>
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>LOGO（方 120×120）：<input id="logo-square" type="file" accept="image/*"></label>
-      <label>底圖：<input id="bg-square" type="file" accept="image/*"></label>
-      <label>商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字可直接貼上（Ctrl/Cmd+V）｜Logo 可左右微調與編輯</span>
+      <label>上傳LOGO（正方或正圓型）：<input id="logo-square" type="file" accept="image/*"></label>
+      <label>上傳底圖：<input id="bg-square" type="file" accept="image/*"></label>
+      <label>上傳商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
+ <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字顏色會連動背景色而改變｜Logo 可左右微調與編輯</span>
     </div>
 
     <!-- APP 方形 -->
@@ -1741,14 +1741,14 @@ label:has(#editZoom){
 
       <div class="brand"><div class="logo-box"><img id="brandImgS" /></div></div>
       <div class="stack">
-        <div id="h1-s" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">指定商務品滿8千<span class="counter" aria-hidden="true"></span></div>
-        <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2" data-placeholder="請輸入副標">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
+        <div id="h1-s" class="h1" contenteditable="true" data-limit="8" data-role="h1" data-placeholder="請輸入主標">登錄送藍牙喇叭<span class="counter" aria-hidden="true"></span></div>
+        <div id="h2-s" class="h2" contenteditable="true" data-limit="7" data-role="h2" data-placeholder="請輸入副標">指定商品6折<span class="counter" aria-hidden="true"></span></div>
         <div id="date-s" class="date" contenteditable="true" data-limit="14" data-role="date" data-placeholder="請輸入日期">9/1 - 9/30<span class="counter" aria-hidden="true"></span></div>
       </div>
       <div class="cta" id="cta-s"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <div class="bg-scale-panel" id="bgScaleS">
-        <span class="tag">背景圖尺寸</span>
+        <span class="tag">&nbsp; &nbsp;HBN 方LOGO背景圖尺寸 放大縮小鈕&gt;</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValS">100%</span>
         <button type="button" data-step="0.05">+</button>
@@ -1757,11 +1757,11 @@ label:has(#editZoom){
 
     
     <div class="dd-preview-wrap" id="ddSquareWrap">
-      <div class="dd-preview-title">DDCard 連動畫布（方 LOGO）</div>
-      <div class="dd-sync-note">會同步 HBN 方 LOGO 畫布的大多數操作；商品圖的移動與放大縮小不同步。</div>
-      <div class="dd-edit-tip">DDCard 畫布內可直接拖曳背景、拖曳商品圖，並從右下角縮放。</div>
-      <div class="dd-bg-scale-panel" id="ddBgScaleSquare"><span class="tag">背景圖尺寸</span><button type="button" data-step="-0.05">–</button><span id="ddBgScaleValSquare">100%</span><button type="button" data-step="0.05">+</button></div>
-      <div id="ddSquareCanvas" class="dd-canvas square">
+      <div  style="font-size: 24px" class="dd-preview-title">DDCard 連動畫布（方 LOGO）</div>
+   
+      <div class="dd-bg-scale-panel" id="ddBgScaleSquare"><span class="tag">&nbsp; &nbsp;DDCard 方 LOGO背景圖尺寸 放大縮小鈕&gt;</span>
+      <button type="button" data-step="-0.05">–</button><span id="ddBgScaleValSquare">100%</span><button type="button" data-step="0.05">+</button></div>
+      <div style="margin: auto" id="ddSquareCanvas" class="dd-canvas square">
         <div class="dd-guide-line dd-guide-top-s" aria-hidden="true"></div>
         <div class="dd-guide-line dd-guide-bottom-s" aria-hidden="true"></div>
         <div class="dd-guide-warning" id="ddSquareGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
@@ -1804,52 +1804,13 @@ label:has(#editZoom){
       <div class="cta" id="cta-ps"><span class="text">逛逛去</span><span class="triangle"></span></div>
 
       <!-- PC 縮放面板（新） -->
-      <div class="bg-scale-panel" id="bgScalePS">
-        <span class="tag">背景圖尺寸</span>
-        <button type="button" data-step="-0.05">–</button>
-        <span id="bgScaleValPS">100%</span>
-        <button type="button" data-step="0.05">+</button>
-      </div>
+
     </div>
   </div>
 
-  <!-- 底部控制面板（保留） -->
-  <div class="fs-panel panel" id="fsPanel">字級
-    <button type="button" class="fs-btn" data-delta="-1">–</button>
-    <span class="val fs-val">--</span>
-    <button type="button" class="fs-btn" data-delta="1">+</button>
-    <span class="note" style="color:#fff;opacity:.8">選取可編輯文字後調整</span>
-  </div>
-  <div class="lh-panel panel" id="lhPanel">行距
-    <button type="button" class="lh-btn" data-delta="-1">–</button>
-    <span class="val lh-val">--</span>
-    <button type="button" class="lh-btn" data-delta="1">+</button>
-    <span class="note" style="color:#fff;opacity:.8">可為負值</span>
-  </div>
-  <div class="mg-panel panel" id="mgPanel">間距
-    <button type="button" class="mg-btn" data-delta="-1">–</button>
-    <span class="val mg-val">--</span>
-    <button type="button" class="mg-btn" data-delta="1">+</button>
-    <span class="note" style="color:#fff;opacity:.8">段落間距（margin-top，可為負值）</span>
-  </div>
-  <div class="ls-panel panel" id="lsPanel">字距
-    <button type="button" class="ls-btn" data-delta="-1">–</button>
-    <span class="val ls-val">--</span>
-    <button type="button" class="ls-btn" data-delta="1">+</button>
-    <span class="note" style="color:#fff;opacity:.8">字的間距（letter-spacing）</span>
-  </div>
+ 
 
-  <!-- 關閉文案底圖 -->
-  <div class="ux-panel panel" id="uxPanel">
-    <label style="display:flex;align-items:center;gap:6px">
-      <input id="toggleUnderlayH" type="checkbox" />
-      關閉《橫式》文案底圖
-    </label>
-    <label style="display:flex;align-items:center;gap:6px;margin-left:10px">
-      <input id="toggleUnderlayS" type="checkbox" />
-      關閉《方式》文案底圖
-    </label>
-  </div>
+
 
   <!-- 去背/裁切 Modal（保留） -->
   <div class="modal" id="eraseModal" aria-hidden="true">
@@ -6496,8 +6457,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       window.downloadJpgFor('square', 'bg-color-s', 'square.jpg');
     });
 
-    var ddH = ensureDdButton('dl-dd-h', '下載 DDCard（橫）', dlH);
-    var ddS = ensureDdButton('dl-dd-s', '下載 DDCard（方）', dlS);
+    var ddH = ensureDdButton('dl-dd-h', '下載 DDCard（≤245KB）', dlH);
+    var ddS = ensureDdButton('dl-dd-s', '下載 DDCard（≤245KB）', dlS);
 
     bindOnce(ddH, 'fixedDownloadBound', function(){
       window.downloadJpgFor('ddHorizCanvas', 'bg-color-h', 'ddcard-h.jpg');
