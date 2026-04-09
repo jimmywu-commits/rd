@@ -42,7 +42,6 @@
     if (keyword === '-' || keyword === '~') return false;
 
     const raw = String(keyword);
-
     if (raw.length === 1) return false;
     if (/\\[dDsSwWbB]/.test(raw)) return true;
     if (/^\^.*\$/.test(raw)) return true;
@@ -237,7 +236,6 @@
       return key;
     });
 
-    // 保護「數字+蝦幣」與「蝦幣+數字」，避免自動補 $
     const coinMap = [];
     out = out.replace(/\d+\s*蝦幣|蝦幣\s*\d+/g, function(match){
       const key = '__COIN_' + coinMap.length + '__';
@@ -268,25 +266,99 @@
     return out;
   }
 
+  function normalizeSlashDateString(text){
+    return String(text || '').replace(
+      /\b0*(\d{1,2})\/0*(\d{1,2})(?:\s*-\s*0*(\d{1,2})\/0*(\d{1,2}))?\b/g,
+      function(_, m1, d1, m2, d2){
+        const left = Number(m1) + '/' + Number(d1);
+        if (m2 && d2) {
+          return left + ' - ' + Number(m2) + '/' + Number(d2);
+        }
+        return left;
+      }
+    );
+  }
+
+  function compactDigitsToDate(token){
+    const raw = String(token || '').replace(/\D/g, '');
+    if (!/^\d{3,4}$/.test(raw)) return null;
+
+    let month, day;
+
+    if (raw.length === 3) {
+      month = Number(raw.slice(0, 1));
+      day = Number(raw.slice(1));
+    } else {
+      const mm1 = Number(raw.slice(0, 1));
+      const dd1 = Number(raw.slice(1));
+      const mm2 = Number(raw.slice(0, 2));
+      const dd2 = Number(raw.slice(2));
+
+      const valid1 = mm1 >= 1 && mm1 <= 9 && dd1 >= 1 && dd1 <= 31;
+      const valid2 = mm2 >= 1 && mm2 <= 12 && dd2 >= 1 && dd2 <= 31;
+
+      if (valid2) {
+        month = mm2;
+        day = dd2;
+      } else if (valid1) {
+        month = mm1;
+        day = dd1;
+      } else {
+        return null;
+      }
+    }
+
+    if (!(month >= 1 && month <= 12 && day >= 1 && day <= 31)) return null;
+    return month + '/' + day;
+  }
+
+  function normalizeCompactDateInput(text){
+    let out = String(text || '').trim();
+
+    out = out.replace(
+      /^\s*(\d{3,4})\s*-\s*(\d{3,4})\s*$/,
+      function(_, a, b){
+        const da = compactDigitsToDate(a);
+        const db = compactDigitsToDate(b);
+        if (da && db) return da + ' - ' + db;
+        return _;
+      }
+    );
+
+    out = out.replace(
+      /^\s*(\d{3,4})\s*$/,
+      function(_, a){
+        const da = compactDigitsToDate(a);
+        return da || _;
+      }
+    );
+
+    return out;
+  }
+
   function normalizeLeadingDateForDateRole(text){
-    const out = String(text || '');
+    let out = String(text || '').trim();
+
+    out = normalizeCompactDateInput(out);
+    out = normalizeSlashDateString(out);
+
     const leadingDatePattern = /^(0*\d{1,2}\/0*\d{1,2}(?:\s*-\s*0*\d{1,2}\/0*\d{1,2})?)(\s*)([\s\S]*)$/;
     const match = out.match(leadingDatePattern);
 
     if (!match) return out;
 
-    const datePart = match[1].replace(/\s*-\s*/g, ' - ');
+    const datePart = normalizeSlashDateString(match[1]).replace(/\s*-\s*/g, ' - ');
     const rest = match[3] || '';
 
     if (rest) return datePart + ' ' + rest.replace(/^\s+/, '');
-    return datePart + ' ';
+    return datePart;
   }
 
   function applyNumericRules(text, role){
     let out = String(text || '');
     if (role === 'date') {
       out = normalizeLeadingDateForDateRole(out);
-      return applyStandardNumericRules(out);
+      return out;
     }
     return applyStandardNumericRules(out);
   }

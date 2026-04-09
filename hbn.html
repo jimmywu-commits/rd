@@ -1508,6 +1508,83 @@ label:has(#editZoom){
 }
 </style>
 
+
+
+
+
+<style id="ddcard-resize-icon-outside-canvas-fix">
+/* 讓 DDCard 在編輯時，超出畫布邊緣的縮放 icon 仍可被點到 */
+.dd-preview-wrap{
+  overflow: visible !important;
+}
+.dd-canvas{
+  overflow: visible !important;
+}
+.dd-canvas .dd-product{
+  overflow: visible !important;
+}
+.dd-canvas .dd-product::after{
+  pointer-events: auto !important;
+  z-index: 30 !important;
+}
+</style>
+
+
+
+
+<style id="clean-product-outside-only-css">
+/* 乾淨版：背景仍鎖在畫布內；只有曝品可超出畫布外 */
+.canvas,
+.pc-canvas,
+.dd-canvas{
+  overflow:hidden !important;
+}
+.dd-preview-wrap{
+  overflow:visible !important;
+}
+.editor{
+  overflow:visible !important;
+}
+.editor .bg-layer{
+  position:absolute;
+  inset:0;
+  overflow:hidden !important; /* 背景層仍鎖在畫布內 */
+}
+.editor-item.editor-bg{
+  overflow:hidden !important;
+}
+.editor-item:not(.editor-bg){
+  overflow:visible !important; /* 只有曝品可超出 */
+}
+.dd-products{
+  position:absolute;
+  inset:0;
+  overflow:visible !important; /* DDCard 曝品層可超出 */
+}
+.dd-canvas .dd-product{
+  overflow:visible !important;
+}
+.dd-canvas .dd-product::after{
+  pointer-events:auto !important;
+  z-index:30 !important;
+}
+
+/* 讓超出畫布的 DDCard resize icon 仍然可點 */
+.dd-preview-wrap,
+.dd-preview-wrap *{
+  pointer-events:auto;
+}
+</style>
+
+
+<style id="history-toolbar-style">
+#undoBtn[disabled], #redoBtn[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
+  transform:none !important;
+}
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -1557,7 +1634,7 @@ label:has(#editZoom){
       </div>
       <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
-      <div class="bg-scale-panel" id="bgScaleH" hidden>
+      <div class="bg-scale-panel" id="bgScaleH">
         <span class="tag">背景圖尺寸</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValH">100%</span>
@@ -1614,7 +1691,7 @@ label:has(#editZoom){
       <div class="cta" id="cta-ph"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <!-- PC 縮放面板（新） -->
-      <div class="bg-scale-panel" id="bgScalePH" hidden>
+      <div class="bg-scale-panel" id="bgScalePH">
         <span class="tag">背景圖尺寸</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValPH">100%</span>
@@ -1670,7 +1747,7 @@ label:has(#editZoom){
       </div>
       <div class="cta" id="cta-s"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
-      <div class="bg-scale-panel" id="bgScaleS" hidden>
+      <div class="bg-scale-panel" id="bgScaleS">
         <span class="tag">背景圖尺寸</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValS">100%</span>
@@ -1705,7 +1782,7 @@ label:has(#editZoom){
 
 
     <!-- PC 方式 -->
-    <h3 style="margin:10px 0 6px">PC 版位預覽（方式）</h3>
+    <h3 style="margin:10px 0 6px;display:none;">PC 版位預覽（方式）</h3>
     <div id="pcS" class="pc-canvas pending-underlay" aria-hidden="false">
       <img class="bg" id="bgPS" src="程式檔案/橫BG-PC.png" alt="PC 背景" />
       <div class="editor" id="editorPS">
@@ -1727,7 +1804,7 @@ label:has(#editZoom){
       <div class="cta" id="cta-ps"><span class="text">逛逛去</span><span class="triangle"></span></div>
 
       <!-- PC 縮放面板（新） -->
-      <div class="bg-scale-panel" id="bgScalePS" hidden>
+      <div class="bg-scale-panel" id="bgScalePS">
         <span class="tag">背景圖尺寸</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValPS">100%</span>
@@ -2670,8 +2747,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         const pad2 = 0;
         const maxW = Math.max(20, (cw - pad2) - startL);
         const maxH = Math.max(20, (ch - pad2) - startT);
-        let nw = clamp(startW + dx, 20, maxW);
-        let nh = clamp(startH + dy, 20, maxH);
+        let nw = (v=>v)(startW + dx, 20, maxW);
+        let nh = (v=>v)(startH + dy, 20, maxH);
         shadowBox.style.width  = nw + 'px';
         shadowBox.style.height = nh + 'px';
         renderShadowPreview();
@@ -3429,14 +3506,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
   }
 
   function clampItemToCanvas(box, maxW, maxH){
-    let left = parseFloat(box.style.left) || 0;
-    let top = parseFloat(box.style.top) || 0;
-    const w = box.offsetWidth || parseFloat(box.style.width) || 0;
-    const h = box.offsetHeight || parseFloat(box.style.height) || 0;
-    left = Math.max(0, Math.min(left, maxW - w));
-    top = Math.max(0, Math.min(top, maxH - h));
-    box.style.left = left + 'px';
-    box.style.top = top + 'px';
+    return;
   }
 
   function showGuideWarningFor(box){
@@ -3534,11 +3604,11 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
 
   function avoidRestrictedAreas(box, maxW, maxH){
     if(!box || box.classList.contains('editor-bg')) return;
-    clampItemToCanvas(box, maxW, maxH);
     const canvas = box.closest('.canvas');
     if(!canvas) return;
 
-    const rect = { isBg: box.classList.contains('editor-bg'),
+    const rect = {
+      isBg: box.classList.contains('editor-bg'),
       left: parseFloat(box.style.left) || 0,
       top: parseFloat(box.style.top) || 0,
       w: box.offsetWidth || parseFloat(box.style.width) || 0,
@@ -3548,26 +3618,14 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     rect.bottom = rect.top + rect.h;
 
     const zones = getRestrictedRects(canvas, maxW, maxH);
-    let bumped = false;
-
-    for(let i=0; i<12; i++){
-      let moved = false;
-      for(const zone of zones){
-        if(rectsOverlap(rect, zone)){
-          if(resolveOverlap(rect, zone, maxW, maxH)){
-            moved = true;
-            bumped = true;
-          }
-        }
+    let hit = false;
+    for(const zone of zones){
+      if(rectsOverlap(rect, zone)){
+        hit = true;
+        break;
       }
-      if(!moved) break;
     }
-
-    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
-    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
-    box.style.left = rect.left + 'px';
-    box.style.top = rect.top + 'px';
-    if(bumped) showGuideWarningFor(box);
+    if(hit) showGuideWarningFor(box);
   }
 
   function setupEditor(canvasId, editorId, productsInputId, bgInputId, bgColorInputId, scalePanelId, scaleValId){
@@ -3714,11 +3772,9 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         const dy = e.clientY - startY;
         box.style.left = (origLeft + dx) + 'px';
         box.style.top  = (origTop  + dy) + 'px';
-        if(!box.classList.contains('editor-bg')){
-          clampItemToCanvas(box, CANVAS_W, CANVAS_H);
-        }
+
       });
-      window.addEventListener('mouseup', ()=>{ if(dragging) avoidRestrictedAreas(box, CANVAS_W, CANVAS_H); dragging=false; });
+      window.addEventListener('mouseup', ()=>{ if(dragging && !box.classList.contains('editor-bg')){ try{ showGuideWarningFor && showGuideWarningFor(box); }catch(_){} } dragging=false; });
 
       /* 等比縮放（右下 ↗） */
       let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
@@ -3745,11 +3801,9 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         box.dataset.fixedW = String(Math.round(newW));
         box.dataset.fixedH = String(Math.round(newH));
 
-        if(!box.classList.contains('editor-bg')){
-          clampItemToCanvas(box, CANVAS_W, CANVAS_H);
-        }
+
       });
-      window.addEventListener('mouseup', ()=>{ if(resizing) avoidRestrictedAreas(box, CANVAS_W, CANVAS_H); resizing=false; });
+      window.addEventListener('mouseup', ()=>{ if(resizing && !box.classList.contains('editor-bg')){ try{ showGuideWarningFor && showGuideWarningFor(box); }catch(_){} } resizing=false; });
 
       if(!asBackground){
         delBtn.addEventListener('click', ()=>{ box.remove(); });
@@ -4548,6 +4602,8 @@ syncBackgroundAndImage('bg-square', 'bgS', 'S');
 <div class="json-toolbar">
   
   
+  <button type="button" id="undoBtn" title="上一步（Ctrl/Cmd+Z）">上一步</button>
+  <button type="button" id="redoBtn" title="下一步（Ctrl/Cmd+Shift+Z / Ctrl/Cmd+Y）">下一步</button>
   <button type="button" id="jsonExport">匯出暫存</button>
   <button type="button" id="jsonImportBtn">匯入暫存</button>
   <input type="file" id="jsonImportInput" accept=".json,application/json" hidden>
@@ -4795,18 +4851,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if(!dragging) return;
       box.style.left = (origLeft + e.clientX - startX) + 'px';
       box.style.top = (origTop + e.clientY - startY) + 'px';
-      if(!box.classList.contains('editor-bg') && typeof clampItemToCanvas === 'function'){
-        const editor = box.closest('.editor');
-        const canvas = editor?.closest('.canvas');
-        if(canvas) clampItemToCanvas(box, canvas.clientWidth, canvas.clientHeight);
-      }
     });
     window.addEventListener('mouseup', ()=>{
-      if(dragging && !box.classList.contains('editor-bg') && typeof avoidRestrictedAreas === 'function'){
-        const editor = box.closest('.editor');
-        const canvas = editor?.closest('.canvas');
-        if(canvas) avoidRestrictedAreas(box, canvas.clientWidth, canvas.clientHeight);
-      }
       dragging = false;
     });
   }
@@ -4912,7 +4958,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if(typeof syncAllLogoDisplaySizes === 'function') syncAllLogoDisplaySizes();
   }
 
-  function applyJsonState(state){
+  function applyJsonState(state, options){
+    options = options || {};
     if(!state) return;
     __jsonRestoring = true;
 
@@ -5004,6 +5051,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rebuildHorizontalLogos(state.logos?.horiz || []);
     rebuildSquareLogo(state.logos?.square || {}, state.logos?.pc || {});
+
+    try{
+      if(typeof syncPcText === 'function') syncPcText();
+      if(typeof syncPcSText === 'function') syncPcSText();
+      if(typeof syncCta === 'function') syncCta();
+      if(typeof syncCtaS === 'function') syncCtaS();
+      if(typeof window.syncDdLinkedCanvases === 'function') window.syncDdLinkedCanvases();
+    }catch(_){}
+
+    if(!options.silent && typeof window.__historyAfterRestore === 'function'){
+      window.__historyAfterRestore();
+    }
   }
 
   function downloadJson(filename, data){
@@ -5027,6 +5086,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('jsonImportBtn')?.addEventListener('click', ()=>{
     document.getElementById('jsonImportInput')?.click();
   });
+
+  window.captureState = captureState;
+  window.applyJsonState = applyJsonState;
 
   document.getElementById('jsonImportInput')?.addEventListener('change', async (e)=>{
     const file = e.target.files?.[0];
@@ -5199,8 +5261,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   };
 
   const DD_GUIDE_LINES = {
-    ddHoriz: [330, 674],
-    ddSquare: [370, 674]
+    ddHoriz: [],
+    ddSquare: []
   };
   const DD_GUIDE_GAP = 2;
 
@@ -5853,8 +5915,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 <script id="ddcard-hbn-parity-patch">
 (function(){
   const DD_LIMITS = {
-    ddHoriz: [330, 674],
-    ddSquare: [370, 674]
+    ddHoriz: [],
+    ddSquare: []
   };
   const DD_GAP = 2;
 
@@ -6248,9 +6310,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   function getDdLimits(prefix){
-    return prefix === 'ddSquare'
-      ? { top: 370, bottom: 674, canvasW: 531, canvasH: 792 }
-      : { top: 330, bottom: 674, canvasW: 531, canvasH: 792 };
+    return { top: 0, bottom: 792, canvasW: 531, canvasH: 792 };
   }
 
   function preserveImageRatio(box, img){
@@ -6275,8 +6335,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     let newLeft = cx - newW / 2;
     let newTop = cy - newH / 2;
 
-    newLeft = clamp(newLeft, 0, limits.canvasW - newW);
-    newTop = clamp(newTop, limits.top, limits.bottom - newH);
+    newLeft = (v=>v)(newLeft, 0, limits.canvasW - newW);
+    newTop = (v=>v)(newTop, 0, limits.canvasH - newH);
 
     box.style.width = newW + 'px';
     box.style.height = newH + 'px';
@@ -6366,119 +6426,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 
-<script id="hbn-hard-product-boundary">
-(function(){
-  function hardClampHbnProducts(){
-    ['editorH','editorS'].forEach(editorId=>{
-      const editor = document.getElementById(editorId);
-      if(!editor) return;
-      const canvas = editor.closest('.canvas');
-      if(!canvas) return;
-      const minX = (typeof getCanvasProductMinX === 'function') ? getCanvasProductMinX(canvas) : (canvas.id === 'square' ? 612 : 547);
-      const maxW = canvas.clientWidth;
-      const maxH = canvas.clientHeight;
-
-      editor.querySelectorAll('.editor-item:not(.editor-bg)').forEach(box=>{
-        const w = box.offsetWidth || parseFloat(box.style.width) || 0;
-        const h = box.offsetHeight || parseFloat(box.style.height) || 0;
-        let left = parseFloat(box.style.left) || 0;
-        let top = parseFloat(box.style.top) || 0;
-
-        if(left < minX) left = minX;
-        if(left + w > maxW) left = Math.max(minX, maxW - w);
-        if(top < 0) top = 0;
-        if(top + h > maxH) top = Math.max(0, maxH - h);
-
-        box.style.left = left + 'px';
-        box.style.top = top + 'px';
-      });
-    });
-  }
-
-  function bindHardClamp(){
-    if(window.__hbnHardClampBound) return;
-    window.__hbnHardClampBound = true;
-
-    document.addEventListener('mouseup', ()=>setTimeout(hardClampHbnProducts, 0), true);
-    window.addEventListener('resize', hardClampHbnProducts);
-    document.addEventListener('DOMContentLoaded', ()=>setTimeout(hardClampHbnProducts, 100));
-    setInterval(hardClampHbnProducts, 500);
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bindHardClamp);
-  }else{
-    bindHardClamp();
-  }
-})();
-</script>
 
 
-<script id="ddcard-hard-top-boundary">
-(function(){
-  function getDdTopLimit(prefix){
-    return prefix === 'ddSquare' ? 370 : 330;
-  }
-  function getDdBottomLimit(prefix){
-    return 674;
-  }
-
-  function hardClampDdProducts(){
-    ['ddHorizProducts','ddSquareProducts'].forEach(rootId=>{
-      const root = document.getElementById(rootId);
-      if(!root) return;
-      const canvas = root.closest('.dd-canvas');
-      if(!canvas) return;
-
-      const prefix = canvas.classList.contains('square') ? 'ddSquare' : 'ddHoriz';
-      const topLimit = getDdTopLimit(prefix);
-      const bottomLimit = getDdBottomLimit(prefix);
-      const maxW = canvas.clientWidth || 531;
-
-      root.querySelectorAll('.dd-product').forEach(box=>{
-        const w = box.offsetWidth || parseFloat(box.style.width) || 0;
-        const h = box.offsetHeight || parseFloat(box.style.height) || 0;
-        let left = parseFloat(box.style.left) || 0;
-        let top = parseFloat(box.style.top) || 0;
-
-        if(left < 0) left = 0;
-        if(left + w > maxW) left = Math.max(0, maxW - w);
-        if(top < topLimit) top = topLimit;
-        if(top + h > bottomLimit) top = Math.max(topLimit, bottomLimit - h);
-
-        box.style.left = left + 'px';
-        box.style.top = top + 'px';
-
-        const key = box.dataset.key;
-        if(window.ddEditState && window.ddEditState[prefix] && window.ddEditState[prefix].products && key){
-          const state = window.ddEditState[prefix].products[key] || {};
-          state.left = left;
-          state.top = top;
-          state.width = w;
-          state.height = h;
-          window.ddEditState[prefix].products[key] = state;
-        }
-      });
-    });
-  }
-
-  function bindDdHardClamp(){
-    if(window.__ddHardClampBound) return;
-    window.__ddHardClampBound = true;
-
-    document.addEventListener('mouseup', ()=>setTimeout(hardClampDdProducts, 0), true);
-    window.addEventListener('resize', hardClampDdProducts);
-    document.addEventListener('DOMContentLoaded', ()=>setTimeout(hardClampDdProducts, 100));
-    setInterval(hardClampDdProducts, 500);
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bindDdHardClamp);
-  }else{
-    bindDdHardClamp();
-  }
-})();
-</script>
 
 
 <style id="export-dd-resize-hide-style">
@@ -9134,179 +9083,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
-<script id="warn-only-no-pushback-20260401">
-(function(){
-  function showGuideWarningFor(box){
-    const canvas = box && box.closest('.canvas');
-    if(!canvas) return;
-    const tip = canvas.querySelector('.guide-warning');
-    if(!tip) return;
-    clearTimeout(tip._hideTimer);
-    tip.classList.add('show');
-    tip._hideTimer = setTimeout(function(){ tip.classList.remove('show'); }, 1400);
-  }
-
-  function showDdGuideWarning(prefix){
-    const tip = document.getElementById(prefix + 'GuideWarning');
-    if(!tip) return;
-    clearTimeout(tip._hideTimer);
-    tip.classList.add('show');
-    tip._hideTimer = setTimeout(function(){ tip.classList.remove('show'); }, 1400);
-  }
-
-  function rectsOverlap(a, b){
-    return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-  }
-
-  function getCanvasProductMinX(canvas){
-    return canvas && canvas.id === 'square' ? 612 : 547;
-  }
-
-  function getCanvasGuideLinesX(canvas){
-    return [getCanvasProductMinX(canvas) - 1];
-  }
-
-  const GUIDE_LINES_Y = [34, 318];
-  const GUIDE_GAP = 2;
-  const CTA_SAFE_MARGIN = 6;
-
-  function getRestrictedRects(canvas, maxW, maxH){
-    const productMinX = getCanvasProductMinX(canvas);
-    const guideLinesX = getCanvasGuideLinesX(canvas);
-
-    const rects = [{
-      left: 0,
-      top: 0,
-      right: productMinX,
-      bottom: maxH,
-      type: 'left-forbidden'
-    }];
-
-    GUIDE_LINES_Y.forEach(function(y){
-      rects.push({
-        left: productMinX,
-        top: y - GUIDE_GAP,
-        right: maxW,
-        bottom: y + GUIDE_GAP,
-        type: 'guide-y'
-      });
-    });
-
-    guideLinesX.forEach(function(x){
-      rects.push({
-        left: x - GUIDE_GAP,
-        top: 0,
-        right: x + GUIDE_GAP,
-        bottom: maxH,
-        type: 'guide-x'
-      });
-    });
-
-    // keep CTA in list only for warning, not pushback
-    canvas.querySelectorAll('.cta').forEach(function(cta){
-      rects.push({
-        left: cta.offsetLeft - CTA_SAFE_MARGIN,
-        top: cta.offsetTop - CTA_SAFE_MARGIN,
-        right: cta.offsetLeft + cta.offsetWidth + CTA_SAFE_MARGIN,
-        bottom: cta.offsetTop + cta.offsetHeight + CTA_SAFE_MARGIN,
-        type: 'cta'
-      });
-    });
-
-    return rects;
-  }
-
-  function clampItemToCanvas(box, maxW, maxH){
-    let left = parseFloat(box.style.left) || 0;
-    let top = parseFloat(box.style.top) || 0;
-    const w = box.offsetWidth || parseFloat(box.style.width) || 0;
-    const h = box.offsetHeight || parseFloat(box.style.height) || 0;
-    left = Math.max(0, Math.min(left, maxW - w));
-    top = Math.max(0, Math.min(top, maxH - h));
-    box.style.left = left + 'px';
-    box.style.top = top + 'px';
-  }
-
-  function avoidRestrictedAreas(box, maxW, maxH){
-    if(!box || box.classList.contains('editor-bg')) return;
-    clampItemToCanvas(box, maxW, maxH);
-    const canvas = box.closest('.canvas');
-    if(!canvas) return;
-
-    const rect = {
-      left: parseFloat(box.style.left) || 0,
-      top: parseFloat(box.style.top) || 0,
-      w: box.offsetWidth || parseFloat(box.style.width) || 0,
-      h: box.offsetHeight || parseFloat(box.style.height) || 0
-    };
-    rect.right = rect.left + rect.w;
-    rect.bottom = rect.top + rect.h;
-
-    const hit = getRestrictedRects(canvas, maxW, maxH).some(function(zone){
-      return rectsOverlap(rect, zone);
-    });
-
-    if(hit) showGuideWarningFor(box);
-  }
-
-  const DD_GUIDE_LINES = {
-    ddHoriz: [330, 674],
-    ddSquare: [370, 674]
-  };
-  const DD_GUIDE_GAP = 2;
-
-  function getDdRestrictedRects(prefix, canvas, maxW, maxH){
-    const ys = DD_GUIDE_LINES[prefix] || [];
-    return ys.map(function(y){
-      return {
-        left: 0,
-        top: y - DD_GUIDE_GAP,
-        right: maxW,
-        bottom: y + DD_GUIDE_GAP,
-        type: 'guide-y'
-      };
-    });
-  }
-
-  function applyHbnLikeDdBounds(prefix, box, state){
-    const canvas = document.getElementById(prefix + 'Canvas');
-    if(!canvas || !box || !state) return;
-    const maxW = canvas.clientWidth || 531;
-    const maxH = canvas.clientHeight || 792;
-
-    const rect = {
-      left: state.left != null ? state.left : (parseFloat(box.style.left) || 0),
-      top: state.top != null ? state.top : (parseFloat(box.style.top) || 0),
-      w: state.width != null ? state.width : (parseFloat(box.style.width) || box.offsetWidth || 0),
-      h: state.height != null ? state.height : (parseFloat(box.style.height) || box.offsetHeight || 0)
-    };
-    rect.right = rect.left + rect.w;
-    rect.bottom = rect.top + rect.h;
-
-    const hit = getDdRestrictedRects(prefix, canvas, maxW, maxH).some(function(zone){
-      return rectsOverlap(rect, zone);
-    });
-
-    // warn only; do not move
-    if(hit) showDdGuideWarning(prefix);
-
-    // keep only canvas bounds
-    rect.left = Math.max(0, Math.min(rect.left, maxW - rect.w));
-    rect.top = Math.max(0, Math.min(rect.top, maxH - rect.h));
-
-    state.left = rect.left;
-    state.top = rect.top;
-    state.width = rect.w;
-    state.height = rect.h;
-  }
-
-  window.showGuideWarningFor = showGuideWarningFor;
-  window.showDdGuideWarning = showDdGuideWarning;
-  window.clampItemToCanvas = clampItemToCanvas;
-  window.avoidRestrictedAreas = avoidRestrictedAreas;
-  window.applyHbnLikeDdBounds = applyHbnLikeDdBounds;
-})();
-</script>
 
 
 
@@ -9882,5 +9658,1102 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script id="hbn-single-drag-manager-final">
+(function(){
+  function setBox(box, left, top, width, height){
+    if(left != null) box.style.left = left + 'px';
+    if(top != null) box.style.top = top + 'px';
+    if(width != null) box.style.width = width + 'px';
+    if(height != null) box.style.height = height + 'px';
+    if(box.dataset){
+      if(width != null) box.dataset.fixedW = String(Math.round(width));
+      if(height != null) box.dataset.fixedH = String(Math.round(height));
+    }
+  }
+
+  function hbnWarnOnly(box){
+    try{
+      if(!box || box.classList.contains('editor-bg') || typeof showGuideWarningFor !== 'function') return;
+      var canvas = box.closest('.canvas');
+      if(!canvas) return;
+      var rect = {
+        left: parseFloat(box.style.left)||0,
+        top: parseFloat(box.style.top)||0,
+        w: box.offsetWidth || parseFloat(box.style.width) || 0,
+        h: box.offsetHeight || parseFloat(box.style.height) || 0
+      };
+      rect.right = rect.left + rect.w;
+      rect.bottom = rect.top + rect.h;
+      var hit = false;
+      var productMinX = (typeof getCanvasProductMinX === 'function') ? getCanvasProductMinX(canvas) : (canvas.id === 'square' ? 612 : 547);
+      var guideXs = (typeof getCanvasGuideLinesX === 'function') ? getCanvasGuideLinesX(canvas) : [productMinX - 1];
+      [34,318].forEach(function(y){
+        if(rect.right > productMinX && rect.top < y + 2 && rect.bottom > y - 2) hit = true;
+      });
+      guideXs.forEach(function(x){
+        if(rect.left < x + 2 && rect.right > x - 2) hit = true;
+      });
+      if(rect.left < productMinX) hit = true;
+      canvas.querySelectorAll('.cta').forEach(function(cta){
+        var zone = {
+          left: cta.offsetLeft - 6,
+          top: cta.offsetTop - 6,
+          right: cta.offsetLeft + cta.offsetWidth + 6,
+          bottom: cta.offsetTop + cta.offsetHeight + 6
+        };
+        if(rect.left < zone.right && rect.right > zone.left && rect.top < zone.bottom && rect.bottom > zone.top) hit = true;
+      });
+      if(hit) showGuideWarningFor(box);
+    }catch(_){}
+  }
+
+  // HBN: warning only, no clamp / no pushback.
+  window.clampItemToCanvas = function(){};
+  window.avoidRestrictedAreas = function(box){ hbnWarnOnly(box); };
+
+  // DDCard: preserve current good no-bounce behavior.
+  window.applyCanvasOnlyDdBounds = function(prefix, box, state){
+    if(!box || !state) return;
+    setBox(
+      box,
+      state.left ?? (parseFloat(box.style.left)||0),
+      state.top ?? (parseFloat(box.style.top)||0),
+      state.width ?? (parseFloat(box.style.width)||box.offsetWidth||0),
+      state.height ?? (parseFloat(box.style.height)||box.offsetHeight||0)
+    );
+  };
+  window.applyHbnLikeDdBounds = function(prefix, box, state){
+    if(!box || !state) return;
+    setBox(
+      box,
+      state.left ?? (parseFloat(box.style.left)||0),
+      state.top ?? (parseFloat(box.style.top)||0),
+      state.width ?? (parseFloat(box.style.width)||box.offsetWidth||0),
+      state.height ?? (parseFloat(box.style.height)||box.offsetHeight||0)
+    );
+    try{
+      var top = parseFloat(box.style.top) || 0;
+      var h = box.offsetHeight || parseFloat(box.style.height) || 0;
+      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
+        showDdGuideWarning(prefix);
+      }
+    }catch(_){}
+  };
+
+  // Single capture-phase HBN drag manager
+  var active = null;
+
+  function isHbnProduct(el){
+    return !!(el && el.classList && el.classList.contains('editor-item') && !el.classList.contains('editor-bg'));
+  }
+
+  function findHbnTarget(start){
+    var el = start;
+    while(el && el !== document.documentElement){
+      if(isHbnProduct(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function onDown(e){
+    var box = findHbnTarget(e.target);
+    if(!box) return;
+    var handle = box.querySelector('.ctrl.resize');
+    var mode = 'drag';
+    if(handle && (e.target === handle || handle.contains(e.target))) mode = 'resize';
+    else if(e.target.classList.contains('ctrl') || e.target.tagName === 'BUTTON') return;
+
+    active = {
+      box: box,
+      mode: mode,
+      sx: e.clientX,
+      sy: e.clientY,
+      left: parseFloat(box.style.left) || 0,
+      top: parseFloat(box.style.top) || 0,
+      width: parseFloat(box.style.width) || box.offsetWidth || 0,
+      height: parseFloat(box.style.height) || box.offsetHeight || 0
+    };
+    active.ratio = active.width / Math.max(1, active.height);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function onMove(e){
+    if(!active) return;
+    var dx = e.clientX - active.sx;
+    var dy = e.clientY - active.sy;
+    if(active.mode === 'drag'){
+      setBox(active.box, active.left + dx, active.top + dy, null, null);
+    }else{
+      var delta = Math.max(dx, dy);
+      var nw = Math.max(20, active.width + delta);
+      var nh = Math.max(20, nw / active.ratio);
+      setBox(active.box, null, null, nw, nh);
+    }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function onUp(e){
+    if(!active) return;
+    hbnWarnOnly(active.box);
+    active = null;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  window.addEventListener('mousedown', onDown, true);
+  window.addEventListener('mousemove', onMove, true);
+  window.addEventListener('mouseup', onUp, true);
+
+  // Visual rule: only products may overflow outside canvas; BG stays clipped.
+  var style = document.createElement('style');
+  style.textContent = `
+    .canvas,.pc-canvas,.dd-canvas{overflow:hidden !important;}
+    .editor,.dd-preview-wrap,.dd-products{overflow:visible !important;}
+    .editor .bg-layer,.editor-item.editor-bg{overflow:hidden !important;}
+    .editor-item:not(.editor-bg), .dd-canvas .dd-product{overflow:visible !important;}
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+
+<script id="hbn-bg-ddstyle-manager">
+(function(){
+  function setBox(box, left, top, width, height){
+    if(!box) return;
+    if(left != null) box.style.left = left + 'px';
+    if(top != null) box.style.top = top + 'px';
+    if(width != null) box.style.width = width + 'px';
+    if(height != null) box.style.height = height + 'px';
+    if(box.dataset){
+      if(width != null) box.dataset.fixedW = String(Math.round(width));
+      if(height != null) box.dataset.fixedH = String(Math.round(height));
+    }
+  }
+
+  var activeBg = null;
+
+  function isHbnBg(el){
+    return !!(el && el.classList && el.classList.contains('editor-item') && el.classList.contains('editor-bg'));
+  }
+
+  function findBgTarget(start){
+    var el = start;
+    while(el && el !== document.documentElement){
+      if(isHbnBg(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function onDown(e){
+    var box = findBgTarget(e.target);
+    if(!box) return;
+
+    var handle = box.querySelector('.ctrl.resize');
+    var mode = 'drag';
+    if(handle && (e.target === handle || handle.contains(e.target))) mode = 'resize';
+    else if(e.target.classList.contains('ctrl') || e.target.tagName === 'BUTTON') return;
+
+    activeBg = {
+      box: box,
+      mode: mode,
+      sx: e.clientX,
+      sy: e.clientY,
+      left: parseFloat(box.style.left) || 0,
+      top: parseFloat(box.style.top) || 0,
+      width: parseFloat(box.style.width) || box.offsetWidth || 0,
+      height: parseFloat(box.style.height) || box.offsetHeight || 0
+    };
+    activeBg.ratio = activeBg.width / Math.max(1, activeBg.height);
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function onMove(e){
+    if(!activeBg) return;
+
+    var dx = e.clientX - activeBg.sx;
+    var dy = e.clientY - activeBg.sy;
+
+    if(activeBg.mode === 'drag'){
+      setBox(activeBg.box, activeBg.left + dx, activeBg.top + dy, null, null);
+    }else{
+      var delta = Math.max(dx, dy);
+      var nw = Math.max(40, activeBg.width + delta);
+      var nh = Math.max(40, nw / activeBg.ratio);
+      setBox(activeBg.box, null, null, nw, nh);
+    }
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function onUp(e){
+    if(!activeBg) return;
+    activeBg = null;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  window.addEventListener('mousedown', onDown, true);
+  window.addEventListener('mousemove', onMove, true);
+  window.addEventListener('mouseup', onUp, true);
+})();
+</script>
+
+
+
+<style id="full-sync-bg-panel-style">
+.hbn-bgscale-host{
+  width:fit-content;
+  margin:0 0 8px auto;
+  display:flex;
+  justify-content:flex-end;
+}
+.hbn-bgscale-host .bg-scale-panel{
+  position:static !important;
+  right:auto !important;
+  top:auto !important;
+  margin:0 !important;
+}
+.dd-preview-wrap{ overflow:visible !important; }
+.dd-products{ overflow:visible !important; }
+.dd-canvas .dd-product{ overflow:visible !important; }
+</style>
+
+<script id="full-sync-final-patch-20260409">
+(function(){
+  function setBox(box, left, top, width, height){
+    if(!box) return;
+    if(left != null) box.style.left = left + 'px';
+    if(top != null) box.style.top = top + 'px';
+    if(width != null) box.style.width = width + 'px';
+    if(height != null) box.style.height = height + 'px';
+    if(box.dataset){
+      if(width != null) box.dataset.fixedW = String(Math.round(width));
+      if(height != null) box.dataset.fixedH = String(Math.round(height));
+    }
+  }
+
+  function movePanelAboveCanvas(canvasId, panelId){
+    var canvas = document.getElementById(canvasId);
+    var panel = document.getElementById(panelId);
+    if(!canvas || !panel) return;
+    if(panel.parentElement && panel.parentElement.classList && panel.parentElement.classList.contains('hbn-bgscale-host')) return;
+    panel.hidden = false;
+    panel.style.removeProperty('display');
+    var host = document.createElement('div');
+    host.className = 'hbn-bgscale-host';
+    canvas.parentNode.insertBefore(host, canvas);
+    host.appendChild(panel);
+  }
+
+  function syncAllPanels(){
+    movePanelAboveCanvas('horiz', 'bgScaleH');
+    movePanelAboveCanvas('square', 'bgScaleS');
+    movePanelAboveCanvas('pcH', 'bgScalePH');
+    movePanelAboveCanvas('pcS', 'bgScalePS');
+  }
+
+  function warnDdOnly(prefix, box){
+    try{
+      var top = parseFloat(box.style.top) || 0;
+      var h = box.offsetHeight || parseFloat(box.style.height) || 0;
+      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
+        showDdGuideWarning(prefix);
+      }
+    }catch(_){ }
+  }
+
+  window.applyCanvasOnlyDdBounds = function(prefix, box, state){
+    if(!box || !state) return;
+    setBox(
+      box,
+      state.left != null ? state.left : (parseFloat(box.style.left) || 0),
+      state.top != null ? state.top : (parseFloat(box.style.top) || 0),
+      state.width != null ? state.width : (parseFloat(box.style.width) || box.offsetWidth || 0),
+      state.height != null ? state.height : (parseFloat(box.style.height) || box.offsetHeight || 0)
+    );
+  };
+  window.applyHbnLikeDdBounds = function(prefix, box, state){
+    window.applyCanvasOnlyDdBounds(prefix, box, state);
+    warnDdOnly(prefix, box);
+  };
+
+  // DDCard capture-phase manager: same interaction feel as HBN, no clamp, warning only.
+  var activeDd = null;
+
+  function isDdProduct(el){
+    return !!(el && el.classList && el.classList.contains('dd-product'));
+  }
+  function findDdTarget(start){
+    var el = start;
+    while(el && el !== document.documentElement){
+      if(isDdProduct(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function ddDown(e){
+    var box = findDdTarget(e.target);
+    if(!box) return;
+    var rect = box.getBoundingClientRect();
+    var nearHandle = (e.clientX >= rect.right - 18) && (e.clientY >= rect.bottom - 18);
+    var prefix = box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
+    activeDd = {
+      box: box,
+      prefix: prefix,
+      mode: nearHandle ? 'resize' : 'drag',
+      sx: e.clientX,
+      sy: e.clientY,
+      left: parseFloat(box.style.left) || 0,
+      top: parseFloat(box.style.top) || 0,
+      width: parseFloat(box.style.width) || box.offsetWidth || 0,
+      height: parseFloat(box.style.height) || box.offsetHeight || 0
+    };
+    activeDd.ratio = activeDd.width / Math.max(1, activeDd.height);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function ddMove(e){
+    if(!activeDd) return;
+    var dx = e.clientX - activeDd.sx;
+    var dy = e.clientY - activeDd.sy;
+    var state = {
+      left: activeDd.left,
+      top: activeDd.top,
+      width: activeDd.width,
+      height: activeDd.height
+    };
+    if(activeDd.mode === 'drag'){
+      state.left = activeDd.left + dx;
+      state.top = activeDd.top + dy;
+    }else{
+      var delta = Math.max(dx, dy);
+      state.width = Math.max(60, activeDd.width + delta);
+      state.height = Math.max(60, state.width / activeDd.ratio);
+    }
+    setBox(activeDd.box, state.left, state.top, state.width, state.height);
+    if(window.ddEditState && window.ddEditState[activeDd.prefix] && window.ddEditState[activeDd.prefix].products && activeDd.box.dataset.key){
+      window.ddEditState[activeDd.prefix].products[activeDd.box.dataset.key] = state;
+    }
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  function ddUp(e){
+    if(!activeDd) return;
+    warnDdOnly(activeDd.prefix, activeDd.box);
+    activeDd = null;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }
+
+  window.addEventListener('mousedown', ddDown, true);
+  window.addEventListener('mousemove', ddMove, true);
+  window.addEventListener('mouseup', ddUp, true);
+
+  function init(){
+    syncAllPanels();
+    setTimeout(syncAllPanels, 60);
+    setTimeout(syncAllPanels, 300);
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
+
+<style id="hide-extra-pc-square-preview">
+#pcS, #bgScalePS{display:none !important;}
+</style>
+
+<style id="hbn-bgscale-ddcard-style-sync">
+.hbn-bgscale-host{
+  position:relative;
+  margin:6px 0 6px;
+  display:flex;
+  justify-content:flex-end;
+  z-index:20;
+}
+.hbn-bgscale-host .bg-scale-panel,
+.hbn-bgscale-topbar.bg-scale-panel,
+#bgScaleH,
+#bgScaleS,
+#bgScalePH,
+#bgScalePS{
+  position:relative !important;
+  right:auto !important;
+  top:auto !important;
+  left:auto !important;
+  margin:0 !important;
+  display:flex !important;
+  gap:6px !important;
+  align-items:center !important;
+  background:rgba(17,17,17,.72) !important;
+  color:#fff !important;
+  border-radius:10px !important;
+  padding:6px 8px !important;
+  font-size:12px !important;
+  width:auto !important;
+}
+.hbn-bgscale-host .bg-scale-panel button,
+.hbn-bgscale-topbar.bg-scale-panel button,
+#bgScaleH button,
+#bgScaleS button,
+#bgScalePH button,
+#bgScalePS button{
+  border:0 !important;
+  border-radius:6px !important;
+  background:#fff !important;
+  color:#111 !important;
+  cursor:pointer !important;
+  padding:4px 8px !important;
+}
+.hbn-bgscale-host .bg-scale-panel .tag,
+.hbn-bgscale-topbar.bg-scale-panel .tag,
+#bgScaleH .tag,
+#bgScaleS .tag,
+#bgScalePH .tag,
+#bgScalePS .tag{
+  background:#222 !important;
+  color:#fff !important;
+  border-radius:6px !important;
+  padding-right:6px !important;
+  font-weight:700 !important;
+}
+#banwordStatusNotice{
+  position:fixed;
+  top:20px;
+  right:20px;
+  z-index:100003;
+  min-width:280px;
+  max-width:380px;
+  background:rgba(17,17,17,.94);
+  color:#fff;
+  padding:12px 14px;
+  border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+  font-size:13px;
+  line-height:1.45;
+  display:none;
+}
+#banwordStatusNotice.is-ok{background:rgba(22,163,74,.96);}
+#banwordStatusNotice.is-warn{background:rgba(220,38,38,.96);}
+#banwordStatusNotice .title{font-weight:700;margin:0 24px 4px 0;}
+#banwordStatusNotice .meta{opacity:.92;font-size:12px;}
+#banwordStatusNotice .actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;}
+#banwordStatusNotice button{
+  border:0;
+  border-radius:8px;
+  background:#fff;
+  color:#111;
+  padding:6px 10px;
+  cursor:pointer;
+}
+#banwordStatusNotice .close{
+  position:absolute;
+  top:8px;
+  right:10px;
+  border:0;
+  background:transparent;
+  color:#fff;
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+  padding:0;
+}
+</style>
+<script id="banword-status-fixed-patch">
+(function(){
+  var state = { loaded:false, count:null, warned:false };
+  function ensureNotice(){
+    var box = document.getElementById('banwordStatusNotice');
+    if(box) return box;
+    box = document.createElement('div');
+    box.id = 'banwordStatusNotice';
+    box.innerHTML = '' +
+      '<button type="button" class="close" aria-label="關閉">×</button>' +
+      '<div class="title">禁用語狀態</div>' +
+      '<div class="body"></div>' +
+      '<div class="meta"></div>' +
+      '<div class="actions"></div>';
+    document.body.appendChild(box);
+    box.querySelector('.close').addEventListener('click', function(){ box.style.display = 'none'; });
+    return box;
+  }
+  function setNotice(kind, body, meta, showPicker){
+    var box = ensureNotice();
+    box.classList.remove('is-ok','is-warn');
+    if(kind) box.classList.add(kind);
+    box.querySelector('.body').textContent = body || '';
+    box.querySelector('.meta').textContent = meta || '';
+    var actions = box.querySelector('.actions');
+    actions.innerHTML = '';
+    if(showPicker){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '手動選取禁用語.xlsx';
+      btn.addEventListener('click', function(){
+        var input = document.getElementById('excelManualInput');
+        if(input){
+          try{ if(typeof input.showPicker === 'function') input.showPicker(); else input.click(); }catch(_){ input.click(); }
+        }
+      });
+      actions.appendChild(btn);
+    }
+    box.style.display = 'block';
+  }
+  function markLoaded(count, source){
+    state.loaded = true;
+    state.count = count;
+    setNotice('is-ok', '禁用語已載入 ' + count + ' 條', source || '來源：禁用語.xlsx', false);
+  }
+  function markFailed(reason){
+    state.loaded = false;
+    state.warned = true;
+    setNotice('is-warn', '禁用語尚未載入，請立即手動選取 Excel。', reason || '若直接雙擊 HTML 開啟，瀏覽器通常會擋掉本機 Excel fetch。', true);
+  }
+  var checker = setInterval(function(){
+    if(state.loaded){ clearInterval(checker); return; }
+    if(window.banwordEngine && Array.isArray(window.banwordEngine.rules) && window.banwordEngine.rules.length){
+      markLoaded(window.banwordEngine.rules.length, '來源：目前頁面 banwordEngine 規則');
+      clearInterval(checker);
+    }
+  }, 500);
+  setTimeout(function(){
+    if(!state.loaded) markFailed('讀取 ./禁用語.xlsx 失敗或尚未完成。右側按鈕可手動補載。');
+  }, 2200);
+  function patchLoader(){
+    if(!window.banwordEngine || typeof window.banwordEngine.loadRulesFromExcelArrayBuffer !== 'function' || window.__banwordStatusPatched) return;
+    window.__banwordStatusPatched = true;
+    var oldLoad = window.banwordEngine.loadRulesFromExcelArrayBuffer;
+    window.banwordEngine.loadRulesFromExcelArrayBuffer = function(){
+      var result = oldLoad.apply(this, arguments);
+      var count = Array.isArray(result) ? result.length : (Array.isArray(window.banwordEngine.rules) ? window.banwordEngine.rules.length : 0);
+      if(count > 0){ markLoaded(count, '來源：禁用語.xlsx（工作表：禁用語）'); }
+      return result;
+    };
+  }
+  function init(){
+    ensureNotice();
+    patchLoader();
+    var obs = new MutationObserver(function(){ patchLoader(); });
+    obs.observe(document.documentElement, { childList:true, subtree:true });
+    window.addEventListener('error', function(e){
+      if((e && e.message && e.message.indexOf('禁用語.xlsx') !== -1) || (e && e.filename && e.filename.indexOf('禁用語') !== -1)){
+        markFailed('禁用語 Excel 載入失敗：' + (e.message || '未知錯誤'));
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      var msg = '';
+      try{ msg = (e.reason && (e.reason.message || String(e.reason))) || ''; }catch(_){ }
+      if(msg.indexOf('禁用語.xlsx') !== -1 || msg.indexOf('HTTP') !== -1){
+        markFailed('禁用語 Excel 載入失敗：' + msg);
+      }
+    });
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+
+<script id="history-undo-redo-manager">
+(function(){
+  const MAX_HISTORY = 60;
+  let undoStack = [];
+  let redoStack = [];
+  let isRestoringHistory = false;
+  let baselineCaptured = false;
+  let debounceTimer = null;
+  let pointerDown = false;
+
+  function cloneState(state){
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  function getState(){
+    if(typeof captureState !== 'function') return null;
+    return cloneState(captureState());
+  }
+
+  function statesEqual(a, b){
+    try{
+      return JSON.stringify(a) === JSON.stringify(b);
+    }catch(_){
+      return false;
+    }
+  }
+
+  function updateButtons(){
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    if(undoBtn) undoBtn.disabled = undoStack.length <= 1;
+    if(redoBtn) redoBtn.disabled = redoStack.length === 0;
+  }
+
+  function pushHistory(label){
+    if(isRestoringHistory) return;
+    const state = getState();
+    if(!state) return;
+
+    const last = undoStack.length ? undoStack[undoStack.length - 1] : null;
+    if(last && statesEqual(last.state, state)){
+      updateButtons();
+      return;
+    }
+
+    undoStack.push({
+      label: label || 'edit',
+      at: Date.now(),
+      state: state
+    });
+
+    if(undoStack.length > MAX_HISTORY){
+      undoStack = undoStack.slice(undoStack.length - MAX_HISTORY);
+    }
+    redoStack = [];
+    updateButtons();
+  }
+
+  function debouncePush(label, wait){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function(){
+      pushHistory(label || 'edit');
+    }, wait || 400);
+  }
+
+  function restoreEntry(entry){
+    if(!entry || !entry.state || typeof applyJsonState !== 'function') return;
+    isRestoringHistory = true;
+    try{
+      applyJsonState(cloneState(entry.state), { silent: true });
+    } finally {
+      setTimeout(function(){
+        isRestoringHistory = false;
+        updateButtons();
+      }, 120);
+    }
+  }
+
+  function undo(){
+    if(undoStack.length <= 1) return;
+    const current = undoStack.pop();
+    redoStack.push(current);
+    const prev = undoStack[undoStack.length - 1];
+    restoreEntry(prev);
+  }
+
+  function redo(){
+    if(!redoStack.length) return;
+    const next = redoStack.pop();
+    undoStack.push(next);
+    restoreEntry(next);
+  }
+
+  window.__historyAfterRestore = function(){
+    updateButtons();
+  };
+
+  function bindButtons(){
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    if(undoBtn && !undoBtn.dataset.bound){
+      undoBtn.dataset.bound = '1';
+      undoBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        undo();
+      });
+    }
+    if(redoBtn && !redoBtn.dataset.bound){
+      redoBtn.dataset.bound = '1';
+      redoBtn.addEventListener('click', function(e){
+        e.preventDefault();
+        redo();
+      });
+    }
+  }
+
+  function bindKeyboard(){
+    if(document.documentElement.dataset.historyHotkeysBound === '1') return;
+    document.documentElement.dataset.historyHotkeysBound = '1';
+
+    document.addEventListener('keydown', function(e){
+      const key = String(e.key || '').toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      if(!mod) return;
+      if(key === 'z' && !e.shiftKey){
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if((key === 'z' && e.shiftKey) || key === 'y'){
+        e.preventDefault();
+        redo();
+      }
+    });
+  }
+
+  function bindInputs(){
+    document.addEventListener('input', function(e){
+      const t = e.target;
+      if(isRestoringHistory || !t) return;
+      if(t.matches('[contenteditable="true"]')){
+        debouncePush('text', 500);
+      }else if(t.matches('input[type="color"], input[type="checkbox"], input[type="range"], input[type="text"]')){
+        debouncePush('form', 250);
+      }
+    }, true);
+
+    document.addEventListener('change', function(e){
+      const t = e.target;
+      if(isRestoringHistory || !t) return;
+      if(t.matches('input[type="file"]')){
+        setTimeout(function(){ pushHistory('upload'); }, 180);
+      }else if(t.matches('input, select, textarea')){
+        setTimeout(function(){ pushHistory('change'); }, 120);
+      }
+    }, true);
+
+    document.addEventListener('click', function(e){
+      const el = e.target && e.target.closest ? e.target.closest(
+        '.toggle-tag,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,#eraseApply,#cropConfirm,#eraseReset,#jsonImportBtn,#jsonExport,.bg-scale-panel button,.dd-bg-scale-panel button,.fs-btn,.lh-btn,.mg-btn,.ls-btn'
+      ) : null;
+      if(!el || isRestoringHistory) return;
+      setTimeout(function(){ pushHistory('button'); }, 180);
+    }, true);
+  }
+
+  function bindPointerCommit(){
+    if(document.documentElement.dataset.historyPointerBound === '1') return;
+    document.documentElement.dataset.historyPointerBound = '1';
+
+    window.addEventListener('mousedown', function(e){
+      const target = e.target;
+      if(!target || !target.closest) return;
+      if(target.closest('.editor-item,.dd-product,.editor-bg,.brand,.logo-item,#shadowModalBox')){
+        pointerDown = true;
+      }
+    }, true);
+
+    window.addEventListener('mouseup', function(){
+      if(!pointerDown || isRestoringHistory) return;
+      pointerDown = false;
+      setTimeout(function(){ pushHistory('move'); }, 120);
+    }, true);
+  }
+
+  function initBaseline(){
+    if(baselineCaptured) return;
+    baselineCaptured = true;
+    pushHistory('initial');
+  }
+
+  function init(){
+    bindButtons();
+    bindKeyboard();
+    bindInputs();
+    bindPointerCommit();
+    setTimeout(initBaseline, 300);
+    setTimeout(updateButtons, 350);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+<script id="history-bootstrap-fix">
+(function(){
+  function kick(){
+    if(typeof window.captureState !== 'function' || typeof window.applyJsonState !== 'function') return false;
+    try{
+      var undoBtn = document.getElementById('undoBtn');
+      var redoBtn = document.getElementById('redoBtn');
+      if(undoBtn) undoBtn.disabled = false; // history manager will recalc immediately after push
+      if(redoBtn) redoBtn.disabled = true;
+      document.dispatchEvent(new Event('input', {bubbles:true}));
+    }catch(_){}
+    return true;
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(kick, 100);
+      setTimeout(kick, 400);
+    });
+  }else{
+    setTimeout(kick, 100);
+    setTimeout(kick, 400);
+  }
+})();
+</script>
+
 </body>
 </html>
+
+<style id="hbn-bgscale-topbar-fix">
+  .hbn-bgscale-topbar{
+    position:relative !important;
+    top:auto !important;
+    right:auto !important;
+    left:auto !important;
+    margin:8px 0 6px !important;
+    display:flex !important;
+    justify-content:flex-end !important;
+    z-index:20 !important;
+  }
+</style>
+
+<script id="hbn-bgscale-topbar-fix-script">
+(function(){
+  function movePanelAboveCanvas(panelId, canvasId){
+    var panel = document.getElementById(panelId);
+    var canvas = document.getElementById(canvasId);
+    if(!panel || !canvas) return;
+    if(panel.dataset.movedAboveCanvas === '1') return;
+    panel.hidden = false;
+    panel.classList.add('hbn-bgscale-topbar');
+    canvas.parentNode.insertBefore(panel, canvas);
+    panel.dataset.movedAboveCanvas = '1';
+  }
+
+  function apply(){
+    movePanelAboveCanvas('bgScaleH', 'horiz');
+    movePanelAboveCanvas('bgScaleS', 'square');
+    movePanelAboveCanvas('bgScalePH', 'pcH');
+    movePanelAboveCanvas('bgScalePS', 'pcS');
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', apply);
+  }else{
+    apply();
+  }
+  setTimeout(apply, 100);
+  setTimeout(apply, 500);
+})();
+</script>
+
+
+<style id="hbn-bgscale-ddcard-rightalign-final">
+  .hbn-bgscale-host,
+  .hbn-bgscale-topbar,
+  .hbn-bgscale-topbar.bg-scale-panel{
+    width:100% !important;
+    display:flex !important;
+    justify-content:flex-end !important;
+    align-items:center !important;
+    margin:6px 0 !important;
+    position:relative !important;
+    z-index:20 !important;
+  }
+
+  #bgScaleH,
+  #bgScaleS,
+  #bgScalePH,
+  #bgScalePS,
+  .hbn-bgscale-host .bg-scale-panel,
+  .hbn-bgscale-topbar.bg-scale-panel{
+    position:relative !important;
+    left:auto !important;
+    right:auto !important;
+    top:auto !important;
+    margin:0 !important;
+    display:flex !important;
+    justify-content:flex-end !important;
+    align-items:center !important;
+    gap:6px !important;
+    background:rgba(17,17,17,.72) !important;
+    color:#fff !important;
+    border-radius:10px !important;
+    padding:6px 8px !important;
+    font-size:12px !important;
+    width:auto !important;
+    box-shadow:none !important;
+  }
+
+  #bgScaleH button,
+  #bgScaleS button,
+  #bgScalePH button,
+  #bgScalePS button,
+  .hbn-bgscale-host .bg-scale-panel button,
+  .hbn-bgscale-topbar.bg-scale-panel button{
+    border:0 !important;
+    border-radius:6px !important;
+    background:#fff !important;
+    color:#111 !important;
+    cursor:pointer !important;
+    padding:4px 8px !important;
+    box-shadow:none !important;
+  }
+
+  #bgScaleH .tag,
+  #bgScaleS .tag,
+  #bgScalePH .tag,
+  #bgScalePS .tag,
+  .hbn-bgscale-host .bg-scale-panel .tag,
+  .hbn-bgscale-topbar.bg-scale-panel .tag{
+    background:#222 !important;
+    color:#fff !important;
+    border-radius:6px !important;
+    padding-right:6px !important;
+    font-weight:700 !important;
+  }
+</style>
+
+<script id="banword-status-autohide-final">
+(function(){
+  var hideTimer = null;
+  var lastMode = '';
+
+  function ensureNotice(){
+    var box = document.getElementById('banwordStatusNotice');
+    if(box) return box;
+    box = document.createElement('div');
+    box.id = 'banwordStatusNotice';
+    box.innerHTML = '' +
+      '<button type="button" class="close" aria-label="關閉">×</button>' +
+      '<div class="title">禁用語狀態</div>' +
+      '<div class="body"></div>' +
+      '<div class="meta"></div>' +
+      '<div class="actions"></div>';
+    document.body.appendChild(box);
+    box.querySelector('.close').addEventListener('click', function(){
+      box.style.display = 'none';
+      clearTimeout(hideTimer);
+    });
+    return box;
+  }
+
+  function showNotice(mode, body, meta, persistent){
+    var box = ensureNotice();
+    clearTimeout(hideTimer);
+    box.classList.remove('is-ok','is-warn');
+    box.classList.add(mode === 'ok' ? 'is-ok' : 'is-warn');
+    box.querySelector('.body').textContent = body || '';
+    box.querySelector('.meta').textContent = meta || '';
+    var actions = box.querySelector('.actions');
+    actions.innerHTML = '';
+    if(mode !== 'ok'){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '手動選取禁用語.xlsx';
+      btn.addEventListener('click', function(){
+        var input = document.getElementById('excelManualInput');
+        if(input){
+          try{ if(typeof input.showPicker === 'function') input.showPicker(); else input.click(); }catch(_){ try{ input.click(); }catch(__){} }
+        }
+      });
+      actions.appendChild(btn);
+    }
+    box.style.display = 'block';
+    lastMode = mode;
+    if(!persistent){
+      hideTimer = setTimeout(function(){
+        if(lastMode === mode) box.style.display = 'none';
+      }, 4000);
+    }
+  }
+
+  function loadedCount(){
+    try{
+      if(window.banwordEngine && Array.isArray(window.banwordEngine.rules) && window.banwordEngine.rules.length){
+        return window.banwordEngine.rules.length;
+      }
+    }catch(_){ }
+    return 0;
+  }
+
+  function markLoaded(source){
+    var count = loadedCount();
+    if(!count) return;
+    showNotice('ok', '禁用語已載入 ' + count + ' 條', source || '來源：禁用語.xlsx（工作表：禁用語）', false);
+  }
+
+  function markFailed(reason){
+    if(loadedCount()){
+      markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
+      return;
+    }
+    showNotice('warn', '禁用語尚未載入，請立即手動選取 Excel。', reason || '讀取 ./禁用語.xlsx 失敗或尚未完成。', true);
+  }
+
+  function patchLoader(){
+    if(!window.banwordEngine || typeof window.banwordEngine.loadRulesFromExcelArrayBuffer !== 'function' || window.__banwordStatusAutoHidePatched) return;
+    window.__banwordStatusAutoHidePatched = true;
+    var oldLoad = window.banwordEngine.loadRulesFromExcelArrayBuffer;
+    window.banwordEngine.loadRulesFromExcelArrayBuffer = function(){
+      var result = oldLoad.apply(this, arguments);
+      setTimeout(function(){ markLoaded('來源：禁用語.xlsx（工作表：禁用語）'); }, 0);
+      return result;
+    };
+  }
+
+  function init(){
+    ensureNotice();
+    patchLoader();
+
+    var obs = new MutationObserver(function(){ patchLoader(); });
+    obs.observe(document.documentElement, { childList:true, subtree:true });
+
+    setTimeout(function(){
+      if(loadedCount()) markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
+      else markFailed('讀取 ./禁用語.xlsx 失敗或尚未完成。若直接雙擊 HTML 開啟，請改用右上角按鈕手動補載。');
+    }, 2300);
+
+    var checker = setInterval(function(){
+      if(loadedCount()){
+        markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
+        clearInterval(checker);
+      }
+    }, 500);
+
+    window.addEventListener('error', function(e){
+      var msg = '';
+      try{ msg = (e && (e.message || '')) || ''; }catch(_){ }
+      if(msg.indexOf('禁用語.xlsx') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
+    });
+
+    window.addEventListener('unhandledrejection', function(e){
+      var msg = '';
+      try{ msg = (e.reason && (e.reason.message || String(e.reason))) || ''; }catch(_){ }
+      if(msg.indexOf('禁用語.xlsx') !== -1 || msg.indexOf('HTTP') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
+    });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
