@@ -5367,9 +5367,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function getProductSrcs(editorId){
     const editor = document.getElementById(editorId);
     if(!editor) return [];
-    return Array.from(editor.querySelectorAll('.editor-item:not(.editor-bg) img'))
-      .map(img => img.getAttribute('src') || '')
-      .filter(Boolean);
+    return Array.from(editor.querySelectorAll('.editor-item:not(.editor-bg)')).map((box, idx) => {
+      const img = box.querySelector('img');
+      const src = img ? (img.getAttribute('src') || '') : '';
+      const pid = box.dataset && box.dataset.pid ? box.dataset.pid : ('idx-' + idx);
+      return { pid, src };
+    }).filter(item => item.src);
   }
 
   function getLogoSrcs(kind){
@@ -5569,11 +5572,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function applyProductState(box, state){
     const prefix = box && box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
-    avoidDdRestrictedAreas(prefix, box, state);
     if(state.left != null) box.style.left = state.left + 'px';
     if(state.top != null) box.style.top = state.top + 'px';
     if(state.width != null) box.style.width = state.width + 'px';
     if(state.height != null) box.style.height = state.height + 'px';
+    try{
+      const ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      const top = parseFloat(box.style.top) || 0;
+      const h = box.offsetHeight || parseFloat(box.style.height) || 0;
+      if(ys.some(y => top < y + 2 && (top + h) > y - 2) && typeof showDdGuideWarning === 'function'){
+        showDdGuideWarning(prefix);
+      }
+    }catch(_){}
   }
 
   function bindProductEditing(prefix, box, key){
@@ -5636,9 +5646,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const slots = getSlots(normalized.length);
     const current = new Map(Array.from(root.querySelectorAll('.dd-product')).map(n => [n.dataset.key, n]));
 
-    normalized.forEach((src, idx) => {
-      const key = idx + '|' + src;
+    normalized.forEach((item, idx) => {
+      const src = item && typeof item === 'object' ? item.src : item;
+      const stableId = item && typeof item === 'object' ? (item.pid || ('idx-' + idx)) : ('idx-' + idx);
+      const key = stableId;
       let box = current.get(key);
+
       if(!box){
         box = document.createElement('div');
         box.className = 'dd-product';
@@ -5662,6 +5675,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           height: defaultSlot.height
         };
       }
+
       applyProductState(box, ddEditState[prefix].products[key]);
       bindProductEditing(prefix, box, key);
       current.delete(key);
@@ -10516,6 +10530,59 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }else{
     setTimeout(kick, 100);
     setTimeout(kick, 400);
+  }
+})();
+</script>
+
+
+<script id="ddcard-no-bounce-on-sync-fix">
+(function(){
+  function ddWarnOnly(prefix, box){
+    try{
+      var top = parseFloat(box.style.top) || 0;
+      var h = box.offsetHeight || parseFloat(box.style.height) || 0;
+      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
+        showDdGuideWarning(prefix);
+      }
+    }catch(_){}
+  }
+
+  // 關鍵修正：
+  // DDCard 在任何同步（文案、顏色、聯動畫布刷新）時，都不要再把曝品 clamp 回畫布內。
+  window.avoidDdRestrictedAreas = function(prefix, box, state){
+    if(!box || !state) return;
+    if(state.left != null) box.style.left = state.left + 'px';
+    if(state.top != null) box.style.top = state.top + 'px';
+    if(state.width != null) box.style.width = state.width + 'px';
+    if(state.height != null) box.style.height = state.height + 'px';
+    ddWarnOnly(prefix, box);
+  };
+
+  window.applyProductState = function(box, state){
+    var prefix = box && box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
+    if(!box || !state) return;
+    if(state.left != null) box.style.left = state.left + 'px';
+    if(state.top != null) box.style.top = state.top + 'px';
+    if(state.width != null) box.style.width = state.width + 'px';
+    if(state.height != null) box.style.height = state.height + 'px';
+    ddWarnOnly(prefix, box);
+  };
+})();
+</script>
+
+
+<script id="ddcard-stable-key-postfix">
+(function(){
+  function run(){
+    try{
+      if(typeof window.syncDdLinkedCanvases === 'function') window.syncDdLinkedCanvases();
+    }catch(_){}
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(run, 120); });
+  }else{
+    setTimeout(run, 120);
   }
 })();
 </script>
