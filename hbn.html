@@ -12,7 +12,8 @@
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
 <!-- DOM → Canvas 擷圖（輸出 JPG 用） -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
 // 英文數字額外上移（安全版）
 function wrapEnUp(el){
   if(!el) return;
@@ -27,7 +28,6 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     wrapEnUp(el);
   });
 });
-
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="./banwords-engine-hbn.js"></script>
@@ -2224,10 +2224,10 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   const mgPanel = document.getElementById('mgPanel');
   const lsPanel = document.getElementById('lsPanel');
 
-  function updateFs(){ const val = activeEl ? Math.round(parseFloat(getComputedStyle(activeEl).fontSize)) + 'px' : '--'; fsPanel.querySelector('.fs-val').textContent = val; }
-  function updateLh(){ const cs = activeEl ? getComputedStyle(activeEl) : null; lhPanel.querySelector('.lh-val').textContent = cs ? Math.round(parseFloat(cs.lineHeight || (1.2*parseFloat(cs.fontSize)))) + 'px' : '--'; }
-  function updateMg(){ const mt = activeEl ? getComputedStyle(activeEl).marginTop : null; mgPanel.querySelector('.mg-val').textContent = activeEl ? Math.round(parseFloat(mt || '0')) + 'px' : '--'; }
-  function updateLs(){ if(!activeEl){ lsPanel.querySelector('.ls-val').textContent='--'; return; } let ls = getComputedStyle(activeEl).letterSpacing; if(ls==='normal'||!ls) ls='0px'; lsPanel.querySelector('.ls-val').textContent = Math.round(parseFloat(ls)) + 'px'; }
+  function updateFs(){ const val = activeEl ? Math.round(parseFloat(getComputedStyle(activeEl).fontSize)) + 'px' : '--'; const n = fsPanel && fsPanel.querySelector ? fsPanel.querySelector('.fs-val') : null; if(n) n.textContent = val; }
+  function updateLh(){ const cs = activeEl ? getComputedStyle(activeEl) : null; const n = lhPanel && lhPanel.querySelector ? lhPanel.querySelector('.lh-val') : null; if(n) n.textContent = cs ? Math.round(parseFloat(cs.lineHeight || (1.2*parseFloat(cs.fontSize)))) + 'px' : '--'; }
+  function updateMg(){ const mt = activeEl ? getComputedStyle(activeEl).marginTop : null; const n = mgPanel && mgPanel.querySelector ? mgPanel.querySelector('.mg-val') : null; if(n) n.textContent = activeEl ? Math.round(parseFloat(mt || '0')) + 'px' : '--'; }
+  function updateLs(){ const n = lsPanel && lsPanel.querySelector ? lsPanel.querySelector('.ls-val') : null; if(!n) return; if(!activeEl){ n.textContent='--'; return; } let ls = getComputedStyle(activeEl).letterSpacing; if(ls==='normal'||!ls) ls='0px'; n.textContent = Math.round(parseFloat(ls)) + 'px'; }
 
   const floatMeter = document.getElementById('floatMeter');
   function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\n/g,''); }
@@ -2255,7 +2255,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   function isCTA(el){ return el && el.closest('.cta'); }
 
-  fsPanel.querySelectorAll('.fs-btn').forEach(btn=>{
+  if(fsPanel && fsPanel.querySelectorAll) fsPanel.querySelectorAll('.fs-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
       const delta = Number(btn.dataset.delta||0);
       const cur = parseFloat(getComputedStyle(activeEl).fontSize)||36;
@@ -2264,7 +2264,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       updateFs(); updateLh(); showFloatMeter(activeEl);
     });
   });
-  lhPanel.querySelectorAll('.lh-btn').forEach(btn=>{
+  if(lhPanel && lhPanel.querySelectorAll) lhPanel.querySelectorAll('.lh-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
       const delta = Number(btn.dataset.delta||0);
       const cs = getComputedStyle(activeEl);
@@ -2274,7 +2274,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       updateLh(); showFloatMeter(activeEl);
     });
   });
-  mgPanel.querySelectorAll('.mg-btn').forEach(btn=>{
+  if(mgPanel && mgPanel.querySelectorAll) mgPanel.querySelectorAll('.mg-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
       const delta = Number(btn.dataset.delta||0);
       const cur = parseFloat(getComputedStyle(activeEl).marginTop)||0;
@@ -2283,7 +2283,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       updateMg(); showFloatMeter(activeEl);
     });
   });
-  lsPanel.querySelectorAll('.ls-btn').forEach(btn=>{
+  if(lsPanel && lsPanel.querySelectorAll) lsPanel.querySelectorAll('.ls-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{ if(!activeEl || isCTA(activeEl)) return;
       const delta = Number(btn.dataset.delta||0);
       let cur = getComputedStyle(activeEl).letterSpacing;
@@ -2295,11 +2295,11 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   });
 
   /* 關閉文案底圖開關 */
-  document.getElementById('toggleUnderlayH').addEventListener('change', (e)=>{
+  var __toggleUnderlayH = document.getElementById('toggleUnderlayH'); if(__toggleUnderlayH) __toggleUnderlayH.addEventListener('change', (e)=>{
     document.getElementById('horiz').classList.toggle('no-underlay', e.target.checked);
     document.getElementById('pcH')?.classList.toggle('no-underlay', e.target.checked);
   });
-  document.getElementById('toggleUnderlayS').addEventListener('change', (e)=>{
+  var __toggleUnderlayS = document.getElementById('toggleUnderlayS'); if(__toggleUnderlayS) __toggleUnderlayS.addEventListener('change', (e)=>{
     document.getElementById('square').classList.toggle('no-underlay', e.target.checked);
     document.getElementById('pcS')?.classList.toggle('no-underlay', e.target.checked);
   });
@@ -6715,9 +6715,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     wrap.style.maxWidth = '360px';
     wrap.style.display = 'none';
     wrap.innerHTML = '' +
-      '<div style="font-weight:700;margin-bottom:6px;">讀取 ./禁用語.xlsx 失敗</div>' +
-      '<div style="margin-bottom:8px;">若你是直接雙擊 HTML 開啟，瀏覽器通常會擋掉本機 Excel 的 fetch。請按下方按鈕手動選取同層的「禁用語.xlsx」。</div>' +
-      '<button type="button" id="excelManualBtn" style="border:0;background:#fff;color:#111;padding:6px 10px;border-radius:8px;cursor:pointer;">手動選取禁用語.xlsx</button>' +
+      '<div style="font-weight:700;margin-bottom:6px;">讀取 ./banwords.xlsx 失敗</div>' +
+      '<div style="margin-bottom:8px;">若你是直接雙擊 HTML 開啟，瀏覽器通常會擋掉本機 Excel 的 fetch。請按下方按鈕手動選取同層的「banwords.xlsx」。</div>' +
+      '<button type="button" id="excelManualBtn" style="border:0;background:#fff;color:#111;padding:6px 10px;border-radius:8px;cursor:pointer;">手動選取banwords.xlsx</button>' +
       '<input type="file" id="excelManualInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none">';
     document.body.appendChild(wrap);
     wrap.querySelector('#excelManualBtn').addEventListener('click', function(){
@@ -6730,10 +6730,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
         var buf = await file.arrayBuffer();
         var rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
         console.log('禁用語已從手動選取 Excel 載入，共 ' + (Array.isArray(rules) ? rules.length : 0) + ' 條（工作表：禁用語）');
-        if(typeof showToast === 'function') showToast('已手動載入禁用語.xlsx', 'ok', 2200);
+        if(typeof showToast === 'function') showToast('已手動載入banwords.xlsx', 'ok', 2200);
         wrap.style.display = 'none';
       }catch(err){
-        console.error('手動載入禁用語.xlsx 失敗', err);
+        console.error('手動載入banwords.xlsx 失敗', err);
         if(typeof showToast === 'function') showToast('手動載入 Excel 失敗', 'err', 2200);
       }
     });
@@ -6741,8 +6741,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   async function fetchBanwordWorkbook(){
-    var res = await fetch('./禁用語.xlsx', { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ./禁用語.xlsx');
+    var res = await fetch('./banwords.xlsx', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ./banwords.xlsx');
     return await res.arrayBuffer();
   }
 
@@ -6753,12 +6753,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
       var buf = await fetchBanwordWorkbook();
       var rules = window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
       if(Array.isArray(rules) && rules.length){
-        console.log('禁用語已從 Excel 載入，共 ' + rules.length + ' 條（來源：./禁用語.xlsx；工作表：禁用語）');
+        console.log('禁用語已從 Excel 載入，共 ' + rules.length + ' 條（來源：./banwords.xlsx；工作表：禁用語）');
       }
     }catch(err){
-      console.error('讀取 ./禁用語.xlsx 失敗', err);
+      console.error('讀取 ./banwords.xlsx 失敗', err);
       ensureExcelPicker().style.display = 'block';
-      if(typeof showToast === 'function') showToast('讀取 ./禁用語.xlsx 失敗，請手動選取', 'err', 2600);
+      if(typeof showToast === 'function') showToast('讀取 ./banwords.xlsx 失敗，請手動選取', 'err', 2600);
     }
   }
 
@@ -10197,7 +10197,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(showPicker){
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = '手動選取禁用語.xlsx';
+      btn.textContent = '手動選取banwords.xlsx';
       btn.addEventListener('click', function(){
         var input = document.getElementById('excelManualInput');
         if(input){
@@ -10211,7 +10211,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function markLoaded(count, source){
     state.loaded = true;
     state.count = count;
-    setNotice('is-ok', '禁用語已載入 ' + count + ' 條', source || '來源：禁用語.xlsx', false);
+    setNotice('is-ok', '禁用語已載入 ' + count + ' 條', source || '來源：banwords.xlsx', false);
   }
   function markFailed(reason){
     state.loaded = false;
@@ -10226,7 +10226,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }, 500);
   setTimeout(function(){
-    if(!state.loaded) markFailed('讀取 ./禁用語.xlsx 失敗或尚未完成。右側按鈕可手動補載。');
+    if(!state.loaded) markFailed('讀取 ./banwords.xlsx 失敗或尚未完成。右側按鈕可手動補載。');
   }, 2200);
   function patchLoader(){
     if(!window.banwordEngine || typeof window.banwordEngine.loadRulesFromExcelArrayBuffer !== 'function' || window.__banwordStatusPatched) return;
@@ -10235,7 +10235,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     window.banwordEngine.loadRulesFromExcelArrayBuffer = function(){
       var result = oldLoad.apply(this, arguments);
       var count = Array.isArray(result) ? result.length : (Array.isArray(window.banwordEngine.rules) ? window.banwordEngine.rules.length : 0);
-      if(count > 0){ markLoaded(count, '來源：禁用語.xlsx（工作表：禁用語）'); }
+      if(count > 0){ markLoaded(count, '來源：banwords.xlsx（工作表：禁用語）'); }
       return result;
     };
   }
@@ -10245,14 +10245,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var obs = new MutationObserver(function(){ patchLoader(); });
     obs.observe(document.documentElement, { childList:true, subtree:true });
     window.addEventListener('error', function(e){
-      if((e && e.message && e.message.indexOf('禁用語.xlsx') !== -1) || (e && e.filename && e.filename.indexOf('禁用語') !== -1)){
+      if((e && e.message && e.message.indexOf('banwords.xlsx') !== -1) || (e && e.filename && e.filename.indexOf('禁用語') !== -1)){
         markFailed('禁用語 Excel 載入失敗：' + (e.message || '未知錯誤'));
       }
     });
     window.addEventListener('unhandledrejection', function(e){
       var msg = '';
       try{ msg = (e.reason && (e.reason.message || String(e.reason))) || ''; }catch(_){ }
-      if(msg.indexOf('禁用語.xlsx') !== -1 || msg.indexOf('HTTP') !== -1){
+      if(msg.indexOf('banwords.xlsx') !== -1 || msg.indexOf('HTTP') !== -1){
         markFailed('禁用語 Excel 載入失敗：' + msg);
       }
     });
@@ -10549,6 +10549,49 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+<script id="jimmy-null-safe-patch">
+(function(){
+  function noop(){}
+
+  function makeSafePanel(id, valClass){
+    var el = document.getElementById(id);
+    if(el) return el;
+    return {
+      querySelector: function(){ return { textContent:'--' }; },
+      querySelectorAll: function(){ return []; }
+    };
+  }
+
+  // 若原始碼中引用到不存在的 panel，這裡補成安全 stub，避免整段 JS 中斷
+  window.addEventListener('error', function(){});
+
+  document.addEventListener('DOMContentLoaded', function(){
+    ['fsPanel','lhPanel','mgPanel','lsPanel'].forEach(function(id){
+      if(!document.getElementById(id)){
+        var stub = document.createElement('div');
+        stub.id = id;
+        stub.style.display = 'none';
+        var val = document.createElement('span');
+        val.className = id.slice(0,2) + '-val';
+        stub.appendChild(val);
+        document.body.appendChild(stub);
+      }
+    });
+
+    ['toggleUnderlayH','toggleUnderlayS'].forEach(function(id){
+      if(!document.getElementById(id)){
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = id;
+        input.style.display = 'none';
+        document.body.appendChild(input);
+      }
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
 
@@ -10698,7 +10741,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(mode !== 'ok'){
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = '手動選取禁用語.xlsx';
+      btn.textContent = '手動選取banwords.xlsx';
       btn.addEventListener('click', function(){
         var input = document.getElementById('excelManualInput');
         if(input){
@@ -10728,15 +10771,15 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function markLoaded(source){
     var count = loadedCount();
     if(!count) return;
-    showNotice('ok', '禁用語已載入 ' + count + ' 條', source || '來源：禁用語.xlsx（工作表：禁用語）', false);
+    showNotice('ok', '禁用語已載入 ' + count + ' 條', source || '來源：banwords.xlsx（工作表：禁用語）', false);
   }
 
   function markFailed(reason){
     if(loadedCount()){
-      markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
+      markLoaded('來源：banwords.xlsx（工作表：禁用語）');
       return;
     }
-    showNotice('warn', '禁用語尚未載入，請立即手動選取 Excel。', reason || '讀取 ./禁用語.xlsx 失敗或尚未完成。', true);
+    showNotice('warn', '禁用語尚未載入，請立即手動選取 Excel。', reason || '讀取 ./banwords.xlsx 失敗或尚未完成。', true);
   }
 
   function patchLoader(){
@@ -10745,7 +10788,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var oldLoad = window.banwordEngine.loadRulesFromExcelArrayBuffer;
     window.banwordEngine.loadRulesFromExcelArrayBuffer = function(){
       var result = oldLoad.apply(this, arguments);
-      setTimeout(function(){ markLoaded('來源：禁用語.xlsx（工作表：禁用語）'); }, 0);
+      setTimeout(function(){ markLoaded('來源：banwords.xlsx（工作表：禁用語）'); }, 0);
       return result;
     };
   }
@@ -10758,13 +10801,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     obs.observe(document.documentElement, { childList:true, subtree:true });
 
     setTimeout(function(){
-      if(loadedCount()) markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
-      else markFailed('讀取 ./禁用語.xlsx 失敗或尚未完成。若直接雙擊 HTML 開啟，請改用右上角按鈕手動補載。');
+      if(loadedCount()) markLoaded('來源：banwords.xlsx（工作表：禁用語）');
+      else markFailed('讀取 ./banwords.xlsx 失敗或尚未完成。若直接雙擊 HTML 開啟，請改用右上角按鈕手動補載。');
     }, 2300);
 
     var checker = setInterval(function(){
       if(loadedCount()){
-        markLoaded('來源：禁用語.xlsx（工作表：禁用語）');
+        markLoaded('來源：banwords.xlsx（工作表：禁用語）');
         clearInterval(checker);
       }
     }, 500);
@@ -10772,13 +10815,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     window.addEventListener('error', function(e){
       var msg = '';
       try{ msg = (e && (e.message || '')) || ''; }catch(_){ }
-      if(msg.indexOf('禁用語.xlsx') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
+      if(msg.indexOf('banwords.xlsx') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
     });
 
     window.addEventListener('unhandledrejection', function(e){
       var msg = '';
       try{ msg = (e.reason && (e.reason.message || String(e.reason))) || ''; }catch(_){ }
-      if(msg.indexOf('禁用語.xlsx') !== -1 || msg.indexOf('HTTP') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
+      if(msg.indexOf('banwords.xlsx') !== -1 || msg.indexOf('HTTP') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
     });
   }
 
