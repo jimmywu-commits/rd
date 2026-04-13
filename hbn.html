@@ -1598,7 +1598,7 @@ label:has(#editZoom){
       <label>CTA底：<input id="cta-bg-h" type="color" value="#2176FF"></label>
       <label>CTA字：<input id="cta-fg-h" type="color" value="#ffffff"></label>
       <label>背景：<input id="bg-color-h" type="color" value="#c2dff3"></label>
-      <button id="dl-h" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
+      <button  id="dl-h" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
     </div>
 
     <!-- 第二排：上傳 -->
@@ -1613,6 +1613,7 @@ label:has(#editZoom){
     <div id="horiz" class="canvas pending-underlay">
       <img class="bg" id="bgH" src="程式檔案/橫BG-APP.png" alt="背景" />
       <div class="editor" id="editorH">
+		  
         <div class="bg-layer"></div>
         <div class="bg-solid" id="solidH"></div>
         <div class="bg-gradient" id="gradH"></div>
@@ -4563,10 +4564,10 @@ syncBackgroundAndImage('bg-square', 'bgS', 'S');
 <div class="json-toolbar">
   
   
-  <button type="button" id="undoBtn" title="上一步（Ctrl/Cmd+Z）">上一步</button>
-  <button type="button" id="redoBtn" title="下一步（Ctrl/Cmd+Shift+Z / Ctrl/Cmd+Y）">下一步</button>
-  <button type="button" id="jsonExport">匯出暫存</button>
-  <button type="button" id="jsonImportBtn">匯入暫存</button>
+  <button type="button" id="undoBtn" title="上一步（Ctrl/Cmd+Z）">返回上一步</button>
+  <button type="button" id="redoBtn" title="下一步（Ctrl/Cmd+Shift+Z / Ctrl/Cmd+Y）">重做下一步</button>
+  <button type="button" id="jsonExport">匯出暫存檔</button>
+  <button type="button" id="jsonImportBtn">匯入暫存檔</button>
   <input type="file" id="jsonImportInput" accept=".json,application/json" hidden>
 </div>
 
