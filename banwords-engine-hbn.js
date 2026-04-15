@@ -205,17 +205,44 @@
     return (clone.textContent || '').replace(/\u00A0/g, ' ').trim();
   }
 
+  function addThousandsSeparator(digits){
+    return String(digits || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   function formatNumericToken(token, keepDollar){
-    let digits = String(token || '').replace(/^0+(?=\d)/, '');
+    let digits = String(token || '').replace(/,/g, '').replace(/^0+(?=\d)/, '');
     if (!digits) digits = '0';
 
     const withComma = digits.length >= 4
-      ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      ? addThousandsSeparator(digits)
       : digits;
 
-    if (keepDollar) return '$' + withComma;
-    if (digits.length >= 2) return '$' + withComma;
-    return withComma;
+    return keepDollar ? ('$' + withComma) : withComma;
+  }
+
+  function makeAlphaToken(prefix, index){
+    let n = index;
+    let label = '';
+    do {
+      label = String.fromCharCode(65 + (n % 26)) + label;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+    return '__' + prefix + '_' + label + '__';
+  }
+
+  function sanitizeAllowedCharacters(text, role){
+    let out = String(text || '');
+
+    if (role === 'date') {
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$\/-]/gu, '');
+    } else {
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$]/gu, '');
+    }
+
+    out = out.replace(/\u00A0/g, ' ');
+    out = out.replace(/\s{2,}/g, ' ');
+
+    return out;
   }
 
   function applyStandardNumericRules(text){
@@ -224,43 +251,66 @@
     const slashDateMap = [];
     out = out.replace(/\b0*\d{1,2}\/0*\d{1,2}(?:\s*-\s*0*\d{1,2}\/0*\d{1,2})?\b/g, function(match){
       const normalized = match.replace(/\s*-\s*/g, ' - ');
-      const key = '__SLASHDATE_' + slashDateMap.length + '__';
-      slashDateMap.push(normalized);
+      const key = makeAlphaToken('SLASHDATE', slashDateMap.length);
+      slashDateMap.push({
+        token: key,
+        value: normalized
+      });
       return key;
     });
 
     const percentMap = [];
     out = out.replace(/\b(\d{1,2})%/g, function(match){
-      const key = '__PERCENT_' + percentMap.length + '__';
-      percentMap.push(match);
+      const key = makeAlphaToken('PERCENT', percentMap.length);
+      percentMap.push({
+        token: key,
+        value: match
+      });
       return key;
     });
 
-    const coinMap = [];
-    out = out.replace(/\d+\s*蝦幣|蝦幣\s*\d+/g, function(match){
-      const key = '__COIN_' + coinMap.length + '__';
-      coinMap.push(match);
+    const protectedMap = [];
+
+    out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
+      const formatted = keyword + formatNumericToken(digits, false);
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: formatted
+      });
       return key;
     });
 
-    out = out.replace(/\$0*\d+\b/g, function(match){
-      return formatNumericToken(match.slice(1), true);
+    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
+      const formatted = prefix + formatNumericToken(digits, false) + keyword;
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: formatted
+      });
+      return key;
     });
 
-    out = out.replace(/(^|[^\d$,%])(0*\d{2,})\b/g, function(match, prefix, digits){
-      return prefix + formatNumericToken(digits, false);
+    out = out.replace(/\$(\d[\d,]*)\b/g, function(match, digits){
+      return '$' + formatNumericToken(digits, false);
     });
 
-    coinMap.forEach(function(val, i){
-      out = out.replace('__COIN_' + i + '__', val);
+    out = out.replace(/(^|[^\d$,])(\d[\d,]*)(?=$|[^\d,])/g, function(match, prefix, digits){
+      const clean = String(digits || '').replace(/,/g, '');
+      if (!/^\d+$/.test(clean)) return match;
+      return prefix + formatNumericToken(clean, true);
     });
 
-    percentMap.forEach(function(val, i){
-      out = out.replace('__PERCENT_' + i + '__', val);
+    protectedMap.forEach(function(item){
+      out = out.replace(item.token, item.value);
     });
 
-    slashDateMap.forEach(function(val, i){
-      out = out.replace('__SLASHDATE_' + i + '__', val);
+    percentMap.forEach(function(item){
+      out = out.replace(item.token, item.value);
+    });
+
+    slashDateMap.forEach(function(item){
+      out = out.replace(item.token, item.value);
     });
 
     return out;
@@ -356,10 +406,25 @@
 
   function applyNumericRules(text, role){
     let out = String(text || '');
+
     if (role === 'date') {
       out = normalizeLeadingDateForDateRole(out);
-      return out;
+
+      const match = out.match(/^(0*\d{1,2}\/0*\d{1,2}(?:\s*-\s*0*\d{1,2}\/0*\d{1,2})?)(\s*)([\s\S]*)$/);
+
+      if (!match) {
+        return applyStandardNumericRules(out);
+      }
+
+      const datePart = match[1];
+      const spacer = match[2] || '';
+      const rest = match[3] || '';
+
+      if (!rest) return datePart;
+
+      return datePart + spacer + applyStandardNumericRules(rest);
     }
+
     return applyStandardNumericRules(out);
   }
 
@@ -400,12 +465,47 @@
     return out;
   }
 
+  function calcUnits(str){
+    let units = 0;
+    const chars = String(str || '');
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      if (/\p{Script=Han}/u.test(ch)) units += 1;
+      else units += 0.5;
+    }
+    return units;
+  }
+
+  function trimTextToLimit(str, limit){
+    if (!limit || !isFinite(limit)) return String(str || '');
+
+    let out = '';
+    let units = 0;
+    const chars = String(str || '');
+
+    for (let i = 0; i < chars.length; i++) {
+      const ch = chars[i];
+      const next = /\p{Script=Han}/u.test(ch) ? 1 : 0.5;
+      if (units + next > limit) break;
+      out += ch;
+      units += next;
+    }
+
+    return out;
+  }
+
   function transformText(text, role){
     const original = String(text || '');
     let out = original;
     const messages = [];
     let changed = false;
     let blocked = false;
+
+    const sanitizedBeforeRules = sanitizeAllowedCharacters(out, role);
+    if (sanitizedBeforeRules !== out) {
+      out = sanitizedBeforeRules;
+      changed = true;
+    }
 
     getRules().forEach(function(rule){
       if (!rule.keyword) return;
@@ -447,6 +547,12 @@
       changed = true;
     }
 
+    const sanitizedAfterRules = sanitizeAllowedCharacters(out, role);
+    if (sanitizedAfterRules !== out) {
+      out = sanitizedAfterRules;
+      changed = true;
+    }
+
     out = out.replace(/\s{2,}/g, ' ').trim();
 
     const uniqueMessages = Array.from(new Set(messages));
@@ -481,6 +587,93 @@
     return result;
   }
 
+  function getEditablePlainText(el){
+    if (!el) return '';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.counter,.audit-tip').forEach(function(node){
+      node.remove();
+    });
+    return (clone.textContent || '').replace(/\u00A0/g, ' ');
+  }
+
+  function setEditableText(el, text){
+    if (!el) return;
+    const counter = el.querySelector('.counter');
+    el.textContent = text;
+    if (counter) el.appendChild(counter);
+  }
+
+  function installLiveInputGuards(){
+    if (!global.document || !document.querySelectorAll) return;
+
+    document.querySelectorAll('[contenteditable="true"]').forEach(function(el){
+      if (el.dataset.banwordLiveGuardBound === '1') return;
+      el.dataset.banwordLiveGuardBound = '1';
+
+      const role = el.dataset.role || '';
+      const limit = parseFloat(el.dataset.limit || '');
+
+      el.addEventListener('beforeinput', function(e){
+        if (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+          e.preventDefault();
+          return;
+        }
+
+        if (typeof e.data === 'string' && e.data) {
+          const sanitizedIncoming = sanitizeAllowedCharacters(e.data, role);
+          if (!sanitizedIncoming) {
+            e.preventDefault();
+            return;
+          }
+        }
+      });
+
+      el.addEventListener('input', function(){
+        const raw = getEditablePlainText(el);
+        let next = sanitizeAllowedCharacters(raw, role);
+        next = trimTextToLimit(next, limit);
+
+        if (next !== raw) {
+          setEditableText(el, next);
+        }
+      });
+
+      el.addEventListener('compositionend', function(){
+        const raw = getEditablePlainText(el);
+        let next = sanitizeAllowedCharacters(raw, role);
+        next = trimTextToLimit(next, limit);
+
+        if (next !== raw) {
+          setEditableText(el, next);
+        }
+      });
+
+      el.addEventListener('paste', function(e){
+        const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+        const sanitized = trimTextToLimit(sanitizeAllowedCharacters(text, role), limit);
+        if (text !== sanitized) {
+          e.preventDefault();
+          try {
+            document.execCommand('insertText', false, sanitized);
+          } catch (err) {
+            setEditableText(el, trimTextToLimit(
+              sanitizeAllowedCharacters(getEditablePlainText(el) + sanitized, role),
+              limit
+            ));
+          }
+        }
+      });
+    });
+  }
+
+  if (global.document) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', installLiveInputGuards);
+    } else {
+      installLiveInputGuards();
+    }
+  }
+
   global.banwordEngine = {
     rules: currentRules,
     getRules: getRules,
@@ -495,6 +688,9 @@
     },
     getTextFromElement: getTextFromElement,
     transformText: transformText,
-    applyToElement: applyToElement
+    applyToElement: applyToElement,
+    sanitizeAllowedCharacters: sanitizeAllowedCharacters,
+    calcUnits: calcUnits,
+    trimTextToLimit: trimTextToLimit
   };
 })(window);

@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>v3 HBN製圖、審圖工具</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <!-- underlay restore fix: preserve no-underlay/pending-underlay state on JSON import -->
 <!-- json restore guard: prevent bg onload sync from overwriting saved solid/gradient -->
 <!-- JSON 1:1 patch: preserve app/pc background image, solid layer, gradient layer, tags, logos -->
@@ -97,9 +98,9 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   /* 防止 PC 預覽的 h2 被 flex 影響 */
   #pcH .h2, #pcS .h2 { display:block; align-items:normal; }
 
-  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 40px;line-height: 56px;letter-spacing:0px;color:#1b5e7a;text-align:left; }
-  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size: 60px;line-height: 68px;letter-spacing:0px;color:#0b6c4a;text-align:left;height: calc(72px + 0.25em);display:flex;align-items:center; }
-  .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 24px;line-height: 50px;letter-spacing:0px;color:#306b8f;text-align:left; }
+  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 40px;line-height: 56px;letter-spacing:0px;color:#2176ff;text-align:left; }
+  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size: 60px;line-height: 68px;letter-spacing:0px;color:#3f49cf;text-align:left;height: calc(72px + 0.25em);display:flex;align-items:center; }
+  .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size: 24px;line-height: 50px;letter-spacing:0px;color:#3f49cf;text-align:left; }
 
   /* CTA（APP / SQUARE 預設） */
   .cta{
@@ -243,7 +244,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   .btn-primary{background:#2ecc71;color:#111}
   .btn-danger{background:#e74c3c;color:#fff}
   .btn-ghost{background:#444;color:#fff}
-  .checkerboard{position:relative;display:inline-block;border-radius:8px;overflow:auto;background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0/20px 20px;padding:0;max-width:100%;max-height:60vh}
+  .checkerboard{position:relative;display:inline-block;border-radius:8px;overflow:auto;background: conic-gradient(#ccc 25%, #fff 0 50%, #ccc 0 75%, #fff 0) 0 0/20px 20px;padding:0;max-width:100%;max-height:none}
   #eraseCanvas{display:block;background:transparent}
   #eraseWrap{padding:0;border-radius:8px}
 #shadowCanvas{position:absolute;left:0;top:0;z-index:0;pointer-events:none;}
@@ -412,7 +413,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   justify-content:center;
 }
 .logo-item .logo-edit-btn,
-.logo-item .logo-swap-btn{
+.logo-item .logo-swap-btn,
+.logo-item .logo-delete-btn{
   position:absolute;
   width:20px;
   height:20px;
@@ -428,9 +430,11 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 }
 .logo-item .logo-edit-btn{ top:-26px; right:-2px; }
 .logo-item .logo-swap-btn{ top:-26px; left:-2px; }
+.logo-item .logo-delete-btn{ top:-26px; left:22px; }
 .logo-item img{ display:block; }
 
-.logo-edit-btn{
+.logo-edit-btn,
+.logo-delete-btn{
   position:absolute;
   top:-26px;
   right:-2px;
@@ -445,6 +449,10 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   justify-content:center;
   cursor:pointer;
   z-index:20;
+}
+.logo-delete-btn{
+  top:-26px;
+  left:-2px;
 }
 
 .brand.is-editable img,
@@ -506,7 +514,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 
 /* hide logo icons during export */
 .is-exporting .logo-edit-btn,
-.is-exporting .logo-swap-btn{
+.is-exporting .logo-swap-btn,
+.is-exporting .logo-delete-btn{
   display:none !important;
 }
 
@@ -595,7 +604,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   left:0;
   top:0;
   width:800px;
-  height:400px;
+  height:800px;
   transform-origin: top left;
   will-change: transform;
 }
@@ -1183,7 +1192,7 @@ label:has(#editZoom){
     font-weight:500;
     font-size:40px;
     line-height:56px;
-    color:#1b5e7a;
+    color:#2176ff;
     padding:0 20px;
   }
   .dd-canvas .dd-h2{
@@ -1192,7 +1201,7 @@ label:has(#editZoom){
     font-weight:700;
     font-size:60px;
     line-height:68px;
-    color:#0b6c4a;
+    color:#3f49cf;
     padding:0 20px;
   }
   .dd-canvas .dd-date{
@@ -1201,7 +1210,7 @@ label:has(#editZoom){
     font-weight:500;
     font-size:24px;
     line-height:50px;
-    color:#306b8f;
+    color:#3f49cf;
     padding:0 20px;
   }
   .dd-canvas .dd-cta{
@@ -1501,6 +1510,10 @@ label:has(#editZoom){
 </style>
 
 
+<style id="blank-bg-hide-style">
+.bg[src=""]{display:none !important;}
+</style>
+
 <style id="hide-mall-tag-feature">
 .mall-tag,
 .toggle-tag{
@@ -1585,6 +1598,26 @@ label:has(#editZoom){
 }
 </style>
 
+
+<style id="logo-cropper-modal-style">
+  .cropper-modal-wrap{
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:none; align-items:center; justify-content:center; z-index:10020;
+  }
+  .cropper-modal-wrap.open{ display:flex; }
+  .cropper-panel{
+    width:min(90vw, 900px); background:#fff; border-radius:12px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .cropper-panel header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; margin:0;
+  }
+  .cropper-panel .body{ padding:10px; }
+  .cropper-panel .actions{ display:flex; gap:8px; padding:10px; justify-content:flex-end; }
+  .cropper-panel img{ max-width:100%; max-height:65vh; display:block; margin:0 auto; }
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -1592,12 +1625,12 @@ label:has(#editZoom){
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
-      <label>主標：<input id="h1-color-horiz" type="color" value="#1b5e7a"></label>
-      <label>副標：<input id="h2-color-horiz" type="color" value="#0b6c4a"></label>
-      <label>日期：<input id="date-color-horiz" type="color" value="#306b8f"></label>
+      <label>主標：<input id="h1-color-horiz" type="color" value="#2176FF"></label>
+      <label>副標：<input id="h2-color-horiz" type="color" value="#3F49CF"></label>
+      <label>日期：<input id="date-color-horiz" type="color" value="#3F49CF"></label>
       <label>CTA底：<input id="cta-bg-h" type="color" value="#2176FF"></label>
       <label>CTA字：<input id="cta-fg-h" type="color" value="#ffffff"></label>
-      <label>背景：<input id="bg-color-h" type="color" value="#c2dff3"></label>
+      <label>背景：<input id="bg-color-h" type="color" value="#C2DFF3"></label>
       <button  id="dl-h" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
     </div>
 
@@ -1606,12 +1639,12 @@ label:has(#editZoom){
       <label>上傳LOGO（最多3張）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
       <label>上傳底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
       <label>上傳商品圖（最多3張）：<input id="items-h" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字顏色會連動背景色而改變｜Logo 可左右微調與編輯</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
     <!-- APP 橫式 -->
     <div id="horiz" class="canvas pending-underlay">
-      <img class="bg" id="bgH" src="程式檔案/橫BG-APP.png" alt="背景" />
+      <img class="bg" id="bgH" src="" alt="背景" />
       <div class="editor" id="editorH">
 		  
         <div class="bg-layer"></div>
@@ -1706,12 +1739,12 @@ label:has(#editZoom){
 
     <!-- 第一排：顏色 -->
     <div class="toolbar">
-      <label>主標：<input id="h1-color-square" type="color" value="#1b5e7a"></label>
-      <label>副標：<input id="h2-color-square" type="color" value="#0b6c4a"></label>
-      <label>日期：<input id="date-color-square" type="color" value="#306b8f"></label>
+      <label>主標：<input id="h1-color-square" type="color" value="#2176FF"></label>
+      <label>副標：<input id="h2-color-square" type="color" value="#3F49CF"></label>
+      <label>日期：<input id="date-color-square" type="color" value="#3F49CF"></label>
       <label>CTA底：<input id="cta-bg-s" type="color" value="#2176FF"></label>
       <label>CTA字：<input id="cta-fg-s" type="color" value="#ffffff"></label>
-      <label>背景：<input id="bg-color-s" type="color" value="#c2dff3"></label>
+      <label>背景：<input id="bg-color-s" type="color" value="#C2DFF3"></label>
       <button id="dl-s" type="button" style="margin-left:auto;">下載HBN（≤145KB）</button> 
     </div>
 
@@ -1720,12 +1753,12 @@ label:has(#editZoom){
       <label>上傳LOGO（正方或正圓型）：<input id="logo-square" type="file" accept="image/*"></label>
       <label>上傳底圖：<input id="bg-square" type="file" accept="image/*"></label>
       <label>上傳商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
- <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜文字顏色會連動背景色而改變｜Logo 可左右微調與編輯</span>
+ <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
     <!-- APP 方形 -->
     <div id="square" class="canvas pending-underlay">
-      <img class="bg" id="bgS" src="程式檔案/方BG-APP.png" alt="背景" />
+      <img class="bg" id="bgS" src="" alt="背景" />
       <div class="editor" id="editorS">
         <div class="bg-layer"></div>
         <div class="bg-solid" id="solidS"></div>
@@ -1825,12 +1858,12 @@ label:has(#editZoom){
         <label style="display:flex;align-items:center;gap:6px"><input id="toggleShadow" type="checkbox"> 增加影子</label>
         <label style="display:flex;align-items:center;gap:6px"><input id="applyUploadSize" type="checkbox" checked> 完成後套用上傳尺寸規則</label>
         <label id="logoWhiteBaseWrap" style="display:none;align-items:center;gap:6px;margin-left:auto;font-weight:700"><input id="logoWhiteBaseChk" type="checkbox"> 加白底</label>
-        <label>縮放：<input id="editZoom" type="range" min="50" max="300" value="100"></label><span id="editZoomVal" class="pill">100%</span><span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
+        <label>縮放：<input id="editZoom" type="range" min="10" max="300" value="100"></label><span id="editZoomVal" class="pill">100%</span><span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
       </div>
       <div id="eraseWrap" class="checkerboard">
         <div id="previewStage">
-          <canvas id="shadowCanvas" width="800" height="400"></canvas>
-          <canvas id="eraseCanvas" width="800" height="400"></canvas>
+          <canvas id="shadowCanvas" width="800" height="800"></canvas>
+          <canvas id="eraseCanvas" width="800" height="800"></canvas>
         </div>
         <div id="shadowModalBox" class="shadow-modal-box" aria-hidden="true" style="display:none;">
           <img id="shadowModalImg" src="bg.png" alt="shadow" draggable="false">
@@ -1918,9 +1951,32 @@ label:has(#editZoom){
     const container=document.querySelector(containerSelector);
     if(!input || !container) return;
 
+    function syncPcHorizontalLogo(){
+      const pcLogo = document.getElementById('brandPHImg');
+      const first = container.querySelector('.logo-item img, img');
+      if(pcLogo){
+        if(first){
+          pcLogo.src = first.src;
+          pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || '';
+          pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || '';
+          syncLogoDisplaySize(pcLogo);
+        }else{
+          pcLogo.removeAttribute('src');
+          pcLogo.dataset.logoWhiteBaseEnabled = '';
+          pcLogo.dataset.logoWhiteBaseRatio = '';
+        }
+      }
+    }
+
+    function removeLogoWrap(wrap){
+      if(!wrap) return;
+      wrap.remove();
+      syncPcHorizontalLogo();
+    }
+
     function applyLogoOrderEditing(){
       const logos = Array.from(container.querySelectorAll('img'));
-      logos.forEach((img, index)=>{
+      logos.forEach((img)=>{
         let wrap = img.closest('.logo-item');
         if(!wrap){
           wrap = document.createElement('div');
@@ -1961,19 +2017,39 @@ label:has(#editZoom){
             syncPcHorizontalLogo();
           });
         }
+
+        let deleteBtn = wrap.querySelector('.logo-delete-btn');
+        if(!deleteBtn){
+          deleteBtn = document.createElement('div');
+          deleteBtn.className = 'logo-delete-btn';
+          deleteBtn.innerHTML = '✕';
+          deleteBtn.title = '刪除 Logo';
+          wrap.appendChild(deleteBtn);
+          deleteBtn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            removeLogoWrap(wrap);
+          });
+        }
       });
       syncPcHorizontalLogo();
     }
 
-    function syncPcHorizontalLogo(){
-      const pcLogo = document.getElementById('brandPHImg');
-      const first = container.querySelector('.logo-item img, img');
-      if(pcLogo && first){ pcLogo.src = first.src; pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || ''; pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || ''; syncLogoDisplaySize(pcLogo); }
-    }
-
     input.addEventListener('change', async e=>{
-      const files = Array.from(e.target.files || []).slice(0, max);
-      container.innerHTML = '';
+      const incoming = Array.from(e.target.files || []);
+      const existingCount = container.querySelectorAll('.logo-item').length;
+      const remain = Math.max(0, max - existingCount);
+
+      if(remain <= 0){
+        if(typeof showToast === 'function') showToast(`Logo 最多只能上傳 ${max} 張`, 'warn', 1600);
+        input.value = '';
+        return;
+      }
+
+      if(incoming.length > remain && typeof showToast === 'function'){
+        showToast(`Logo 最多只能上傳 ${max} 張，已加入前 ${remain} 張`, 'warn', 1800);
+      }
+
+      const files = incoming.slice(0, remain);
       for(const file of files){
         const url = await readAsDataURL(file);
         const wrap = document.createElement('div');
@@ -1985,6 +2061,7 @@ label:has(#editZoom){
         container.appendChild(wrap);
       }
       applyLogoOrderEditing();
+      input.value = '';
     });
   }
   function enableLogoEditing(target, options = {}){
@@ -2008,8 +2085,37 @@ label:has(#editZoom){
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
         const img = el.querySelector('img');
-        if(!img) return;
+        if(!img || !img.src) return;
         openEraseEditor(img, { isLogoEdit:true });
+      });
+    }
+
+    if(!el.querySelector('.logo-delete-btn')){
+      const del = document.createElement('div');
+      del.className = 'logo-delete-btn';
+      del.innerHTML = '✕';
+      del.title = '刪除 Logo';
+      el.appendChild(del);
+
+      del.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const img = el.querySelector('#brandImgS, img');
+        const pcImg = document.getElementById('brandPSImg');
+        if(img){
+          img.removeAttribute('src');
+          img.dataset.logoWhiteBaseEnabled = '';
+          img.dataset.logoWhiteBaseRatio = '';
+          img.dataset.logoOriginalSrc = '';
+        }
+        if(pcImg){
+          pcImg.removeAttribute('src');
+          pcImg.dataset.logoWhiteBaseEnabled = '';
+          pcImg.dataset.logoWhiteBaseRatio = '';
+          pcImg.dataset.logoOriginalSrc = '';
+        }
+        const input = document.getElementById('logo-square');
+        if(input) input.value = '';
+        if(typeof syncAllLogoDisplaySizes === 'function') syncAllLogoDisplaySizes();
       });
     }
   }
@@ -2064,7 +2170,114 @@ label:has(#editZoom){
     }
   };
   /* =========================================================== */
-	  
+
+  async function normalizeProductImageFile(file){
+    const dataUrl = await readAsDataURL(file);
+
+    function readJpegDpi(arrayBuffer){
+      try{
+        const view = new DataView(arrayBuffer);
+        if(view.byteLength < 4 || view.getUint16(0) !== 0xFFD8) return null;
+        let offset = 2;
+        while(offset + 4 < view.byteLength){
+          if(view.getUint8(offset) !== 0xFF) break;
+          const marker = view.getUint8(offset + 1);
+          const len = view.getUint16(offset + 2);
+          if(marker === 0xE0 && offset + 2 + len <= view.byteLength){
+            // APP0 / JFIF
+            const id =
+              String.fromCharCode(view.getUint8(offset + 4)) +
+              String.fromCharCode(view.getUint8(offset + 5)) +
+              String.fromCharCode(view.getUint8(offset + 6)) +
+              String.fromCharCode(view.getUint8(offset + 7));
+            if(id === 'JFIF'){
+              const units = view.getUint8(offset + 11);
+              const xDensity = view.getUint16(offset + 12);
+              const yDensity = view.getUint16(offset + 14);
+              if(units === 1){
+                return { x: xDensity, y: yDensity, unit: 'dpi' };
+              }
+              if(units === 2){
+                return {
+                  x: Math.round(xDensity * 2.54),
+                  y: Math.round(yDensity * 2.54),
+                  unit: 'dpcm'
+                };
+              }
+            }
+          }
+          offset += 2 + len;
+        }
+      }catch(_){}
+      return null;
+    }
+
+    let dpiInfo = null;
+    try{
+      if(/jpe?g/i.test(file.type || '')){
+        const buf = await file.arrayBuffer();
+        dpiInfo = readJpegDpi(buf);
+      }
+    }catch(_){}
+
+    return new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const origW = Math.max(1, img.naturalWidth || 1);
+        const origH = Math.max(1, img.naturalHeight || 1);
+        const needResize = origW > 2000;
+        const dpiTooHigh = !!(dpiInfo && ((dpiInfo.x || 0) > 72 || (dpiInfo.y || 0) > 72));
+
+        const targetW = needResize ? 2000 : origW;
+        const targetH = Math.max(1, Math.round(origH * (targetW / origW)));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+        // Browser export does not reliably preserve DPI metadata.
+        // We normalize pixel size and treat output as 72dpi-ready asset.
+        const mime = (/jpe?g/i.test(file.type || '')) ? 'image/jpeg' : 'image/png';
+        const url = canvas.toDataURL(mime, 0.92);
+
+        const reasons = [];
+        if(needResize) reasons.push('寬度已縮至 2000px');
+        if(dpiTooHigh) reasons.push('原圖 DPI 高於 72，已轉為 72dpi-ready 流程');
+        if(!reasons.length) reasons.push('圖片規格已檢查');
+
+        resolve({
+          url,
+          normalized: true,
+          dpi: dpiInfo,
+          checkedWidth: origW,
+          checkedHeight: origH,
+          dpiTooHigh,
+          resizedTo2000: needResize,
+          reason: reasons.join('｜')
+        });
+      };
+      img.onerror = ()=>{
+        resolve({
+          url: dataUrl,
+          normalized: false,
+          dpi: dpiInfo,
+          checkedWidth: 0,
+          checkedHeight: 0,
+          dpiTooHigh: false,
+          resizedTo2000: false,
+          reason: ''
+        });
+      };
+      img.src = dataUrl;
+    });
+  }
+
+
   bindUploadMultiple('logo-horiz','#brandH',3);
 
   const syncAllLogoDisplaySizes = ()=>{
@@ -2089,6 +2302,7 @@ label:has(#editZoom){
       syncLogoDisplaySize(el);
     }
     enableLogoEditing(document.querySelector('#square .brand'), { minX:-30, maxX:30, fixedY:0 });
+    e.target.value = '';
   });
 
   enableLogoEditing(document.querySelector('#square .brand'), { minX:-30, maxX:30, fixedY:0 });
@@ -2116,31 +2330,8 @@ label:has(#editZoom){
     grad.style.background = `linear-gradient(to right, ${color} 0%, ${hexToRgba(color,0)} 100%)`;
   }
 
-  function applySplitToTexts(scopeId, baseHex){
-    const pair = splitComplement(baseHex);
-    const h1Color = hueShift(pair.b, 50);
-    const others = pair.a;
-    const root = document.getElementById(scopeId);
-    if(!root) return;
-    const h1 = root.querySelector('.h1'); const h2 = root.querySelector('.h2'); const date = root.querySelector('.date');
-    if(h1) h1.style.color = h1Color;
-    if(h2) h2.style.color = others;
-    if(date) date.style.color = others;
-    if(scopeId==='horiz'){
-      document.getElementById('h1-color-horiz').value = h1Color;
-      document.getElementById('h2-color-horiz').value = others;
-      document.getElementById('date-color-horiz').value = others;
-      document.getElementById('ph1').style.color = h1Color;
-      document.getElementById('ph2').style.color = others;
-      document.getElementById('pdate').style.color = others;
-    }else{
-      document.getElementById('h1-color-square').value = h1Color;
-      document.getElementById('h2-color-square').value = others;
-      document.getElementById('date-color-square').value = others;
-      document.getElementById('ps1').style.color = h1Color;
-      document.getElementById('ps2').style.color = others;
-      document.getElementById('psdate').style.color = others;
-    }
+  function applySplitToTexts(){
+    return;
   }
 function setBgFor(app, hex){
   const map = app === 'H'
@@ -2196,7 +2387,6 @@ bindColor('bg-color-h','#horiz','backgroundColor', (val)=>{
     pcCanvasH.classList.remove('pending-underlay');
   }
 
-  applySplitToTexts('horiz', val);
 });
 
 
@@ -2214,7 +2404,6 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   updateGradient(document.getElementById('editorPS'), val);
   const pcCanvasS = document.getElementById('pcS');
   if (pcCanvasS) pcCanvasS.style.backgroundColor = val;
-  applySplitToTexts('square', val);
 });
 
   /* ========== 控制面板（保留） ========= */
@@ -2493,6 +2682,37 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       cropping = false;
       eraseModal.classList.add('show');
 
+      try{
+        const editorViewportW = 800;
+        const editorViewportH = 800;
+        const currentW = Math.max(1, eraseCanvas.width || 1);
+        const currentH = Math.max(1, eraseCanvas.height || 1);
+        const needsShrink = (currentW > 800 || currentH > 800);
+        let fitScale = 1;
+        if(needsShrink){
+          fitScale = Math.max(
+            0.1,
+            Math.min(
+              1,
+              Math.min(
+                800 / currentW,
+                800 / currentH
+              )
+            )
+          );
+        }
+
+        window.__editorVisualZoom = fitScale || 1;
+
+        const stage = document.getElementById('previewStage');
+        const hud = document.getElementById('zoomHudReadout');
+        if(stage) stage.style.transform = 'scale(' + fitScale + ')';
+        if(hud) hud.textContent = Math.round(fitScale * 100) + '%';
+        if(typeof window.renderShadowPreview === 'function'){
+          try{ window.renderShadowPreview(); }catch(_){}
+        }
+      }catch(_){}
+
       if(!editingModeIsLogo && box){
         initShadowModalForBox(box);
       }
@@ -2549,7 +2769,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
   function getEditorVisualZoom(){
-    return Math.max(0.5, Math.min(3, window.__editorVisualZoom || 1));
+    return Math.max(0.1, Math.min(3, window.__editorVisualZoom || 1));
   }
 
   function clientToCanvasPoint(e){
@@ -3738,19 +3958,10 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       });
       window.addEventListener('mouseup', ()=>{ if(dragging && !box.classList.contains('editor-bg')){ try{ showGuideWarningFor && showGuideWarningFor(box); }catch(_){} } dragging=false; });
 
-      /* 等比縮放（右下 ↗） */
-      let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
-      resizeBtn.addEventListener('mousedown', (e)=>{
-        resizing = true;
-        startRX = e.clientX; startRY = e.clientY;
-        startW = box.clientWidth; startH = box.clientHeight; aspect = startW / startH;
-        e.stopPropagation(); e.preventDefault();
-      });
-      window.addEventListener('mousemove', (e)=>{
-        if(!resizing) return;
-        const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
-        let newW = Math.max(20, startW + delta);
-        let newH = Math.max(20, newW / aspect);
+      /* 等比縮放（右下 ↗ / 滾輪） */
+      function applyProductScale(nextW, nextH){
+        let newW = Math.max(20, nextW);
+        let newH = Math.max(20, nextH);
 
         if(!box.classList.contains('editor-bg')){
           const safe = fitProductSizeWithinSafeZone(newW, newH);
@@ -3762,10 +3973,33 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
         box.style.height = newH + 'px';
         box.dataset.fixedW = String(Math.round(newW));
         box.dataset.fixedH = String(Math.round(newH));
-
-
+      }
+      let resizing=false, startW=0, startH=0, startRX=0, startRY=0, aspect=1;
+      resizeBtn.addEventListener('mousedown', (e)=>{
+        resizing = true;
+        startRX = e.clientX; startRY = e.clientY;
+        startW = box.clientWidth; startH = box.clientHeight; aspect = startW / startH;
+        e.stopPropagation(); e.preventDefault();
+      });
+      window.addEventListener('mousemove', (e)=>{
+        if(!resizing) return;
+        const delta = Math.max(e.clientX - startRX, e.clientY - startRY);
+        const newW = Math.max(20, startW + delta);
+        const newH = Math.max(20, newW / aspect);
+        applyProductScale(newW, newH);
       });
       window.addEventListener('mouseup', ()=>{ if(resizing && !box.classList.contains('editor-bg')){ try{ showGuideWarningFor && showGuideWarningFor(box); }catch(_){} } resizing=false; });
+      box.addEventListener('wheel', (e)=>{
+        if(box.classList.contains('editor-bg')) return;
+        if(e.target.classList.contains('ctrl') || e.target.closest('.ctrl')) return;
+        e.preventDefault();
+        const currentW = box.clientWidth || parseFloat(box.style.width) || 0;
+        const currentH = box.clientHeight || parseFloat(box.style.height) || 0;
+        if(!currentW || !currentH) return;
+        const factor = e.deltaY < 0 ? 1.06 : 0.94;
+        applyProductScale(currentW * factor, currentH * factor);
+        try{ showGuideWarningFor && showGuideWarningFor(box); }catch(_){}
+      }, { passive:false });
 
       if(!asBackground){
         delBtn.addEventListener('click', ()=>{ box.remove(); });
@@ -3812,11 +4046,31 @@ backBtn.addEventListener('click', ()=>{
     /* 商品圖（APP 編輯器載入） */
     if(productsInput){
       productsInput.addEventListener('change', async e=>{
-        const files = Array.from(e.target.files || []).slice(0, 3);
-        files.forEach(async (f, idx)=>{
-          const url = await readAsDataURL(f);
+        const incoming = Array.from(e.target.files || []);
+        const existingCount = editor.querySelectorAll('.editor-item:not(.editor-bg)').length;
+        const remain = Math.max(0, 3 - existingCount);
+
+        if(remain <= 0){
+          if(typeof showToast === 'function') showToast('商品圖最多只能上傳 3 張', 'warn', 1600);
+          productsInput.value = '';
+          return;
+        }
+
+        if(incoming.length > remain && typeof showToast === 'function'){
+          showToast(`商品圖最多只能上傳 3 張，已加入前 ${remain} 張`, 'warn', 1800);
+        }
+
+        const files = incoming.slice(0, remain);
+        for(let idx = 0; idx < files.length; idx++){
+          const f = files[idx];
+          const normalized = await normalizeProductImageFile(f);
+          const url = normalized.url;
           makeItem({url, asBackground:false, idx});
-        });
+          if(normalized.normalized && typeof showToast === 'function'){
+            showToast('商品圖已優化：' + (normalized.reason || '最大 2000px / 72dpi'), 'ok', 2200);
+          }
+        }
+        productsInput.value = '';
       });
     }
 
@@ -4429,7 +4683,7 @@ backBtn.addEventListener('click', ()=>{
    =========================================================== */
 
 // 重新定義：設定顏色的函式（確保能正確移除 PC 遮罩）
-function setBgFor(app, hex) {
+function setBgForLegacy(app, hex) {
   const map = app === 'H'
     ? { appCanvas:'horiz', appEditor:'editorH', pcCanvas:'pcH', pcEditor:'editorPH', input:'bg-color-h' }
     : { appCanvas:'square', appEditor:'editorS', pcCanvas:'pcS', pcEditor:'editorPS', input:'bg-color-s' };
@@ -4858,7 +5112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function syncPc(){
       const pcLogo = document.getElementById('brandPHImg');
       const first = container.querySelector('.logo-item img');
-      if(pcLogo && first){ pcLogo.src = first.src; pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || ''; pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || ''; syncLogoDisplaySize(pcLogo); }
+      if(pcLogo){ if(first){ pcLogo.src = first.src; pcLogo.dataset.logoWhiteBaseEnabled = first.dataset.logoWhiteBaseEnabled || ''; pcLogo.dataset.logoWhiteBaseRatio = first.dataset.logoWhiteBaseRatio || ''; syncLogoDisplaySize(pcLogo); } else { pcLogo.removeAttribute('src'); pcLogo.dataset.logoWhiteBaseEnabled = ''; pcLogo.dataset.logoWhiteBaseRatio = ''; } }
     }
 
     (list || []).forEach(item => {
@@ -4891,9 +5145,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         syncPc();
       });
+      const deleteBtn = document.createElement('div');
+      deleteBtn.className = 'logo-delete-btn';
+      deleteBtn.innerHTML = '✕';
+      deleteBtn.title = '刪除 Logo';
+      deleteBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        wrap.remove();
+        syncPc();
+      });
       wrap.appendChild(img);
       wrap.appendChild(editBtn);
       wrap.appendChild(swapBtn);
+      wrap.appendChild(deleteBtn);
       container.appendChild(wrap);
     });
 
@@ -7430,7 +7694,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var base = ensurePreviewBaseCanvas();
     if(!eraseCanvas || !base) return;
     var ctx = eraseCanvas.getContext('2d', { willReadFrequently:true });
-    var zoom = Math.max(0.5, Math.min(3, window.__erasePreviewZoom || 1));
+    var zoom = Math.max(0.1, Math.min(3, window.__erasePreviewZoom || 1));
 
     ctx.clearRect(0,0,eraseCanvas.width, eraseCanvas.height);
     if(Math.abs(zoom - 1) < 0.001){
@@ -7474,7 +7738,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
 
     slider.addEventListener('input', function(){
-      var pct = Math.max(50, Math.min(300, parseInt(slider.value || '100', 10)));
+      var pct = Math.max(10, Math.min(300, parseInt(slider.value || '100', 10)));
       window.__erasePreviewZoom = pct / 100;
       val.textContent = pct + '%';
       renderPreviewZoomFromBase();
@@ -7648,7 +7912,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }catch(_){}
     const slider = document.getElementById('editZoom');
     const val = document.getElementById('editZoomVal');
-    if(slider) slider.value = '100';
+    if(slider && !slider.dataset.keepAutoFit) slider.value = String(Math.max(10, Math.min(300, Math.round((window.__editorVisualZoom || 1) * 100))));
     if(val) val.textContent = '100%';
   }
 
@@ -8996,68 +9260,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 
-<script id="file-input-click-compat-fix">
-(function(){
-  function openPicker(input){
-    if(!input) return;
-    try{
-      if(typeof input.showPicker === 'function'){
-        input.showPicker();
-        return;
-      }
-    }catch(_){ }
-    try{ input.click(); }catch(_){ }
-  }
 
-  function enhanceFileInput(input){
-    if(!input || input.dataset.fileCompatBound === '1') return;
-    input.dataset.fileCompatBound = '1';
-
-    input.style.pointerEvents = 'auto';
-    input.style.position = 'relative';
-    input.style.zIndex = '2';
-    input.style.opacity = '1';
-
-    const label = input.closest('label');
-    if(label){
-      label.style.pointerEvents = 'auto';
-      label.style.position = 'relative';
-      label.style.zIndex = '2';
-      label.style.cursor = 'pointer';
-
-      label.addEventListener('click', function(e){
-        if(e.target === input) return;
-        e.preventDefault();
-        e.stopPropagation();
-        openPicker(input);
-      }, true);
-
-      label.addEventListener('keydown', function(e){
-        if(e.key === 'Enter' || e.key === ' '){
-          e.preventDefault();
-          openPicker(input);
-        }
-      });
-    }
-  }
-
-  function bindAll(){
-    [
-      'logo-horiz','bg-horiz','items-h',
-      'logo-square','bg-square','items-s',
-      'jsonImportInput'
-    ].forEach(function(id){
-      enhanceFileInput(document.getElementById(id));
-    });
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', bindAll);
-  }else{
-    bindAll();
-  }
-})();
-</script>
 
 
 
@@ -9544,14 +9747,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   function applyZoom(){
     var stage = getStage();
     var hud = getHud();
-    var scale = Math.max(0.5, Math.min(3, window.__editorVisualZoom || 1));
+    var scale = Math.max(0.1, Math.min(3, window.__editorVisualZoom || 1));
     if(stage) stage.style.transform = 'scale(' + scale + ')';
     if(hud) hud.textContent = Math.round(scale * 100) + '%';
   }
 
   function setZoom(scale){
     var prevLogical = (typeof window.__getShadowBoxLogical === 'function') ? window.__getShadowBoxLogical() : null;
-    window.__editorVisualZoom = Math.max(0.5, Math.min(3, scale));
+    window.__editorVisualZoom = Math.max(0.1, Math.min(3, scale));
     applyZoom();
     if(prevLogical && typeof window.__setShadowBoxLogical === 'function'){
       window.__setShadowBoxLogical(prevLogical.x, prevLogical.y, prevLogical.w, prevLogical.h);
@@ -10181,7 +10384,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       '<div class="title">禁用語狀態</div>' +
       '<div class="body"></div>' +
       '<div class="meta"></div>' +
-      '<div class="actions"></div>';
+      '<div class="actions">
+<div style="font-size:12px;color:#888;padding:0 12px 10px;">同等比裁切：按住shift鍵再用滑鼠拉框線</div></div>';
     document.body.appendChild(box);
     box.querySelector('.close').addEventListener('click', function(){ box.style.display = 'none'; });
     return box;
@@ -10592,6 +10796,511 @@ document.addEventListener('DOMContentLoaded', ()=>{
 })();
 </script>
 
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<div id="logoCropModal" class="cropper-modal-wrap">
+  <div class="cropper-panel">
+    <header>
+      <strong>Logo 裁切</strong>
+      <button id="logoCropClose" class="btn secondary" type="button">關閉</button>
+    </header>
+    <div class="body"><img id="logoCropImg" alt="Logo 裁切" /></div>
+    <div class="actions">
+<div style="font-size:12px;color:#888;padding:0 12px 10px;">同等比裁切：按住shift鍵再用滑鼠拉框線</div>
+      <button id="logoCropApply" class="btn" type="button">套用</button>
+    </div>
+  </div>
+</div>
+
+
+<script id="logo-and-product-editor-bridge">
+(function(){
+  // ===== Logo editor: CropperJS modal (same style as more.html) =====
+  let logoCropper = null;
+  let currentLogoTarget = null;
+
+  const logoModal = document.getElementById('logoCropModal');
+  const logoImg = document.getElementById('logoCropImg');
+  const logoApply = document.getElementById('logoCropApply');
+  const logoClose = document.getElementById('logoCropClose');
+
+  function destroyLogoCropper(){
+    try{ logoCropper && logoCropper.destroy && logoCropper.destroy(); }catch(_){}
+    logoCropper = null;
+  }
+
+  function openLogoCropperForTarget(target){
+    if(!target) return;
+    const img = target.tagName === 'IMG' ? target : (target.querySelector && target.querySelector('img'));
+    if(!img || !img.getAttribute('src')) return;
+    currentLogoTarget = img;
+    logoImg.src = img.getAttribute('src') || '';
+    if(!logoModal) return;
+    logoModal.classList.add('open');
+    destroyLogoCropper();
+    if(window.Cropper){
+      logoCropper = new Cropper(logoImg, {
+        viewMode: 1,
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true,
+        scalable: true,
+        background: false
+      });
+    }
+  }
+
+  if(logoApply){
+    logoApply.addEventListener('click', function(){
+      if(!currentLogoTarget || !logoCropper) return;
+      const out = logoCropper.getCroppedCanvas();
+      if(!out) return;
+      currentLogoTarget.src = out.toDataURL('image/png');
+      destroyLogoCropper();
+      if(logoModal) logoModal.classList.remove('open');
+      try{
+        if(typeof window.refreshAllLogoImageDisplays === 'function') window.refreshAllLogoImageDisplays();
+      }catch(_){}
+    });
+  }
+
+  if(logoClose){
+    logoClose.addEventListener('click', function(){
+      destroyLogoCropper();
+      if(logoModal) logoModal.classList.remove('open');
+    });
+  }
+
+  // Hook existing logo editor entry points, but do not touch product editor
+  function patchLogoEditorEntrypoints(){
+    const originalOpenEraseEditor = window.openEraseEditor;
+    if(typeof originalOpenEraseEditor !== 'function' || originalOpenEraseEditor.__logoCropperPatched) return;
+    const wrapped = function(target, options){
+      const opt = options || {};
+      const isLogo = !!opt.isLogoEdit || !!opt.isLogo || !!opt.logoMode || !!window.editingModeIsLogo;
+      if(isLogo){
+        openLogoCropperForTarget(target);
+        return;
+      }
+      return originalOpenEraseEditor.apply(this, arguments);
+    };
+    wrapped.__logoCropperPatched = true;
+    window.openEraseEditor = wrapped;
+  }
+
+  function bindLogoButtons(){
+    const selectors = [
+      '[data-action="edit-logo"]',
+      '.edit-logo',
+      '.logo-edit',
+      '.logo-edit-btn',
+      '.btn-edit-logo',
+      '#editLogoBtn'
+    ];
+    selectors.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(btn){
+        if(btn.dataset.logoCropBound === '1') return;
+        btn.dataset.logoCropBound = '1';
+        btn.addEventListener('click', function(e){
+          const targetSel = btn.getAttribute('data-target');
+          const target = targetSel ? document.querySelector(targetSel) : null;
+          if(target){
+            e.preventDefault();
+            openLogoCropperForTarget(target);
+          }
+        });
+      });
+    });
+  }
+
+  // ===== Product editor: keep 800x800 visual fit only for product images =====
+  function fitProductEditorView(){
+    const modal = document.getElementById('eraseModal');
+    const stage = document.getElementById('previewStage');
+    const wrap = document.getElementById('eraseWrap');
+    const eraseCanvas = document.getElementById('eraseCanvas');
+    const slider = document.getElementById('editZoom');
+    const hud = document.getElementById('zoomHudReadout');
+    if(!stage || !eraseCanvas) return;
+
+    stage.style.width = '800px';
+    stage.style.height = '800px';
+    stage.style.maxHeight = 'none';
+    stage.style.transformOrigin = 'top left';
+
+    if(wrap){
+      wrap.style.maxHeight = 'none';
+      wrap.style.overflow = 'auto';
+    }
+
+    if(slider){
+      slider.min = '10';
+      slider.max = '300';
+    }
+
+    const w = Math.max(1, eraseCanvas.width || 1);
+    const h = Math.max(1, eraseCanvas.height || 1);
+    let scale = 1;
+    if(w > 800 || h > 800){
+      scale = Math.max(0.1, Math.min(1, Math.min(800 / w, 800 / h)));
+    }
+
+    window.__editorVisualZoom = scale;
+    window.__erasePreviewZoom = scale;
+
+    stage.style.transform = 'scale(' + scale + ')';
+    if(hud) hud.textContent = Math.round(scale * 100) + '%';
+    if(slider) slider.value = String(Math.max(10, Math.min(300, Math.round(scale * 100))));
+  }
+
+  function bindProductEditorAutofit(){
+    const modal = document.getElementById('eraseModal');
+    if(!modal || modal.dataset.productFitBound === '1') return;
+    modal.dataset.productFitBound = '1';
+    const mo = new MutationObserver(function(){
+      if(modal.classList.contains('show')){
+        setTimeout(fitProductEditorView, 0);
+        setTimeout(fitProductEditorView, 40);
+        setTimeout(fitProductEditorView, 120);
+      }
+    });
+    mo.observe(modal, { attributes:true, attributeFilter:['class'] });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      patchLogoEditorEntrypoints();
+      bindLogoButtons();
+      bindProductEditorAutofit();
+    });
+  }else{
+    patchLogoEditorEntrypoints();
+    bindLogoButtons();
+    bindProductEditorAutofit();
+  }
+})();
+</script>
+
+
+<script id="logo-editor-hard-switch">
+(function(){
+  function ensureLogoCropperForRealIcons(){
+    document.querySelectorAll('.logo-edit-btn').forEach(function(btn){
+      if(btn.dataset.logoHardSwitchBound === '1') return;
+      btn.dataset.logoHardSwitchBound = '1';
+      btn.addEventListener('click', function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        var wrap = btn.closest('.logo-item, .editor-item, .brand-slot, .brand-box');
+        var img = null;
+        if(wrap) img = wrap.querySelector('img');
+        if(!img){
+          var parent = btn.parentElement;
+          if(parent) img = parent.querySelector('img');
+        }
+        if(!img || !img.getAttribute('src')) return;
+
+        var modal = document.getElementById('logoCropModal');
+        var cropImg = document.getElementById('logoCropImg');
+        var applyBtn = document.getElementById('logoCropApply');
+        var closeBtn = document.getElementById('logoCropClose');
+        if(!modal || !cropImg || !window.Cropper) return;
+
+        if(window.__activeLogoCropper && window.__activeLogoCropper.destroy){
+          try{ window.__activeLogoCropper.destroy(); }catch(_){}
+        }
+
+        window.__activeLogoCropTarget = img;
+        cropImg.src = img.getAttribute('src') || '';
+        modal.classList.add('open');
+
+        window.__activeLogoCropper = new Cropper(cropImg, {
+          viewMode: 1,
+          autoCropArea: 1,
+          movable: true,
+          zoomable: true,
+          scalable: true,
+          background: false
+        });
+
+        if(applyBtn && !applyBtn.dataset.logoHardSwitchBound){
+          applyBtn.dataset.logoHardSwitchBound = '1';
+          applyBtn.addEventListener('click', function(){
+            if(!window.__activeLogoCropTarget || !window.__activeLogoCropper) return;
+            var out = window.__activeLogoCropper.getCroppedCanvas();
+            if(!out) return;
+            window.__activeLogoCropTarget.src = out.toDataURL('image/png');
+
+            try{
+              if(typeof syncLogoDisplaySize === 'function') syncLogoDisplaySize(window.__activeLogoCropTarget);
+            }catch(_){}
+
+            try{
+              if(typeof refreshAllLogoImageDisplays === 'function') refreshAllLogoImageDisplays();
+            }catch(_){}
+
+            try{ window.__activeLogoCropper.destroy(); }catch(_){}
+            window.__activeLogoCropper = null;
+            modal.classList.remove('open');
+          });
+        }
+
+        if(closeBtn && !closeBtn.dataset.logoHardSwitchBound){
+          closeBtn.dataset.logoHardSwitchBound = '1';
+          closeBtn.addEventListener('click', function(){
+            try{ window.__activeLogoCropper && window.__activeLogoCropper.destroy(); }catch(_){}
+            window.__activeLogoCropper = null;
+            modal.classList.remove('open');
+          });
+        }
+      }, true);
+    });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      ensureLogoCropperForRealIcons();
+      setTimeout(ensureLogoCropperForRealIcons, 200);
+      setTimeout(ensureLogoCropperForRealIcons, 800);
+    });
+  }else{
+    ensureLogoCropperForRealIcons();
+    setTimeout(ensureLogoCropperForRealIcons, 200);
+    setTimeout(ensureLogoCropperForRealIcons, 800);
+  }
+})();
+</script>
+
+
+<script id="ddcard-layer-sync-patch">
+(function(){
+  function getOrderedPids(editorId){
+    var editor = document.getElementById(editorId);
+    if(!editor) return [];
+    return Array.from(editor.querySelectorAll('.editor-item:not(.editor-bg)'))
+      .map(function(box){ return box.dataset && box.dataset.pid ? box.dataset.pid : ''; })
+      .filter(Boolean);
+  }
+
+  function applyDdOrder(appEditorId, ddProductsId){
+    var order = getOrderedPids(appEditorId);
+    var root = document.getElementById(ddProductsId);
+    if(!root || !order.length) return;
+
+    var current = new Map(
+      Array.from(root.querySelectorAll('.dd-product')).map(function(box){
+        return [box.dataset.key || '', box];
+      })
+    );
+
+    order.forEach(function(pid, idx){
+      var box = current.get(pid);
+      if(!box) return;
+      root.appendChild(box);                // DOM order = layer order
+      box.style.zIndex = String(4 + idx);  // keep DDCard visual stacking in same order
+    });
+  }
+
+  function syncAllDdLayerOrder(){
+    applyDdOrder('editorH', 'ddHorizProducts');
+    applyDdOrder('editorS', 'ddSquareProducts');
+  }
+
+  function bindObservers(){
+    [
+      ['editorH', 'ddHorizProducts'],
+      ['editorS', 'ddSquareProducts']
+    ].forEach(function(pair){
+      var editorId = pair[0];
+      var root = document.getElementById(editorId);
+      if(!root || root.dataset.ddLayerOrderObserved === '1') return;
+      root.dataset.ddLayerOrderObserved = '1';
+
+      var mo = new MutationObserver(function(){
+        setTimeout(syncAllDdLayerOrder, 0);
+        setTimeout(syncAllDdLayerOrder, 60);
+      });
+
+      mo.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'data-pid']
+      });
+    });
+  }
+
+  function bindLayerButtons(){
+    document.querySelectorAll('.editor-item .layer-btns .ctrl, .editor-item .ctrl.edit, .editor-item .ctrl.del').forEach(function(btn){
+      if(btn.dataset.ddLayerSyncBound === '1') return;
+      btn.dataset.ddLayerSyncBound = '1';
+      btn.addEventListener('click', function(){
+        setTimeout(syncAllDdLayerOrder, 0);
+        setTimeout(syncAllDdLayerOrder, 80);
+      }, true);
+    });
+  }
+
+  function bindEditorContainers(){
+    ['editorH','editorS'].forEach(function(id){
+      var editor = document.getElementById(id);
+      if(!editor || editor.dataset.ddLayerDelegateBound === '1') return;
+      editor.dataset.ddLayerDelegateBound = '1';
+      editor.addEventListener('click', function(e){
+        var btn = e.target && e.target.closest ? e.target.closest('.layer-btns .ctrl') : null;
+        if(btn){
+          setTimeout(syncAllDdLayerOrder, 0);
+          setTimeout(syncAllDdLayerOrder, 80);
+        }
+      }, true);
+    });
+  }
+
+  function bindGlobalSyncHooks(){
+    if(window.__ddLayerSyncHooksBound) return;
+    window.__ddLayerSyncHooksBound = true;
+
+    var oldSync = window.syncDdLinkedCanvases;
+    if(typeof oldSync === 'function'){
+      window.syncDdLinkedCanvases = function(){
+        var result = oldSync.apply(this, arguments);
+        setTimeout(syncAllDdLayerOrder, 0);
+        setTimeout(syncAllDdLayerOrder, 60);
+        return result;
+      };
+    }
+  }
+
+  function init(){
+    bindObservers();
+    bindLayerButtons();
+    bindEditorContainers();
+    bindGlobalSyncHooks();
+    syncAllDdLayerOrder();
+    setTimeout(syncAllDdLayerOrder, 120);
+    setTimeout(syncAllDdLayerOrder, 400);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+<script id="ddcard-wheel-zoom-patch">
+(function(){
+  function clamp(v, min, max){
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function getPrefix(box){
+    return box && box.closest('.dd-canvas.square') ? 'ddSquare' : 'ddHoriz';
+  }
+
+  function zoomBoxFromCenter(box, factor){
+    if(!box) return;
+
+    var prefix = getPrefix(box);
+    var key = box.dataset.key || '';
+    var oldW = parseFloat(box.style.width) || box.offsetWidth || 0;
+    var oldH = parseFloat(box.style.height) || box.offsetHeight || 0;
+    var oldL = parseFloat(box.style.left) || 0;
+    var oldT = parseFloat(box.style.top) || 0;
+    if(!oldW || !oldH) return;
+
+    var cx = oldL + oldW / 2;
+    var cy = oldT + oldH / 2;
+
+    var newW = clamp(oldW * factor, 60, 1200);
+    var ratio = oldW / Math.max(1, oldH);
+    var newH = Math.max(60, newW / Math.max(0.01, ratio));
+
+    var newL = cx - newW / 2;
+    var newT = cy - newH / 2;
+
+    box.style.width = newW + 'px';
+    box.style.height = newH + 'px';
+    box.style.left = newL + 'px';
+    box.style.top = newT + 'px';
+
+    if(window.ddEditState && window.ddEditState[prefix] && window.ddEditState[prefix].products && key){
+      window.ddEditState[prefix].products[key] = {
+        left: newL,
+        top: newT,
+        width: newW,
+        height: newH
+      };
+    }
+
+    try{
+      if(typeof window.showDdGuideWarning === 'function'){
+        window.showDdGuideWarning(prefix);
+      }
+    }catch(_){}
+  }
+
+  function bindWheel(box){
+    if(!box || box.dataset.ddWheelZoomBound === '1') return;
+    box.dataset.ddWheelZoomBound = '1';
+
+    box.addEventListener('wheel', function(e){
+      if(!e) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      var factor = e.deltaY < 0 ? 1.05 : 0.95;
+      zoomBoxFromCenter(box, factor);
+    }, { passive:false });
+  }
+
+  function scan(){
+    document.querySelectorAll('#ddHorizProducts .dd-product, #ddSquareProducts .dd-product').forEach(bindWheel);
+  }
+
+  function init(){
+    scan();
+
+    ['ddHorizProducts','ddSquareProducts'].forEach(function(id){
+      var root = document.getElementById(id);
+      if(!root || root.dataset.ddWheelRootBound === '1') return;
+      root.dataset.ddWheelRootBound = '1';
+      var mo = new MutationObserver(function(){ scan(); });
+      mo.observe(root, { childList:true, subtree:true });
+    });
+
+    var originalSync = window.syncDdLinkedCanvases;
+    if(typeof originalSync === 'function' && !window.__ddWheelSyncWrapped){
+      window.__ddWheelSyncWrapped = true;
+      window.syncDdLinkedCanvases = function(){
+        var result = originalSync.apply(this, arguments);
+        setTimeout(scan, 30);
+        return result;
+      };
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
 </body>
 </html>
 
@@ -10720,7 +11429,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       '<div class="title">禁用語狀態</div>' +
       '<div class="body"></div>' +
       '<div class="meta"></div>' +
-      '<div class="actions"></div>';
+      '<div class="actions">
+<div style="font-size:12px;color:#888;padding:0 12px 10px;">同等比裁切：按住shift鍵再用滑鼠拉框線</div></div>';
     document.body.appendChild(box);
     box.querySelector('.close').addEventListener('click', function(){
       box.style.display = 'none';
