@@ -719,7 +719,7 @@ label:has(#editZoom){
 .is-exporting .guide-line,
 .is-exporting .guide-warning,
 .is-exporting .guide-doc-overlay,
-.is-exporting .dd-guide-line,
+.is-exporting .dd-guide-line, .ddcard-guide-line, .dd-guide,
 .is-exporting .dd-guide-warning,
 .is-exporting .float-meter,
 .is-exporting .modal,
@@ -1434,7 +1434,7 @@ label:has(#editZoom){
 
 
 <style id="ddcard-guide-style">
-  .dd-guide-line{
+  .dd-guide-line, .ddcard-guide-line, .dd-guide{
     position:absolute;
     left:0;
     width:100%;
@@ -1469,7 +1469,7 @@ label:has(#editZoom){
   .dd-guide-top-s{ top:370px; }
   .dd-guide-bottom-s{ top:674px; }
 
-  .is-exporting .dd-guide-line,
+  .is-exporting .dd-guide-line, .ddcard-guide-line, .dd-guide,
   .is-exporting .dd-guide-warning{
     display:none !important;
   }
@@ -1617,6 +1617,66 @@ label:has(#editZoom){
   .cropper-panel .actions{ display:flex; gap:8px; padding:10px; justify-content:flex-end; }
   .cropper-panel img{ max-width:100%; max-height:65vh; display:block; margin:0 auto; }
 </style>
+
+
+
+
+<style id="guide-flash-force-style">
+  .guide-line,
+  .dd-guide-line, .ddcard-guide-line, .dd-guide{
+    transform-origin:center center !important;
+    box-sizing:border-box;
+  }
+
+  .guide-line.flash-guide-h,
+  .dd-guide-line, .ddcard-guide-line, .dd-guide.flash-guide-h{
+    animation: flashGuideHorizontalCentered 0.22s ease-in-out 0s 8 alternate !important;
+  }
+
+  .guide-line.flash-guide-v,
+  .dd-guide-line, .ddcard-guide-line, .dd-guide.flash-guide-v{
+    animation: flashGuideVerticalCentered 0.22s ease-in-out 0s 8 alternate !important;
+  }
+
+  @keyframes flashGuideHorizontalCentered{
+    0%{
+      height:1px;
+      margin-top:0;
+      margin-bottom:0;
+      opacity:1;
+      box-shadow:0 0 0 rgba(255,43,43,0);
+      background:#ff2b2b;
+    }
+    100%{
+      height:3px;
+      margin-top:-1px;
+      margin-bottom:-1px;
+      opacity:1;
+      box-shadow:0 0 0 1px rgba(255,43,43,.14), 0 0 10px rgba(255,43,43,.28);
+      background:#ff2b2b;
+    }
+  }
+
+  @keyframes flashGuideVerticalCentered{
+    0%{
+      width:1px;
+      margin-left:0;
+      margin-right:0;
+      opacity:1;
+      box-shadow:0 0 0 rgba(255,43,43,0);
+      background:#ff2b2b;
+    }
+    100%{
+      width:3px;
+      margin-left:-1px;
+      margin-right:-1px;
+      opacity:1;
+      box-shadow:0 0 0 1px rgba(255,43,43,.14), 0 0 10px rgba(255,43,43,.28);
+      background:#ff2b2b;
+    }
+  }
+</style>
+
 
 </head>
 <body>
@@ -7180,7 +7240,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('ctrl');
       },
       onclone: function(doc){
-        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
+        doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line, .ddcard-guide-line, .dd-guide,.dd-guide-warning').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode){
           clonedNode.style.overflow = 'hidden';
@@ -7375,7 +7435,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line, .ddcard-guide-line, .dd-guide,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(canvasId);
           if(clonedNode){
             clonedNode.style.overflow = 'hidden';
@@ -9414,7 +9474,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line, .ddcard-guide-line, .dd-guide,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(node.id);
           if(clonedNode){
             clonedNode.style.overflow = 'hidden';
@@ -9656,7 +9716,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line, .ddcard-guide-line, .dd-guide,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
           const clonedNode = doc.getElementById(node.id);
           if(!clonedNode) return;
           clonedNode.style.overflow = 'hidden';
@@ -11291,6 +11351,111 @@ document.addEventListener('DOMContentLoaded', ()=>{
         return result;
       };
     }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+})();
+</script>
+
+
+
+<script id="guide-flash-force-script">
+(function(){
+  var FLASH_COOLDOWN_MS = 2200;
+
+  function isVertical(line){
+    var cls = String(line.className || '');
+    if(/x\d+/i.test(cls)) return true;
+    var w = line.offsetWidth || parseFloat(getComputedStyle(line).width) || 0;
+    var h = line.offsetHeight || parseFloat(getComputedStyle(line).height) || 0;
+    return w > 0 && h > 0 && h > w * 3;
+  }
+
+  function flashLine(line){
+    if(!line) return;
+    var now = Date.now();
+    var last = Number(line.dataset.flashTs || '0');
+    if(now - last < FLASH_COOLDOWN_MS) return;
+    line.dataset.flashTs = String(now);
+
+    var cls = isVertical(line) ? 'flash-guide-v' : 'flash-guide-h';
+    line.classList.remove('flash-guide-h', 'flash-guide-v');
+    void line.offsetWidth;
+    line.classList.add(cls);
+
+    setTimeout(function(){
+      line.classList.remove('flash-guide-h', 'flash-guide-v');
+    }, 1900);
+  }
+
+  function flashGuideLinesIn(container, selector){
+    if(!container) return;
+    container.querySelectorAll(selector).forEach(flashLine);
+  }
+
+  // ===== HBN =====
+  var originalShowGuideWarningFor = window.showGuideWarningFor;
+  if(typeof originalShowGuideWarningFor === 'function' && !window.__guideFlashHbnWrapped){
+    window.__guideFlashHbnWrapped = true;
+    window.showGuideWarningFor = function(box){
+      var result = originalShowGuideWarningFor.apply(this, arguments);
+      try{
+        var canvas = box && box.closest ? box.closest('.canvas') : null;
+        if(canvas){
+          flashGuideLinesIn(canvas, '.guide-line');
+        }
+      }catch(_){}
+      return result;
+    };
+  }
+
+  // ===== DDCard =====
+  var originalShowDdGuideWarning = window.showDdGuideWarning;
+  if(typeof originalShowDdGuideWarning === 'function' && !window.__guideFlashDdWrapped){
+    window.__guideFlashDdWrapped = true;
+    window.showDdGuideWarning = function(prefix){
+      var result = originalShowDdGuideWarning.apply(this, arguments);
+      try{
+        var canvas = document.getElementById(prefix + 'Canvas');
+        if(canvas){
+          flashGuideLinesIn(canvas, '.dd-guide-line, .ddcard-guide-line, .dd-guide');
+        }
+      }catch(_){}
+      return result;
+    };
+  }
+
+  // Safety net: if warning bubble itself gets .show, flash lines too
+  function bindWarningObserver(warningEl, lineRoot, lineSelector){
+    if(!warningEl || warningEl.dataset.flashObsBound === '1') return;
+    warningEl.dataset.flashObsBound = '1';
+    var mo = new MutationObserver(function(){
+      if(warningEl.classList.contains('show')){
+        flashGuideLinesIn(lineRoot, lineSelector);
+      }
+    });
+    mo.observe(warningEl, { attributes:true, attributeFilter:['class'] });
+  }
+
+  function init(){
+    document.querySelectorAll('.canvas').forEach(function(canvas){
+      var warning = canvas.querySelector('.guide-warning');
+      if(warning){
+        bindWarningObserver(warning, canvas, '.guide-line');
+      }
+    });
+
+    ['ddHoriz','ddSquare'].forEach(function(prefix){
+      var canvas = document.getElementById(prefix + 'Canvas');
+      var warning = document.getElementById(prefix + 'GuideWarning');
+      if(canvas && warning){
+        bindWarningObserver(warning, canvas, '.dd-guide-line, .ddcard-guide-line, .dd-guide');
+      }
+    });
   }
 
   if(document.readyState === 'loading'){
