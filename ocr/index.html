@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>圖片 OCR 審核工具</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="banwords-engine-hbn.js"></script>
+  <script src="ocr-rules.js"></script>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .hint { margin: 0 0 20px; color: #5d667a; line-height: 1.6; }
+    .panel { background: #fff; border: 1px solid #e6e8f0; border-radius: 16px; padding: 18px; box-shadow: 0 8px 28px rgba(20, 32, 60, .07); margin-bottom: 18px; }
+    .loadStatus { display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:10px; margin-bottom:18px; }
+    .statusItem { border-radius: 10px; padding: 10px 12px; font-size: 14px; border:1px solid #d9deea; background:#fff; }
+    .ok { background:#e9f8ef; color:#146c2e; border-color:#bfe8cb; }
+    .fail { background:#fff0f0; color:#b42318; border-color:#ffc9c9; }
+    .warn { background:#fff8e6; color:#8a5a00; border-color:#ffe0a3; }
+    .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    input[type="file"], select, button, label.switch { border: 1px solid #cfd5e3; border-radius: 10px; padding: 10px 12px; background: #fff; font-size: 15px; }
+    label.switch { display: inline-flex; align-items: center; gap: 8px; }
+    button { cursor: pointer; background: #1f6feb; color: #fff; border-color: #1f6feb; font-weight: 650; }
+    button.secondary { background: #fff; color: #1f2937; border-color: #cfd5e3; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr); gap: 18px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    .dropZone { border: 2px dashed #b9c6dc; border-radius: 16px; background: #fafbff; padding: 14px; transition: .18s ease; }
+    .dropZone.dragover { border-color: #1f6feb; background: #eef5ff; }
+    .canvasBox { overflow: auto; max-height: 72vh; border-radius: 12px; background: #fff; }
+    canvas { display: block; max-width: 100%; height: auto; background: #fff; cursor: crosshair; border-radius: 8px; }
+    textarea { width: 100%; min-height: 175px; resize: vertical; border: 1px solid #cfd5e3; border-radius: 12px; padding: 12px; font: 15px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .status { color: #5d667a; min-height: 24px; margin-top: 12px; }
+    .progressOuter { width: 100%; height: 10px; background: #eef1f7; border-radius: 999px; overflow: hidden; margin-top: 10px; }
+    .progressInner { height: 100%; width: 0%; background: #1f6feb; transition: width .2s ease; }
+    .small { font-size: 13px; color: #68738a; line-height: 1.6; }
+    .coord { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    details { margin-top: 14px; }
+    #auditReport { background:#fff; border:1px solid #e1e5ef; border-radius:12px; padding:12px; min-height:80px; line-height:1.7; }
+    .violation { color:#d11a2a; font-weight:700; }
+    .fix { color:#172033; font-weight:600; margin-left:6px; }
+    .notes { margin-top:12px; color:#555; border-top:1px solid #eee; padding-top:10px; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>圖片 OCR 審核工具</h1>
+    <p class="hint">可拖拉或點選上傳圖片。預設放大 2 倍；若圖片尺寸符合已設定規格，會自動框出固定辨識範圍。審核規則獨立放在 JS 內，並讀取同層 banwords.xlsx。</p>
+
+    <section class="loadStatus">
+      <div id="statusRules" class="statusItem warn">ocr-rules.js：檢查中...</div>
+      <div id="statusEngine" class="statusItem warn">banwords-engine-hbn.js：檢查中...</div>
+      <div id="statusExcel" class="statusItem warn">banwords.xlsx：嘗試讀取中...</div>
+    </section>
+
+    <section class="panel controls">
+      <input id="fileInput" type="file" accept="image/*" />
+      <label>辨識語言：
+        <select id="langSelect">
+          <option value="chi_tra+eng" selected>繁中 + 英文/數字/符號</option>
+          <option value="chi_sim+eng">簡中 + 英文/數字/符號</option>
+          <option value="chi_tra+chi_sim+eng">繁中 + 簡中 + 英文/數字/符號</option>
+          <option value="eng">英文/數字/符號</option>
+        </select>
+      </label>
+      <label>放大倍率：
+        <select id="scaleSelect">
+          <option value="2" selected>2 倍</option>
+          <option value="3">3 倍</option>
+          <option value="4">4 倍</option>
+          <option value="5">5 倍</option>
+        </select>
+      </label>
+      <label>辨識策略：
+        <select id="strategySelect">
+          <option value="balanced" selected>平衡：多模式自動挑選</option>
+          <option value="line">單行文字優先</option>
+          <option value="block">區塊文字優先</option>
+          <option value="fast">快速：只跑一次</option>
+        </select>
+      </label>
+      <label class="switch"><input id="autoOcr" type="checkbox" checked />上傳後自動辨識</label>
+      <label class="switch"><input id="cleanSpaces" type="checkbox" checked />清理多餘空格</label>
+      <button id="ocrBtn" disabled>辨識選取範圍</button>
+      <button id="fullBtn" class="secondary" disabled>辨識固定範圍/整張</button>
+      <button id="clearBtn" class="secondary" disabled>清除選取</button>
+      <button id="copyBtn" class="secondary" disabled>複製結果</button>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div id="dropZone" class="dropZone">
+          <div class="canvasBox"><canvas id="canvas"></canvas></div>
+          <p class="small">可把圖片直接拖拉到這個區塊上傳。</p>
+        </div>
+        <div class="status" id="status">請先上傳圖片。</div>
+        <div class="progressOuter"><div class="progressInner" id="progress"></div></div>
+        <p class="small">目前選取範圍：<span class="coord" id="coord">尚未選取</span></p>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin-top:0;font-size:20px;">最佳辨識結果</h2>
+        <textarea id="output" placeholder="OCR 結果會顯示在這裡"></textarea>
+
+        <details open>
+          <summary>審核報告內容</summary>
+          <div id="auditReport">尚無審核內容</div>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const langSelect = document.getElementById('langSelect');
+    const scaleSelect = document.getElementById('scaleSelect');
+    const strategySelect = document.getElementById('strategySelect');
+    const autoOcr = document.getElementById('autoOcr');
+    const cleanSpaces = document.getElementById('cleanSpaces');
+    const dropZone = document.getElementById('dropZone');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ocrBtn = document.getElementById('ocrBtn');
+    const fullBtn = document.getElementById('fullBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const output = document.getElementById('output');
+    const auditReport = document.getElementById('auditReport');
+    const statusEl = document.getElementById('status');
+    const progressEl = document.getElementById('progress');
+    const coordEl = document.getElementById('coord');
+
+    let baseImg = new Image();
+    let displayCanvas = null;
+    let imageLoaded = false;
+    let isDragging = false;
+    let start = null;
+    let selection = null;
+    let currentObjectUrl = null;
+    let worker = null;
+    let workerLang = '';
+    let detectedRegions = [];
+
+    const REGION_PRESETS = [
+      {
+        width: 1200,
+        height: 360,
+        name: '1200x360 橫幅',
+        regions: [
+          { label: '主標', role: 'title', x1: 94.5, y1: 146, x2: 600, y2: 196 },
+          { label: '副標', role: 'subtitle', x1: 94.5, y1: 196, x2: 600, y2: 267 },
+          { label: '日期', role: 'date', x1: 94.5, y1: 267, x2: 600, y2: 305 }
+        ]
+      }
+    ];
+
+    function setLoadStatus(id, ok, text) {
+      const el = document.getElementById(id);
+      el.className = 'statusItem ' + (ok ? 'ok' : 'fail');
+      el.textContent = text;
+    }
+
+    function checkScriptLoads() {
+      setLoadStatus('statusRules', !!window.ocrAuditRules, window.ocrAuditRules ? 'ocr-rules.js：載入成功' : 'ocr-rules.js：載入失敗');
+      setLoadStatus('statusEngine', !!window.banwordEngine, window.banwordEngine ? 'banwords-engine-hbn.js：載入成功' : 'banwords-engine-hbn.js：載入失敗');
+    }
+
+    async function loadBanwordsExcel() {
+      try {
+        const res = await fetch('banwords.xlsx', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        if (window.banwordEngine && typeof window.banwordEngine.loadRulesFromExcelArrayBuffer === 'function') {
+          window.banwordEngine.loadRulesFromExcelArrayBuffer(buf);
+        }
+        if (window.ocrAuditRules && typeof window.ocrAuditRules.loadRulesFromExcelArrayBuffer === 'function') {
+          window.ocrAuditRules.loadRulesFromExcelArrayBuffer(buf);
+        }
+        setLoadStatus('statusExcel', true, 'banwords.xlsx：載入成功');
+      } catch (err) {
+        setLoadStatus('statusExcel', false, 'banwords.xlsx：未載入，請確認檔案與 index.html 同層，且需用本機伺服器開啟');
+      }
+    }
+
+    checkScriptLoads();
+    loadBanwordsExcel();
+
+    function setStatus(text) { statusEl.textContent = text; }
+    function setProgress(value) { progressEl.style.width = `${Math.max(0, Math.min(100, value))}%`; }
+
+    function redraw() {
+      if (!imageLoaded || !displayCanvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(displayCanvas, 0, 0);
+
+      detectedRegions.forEach(region => {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 153, 0, 0.12)';
+        ctx.strokeStyle = '#ff9800';
+        ctx.lineWidth = Math.max(2, canvas.width / 700);
+        ctx.setLineDash([10, 5]);
+        ctx.fillRect(region.x, region.y, region.w, region.h);
+        ctx.strokeRect(region.x, region.y, region.w, region.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ff9800';
+        ctx.font = `${Math.max(16, canvas.width / 70)}px system-ui, sans-serif`;
+        ctx.fillText(region.label, region.x + 8, Math.max(20, region.y - 8));
+        ctx.restore();
+      });
+
+      if (selection) {
+        const { x, y, w, h } = selection;
+        ctx.save();
+        ctx.fillStyle = 'rgba(31, 111, 235, 0.14)';
+        ctx.strokeStyle = '#1f6feb';
+        ctx.lineWidth = Math.max(2, canvas.width / 600);
+        ctx.setLineDash([8, 5]);
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+        ctx.restore();
+        coordEl.textContent = `x:${Math.round(x)}, y:${Math.round(y)}, w:${Math.round(w)}, h:${Math.round(h)}`;
+      } else {
+        coordEl.textContent = detectedRegions.length ? '已套用固定辨識範圍' : '尚未選取';
+      }
+    }
+
+    function cloneCanvas(src) {
+      const c = document.createElement('canvas');
+      c.width = src.width; c.height = src.height;
+      c.getContext('2d', { willReadFrequently: true }).drawImage(src, 0, 0);
+      return c;
+    }
+
+    function makeScaledCanvas(img, scale) {
+      const c = document.createElement('canvas');
+      const cctx = c.getContext('2d', { willReadFrequently: true });
+      c.width = Math.round(img.naturalWidth * scale);
+      c.height = Math.round(img.naturalHeight * scale);
+      cctx.imageSmoothingEnabled = true;
+      cctx.imageSmoothingQuality = 'high';
+      cctx.drawImage(img, 0, 0, c.width, c.height);
+      return c;
+    }
+
+    function getPresetForSize(width, height) {
+      return REGION_PRESETS.find(p => p.width === width && p.height === height) || null;
+    }
+
+    function applyPresetRegions(scale) {
+      const preset = getPresetForSize(baseImg.naturalWidth, baseImg.naturalHeight);
+      if (!preset) { detectedRegions = []; return null; }
+      detectedRegions = preset.regions.map(r => ({
+        label: r.label,
+        role: r.role,
+        x: r.x1 * scale,
+        y: r.y1 * scale,
+        w: (r.x2 - r.x1) * scale,
+        h: (r.y2 - r.y1) * scale
+      }));
+      return preset;
+    }
+
+    function preprocessCanvas(src, mode) {
+      const out = cloneCanvas(src);
+      if (mode === 'original') return out;
+      const octx = out.getContext('2d', { willReadFrequently: true });
+      const data = octx.getImageData(0, 0, out.width, out.height);
+      const d = data.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        let v = gray;
+        if (mode === 'gray') v = gray;
+        if (mode === 'contrast') v = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+        if (mode === 'binary') v = gray > 165 ? 255 : 0;
+        d[i] = d[i + 1] = d[i + 2] = v;
+      }
+      octx.putImageData(data, 0, 0);
+      return out;
+    }
+
+    function cleanGenericSpaces(text) {
+      let s = (text || '').replace(/\r/g, '\n');
+      s = s.replace(/[ \t]+/g, ' ');
+      s = s.replace(/\s*([$/%％#@&+×xX=<>:：,，.。!！?？()（）\[\]{}-])\s*/g, '$1');
+      s = s.replace(/([\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])/g, '$1');
+      s = s.replace(/([\u4e00-\u9fff])\s+(?=[0-9A-Za-z$])/g, '$1');
+      s = s.replace(/([0-9A-Za-z$])\s+(?=[\u4e00-\u9fff])/g, '$1');
+      s = s.replace(/([0-9])\s+(?=[0-9])/g, '$1');
+      return s.trim();
+    }
+
+    function scoreResult(data) {
+      const text = (data.text || '').trim();
+      const confidence = Number.isFinite(data.confidence) ? data.confidence : 0;
+      const usefulChars = (text.match(/[\u4e00-\u9fffA-Za-z0-9$%％折]/g) || []).length;
+      const weirdSpaces = (text.match(/[\u4e00-\u9fff]\s+[\u4e00-\u9fffA-Za-z0-9$]/g) || []).length;
+      const replacementMarks = (text.match(/[�□]/g) || []).length;
+      return confidence + usefulChars * 0.25 - weirdSpaces * 2 - replacementMarks * 5;
+    }
+
+    function getPsmList() {
+      const s = strategySelect.value;
+      if (s === 'fast') return [6];
+      if (s === 'line') return [7, 13, 6];
+      if (s === 'block') return [6, 11, 7];
+      return [6, 7, 11, 13];
+    }
+
+    function getPreprocessList() {
+      if (strategySelect.value === 'fast') return ['original'];
+      return ['original', 'gray', 'contrast', 'binary'];
+    }
+
+    async function getWorker() {
+      const lang = langSelect.value;
+      if (worker && workerLang === lang) return worker;
+      if (worker) await worker.terminate();
+      workerLang = lang;
+      worker = await Tesseract.createWorker(lang, 1, {
+        logger: (m) => {
+          if (m.status) setStatus(`${m.status}${m.progress ? `：${Math.round(m.progress * 100)}%` : ''}`);
+        }
+      });
+      await worker.setParameters({ preserve_interword_spaces: '0', user_defined_dpi: '300' });
+      return worker;
+    }
+
+    function cropCanvas(rect) {
+      const crop = document.createElement('canvas');
+      const cropCtx = crop.getContext('2d', { willReadFrequently: true });
+      crop.width = Math.max(1, Math.round(rect.w));
+      crop.height = Math.max(1, Math.round(rect.h));
+      cropCtx.drawImage(displayCanvas, Math.round(rect.x), Math.round(rect.y), Math.round(rect.w), Math.round(rect.h), 0, 0, crop.width, crop.height);
+      return crop;
+    }
+
+    function renderAudit(text, roleMapText) {
+      if (!window.ocrAuditRules || typeof window.ocrAuditRules.auditText !== 'function') {
+        auditReport.innerHTML = '<span class="violation">ocr-rules.js 未載入，無法審核</span>';
+        return;
+      }
+      const result = window.ocrAuditRules.auditText(text, { roleText: roleMapText || {} });
+      if (!result.violations.length) {
+        auditReport.textContent = '無違規';
+        return;
+      }
+      const main = result.violations.map(v => {
+        const fixed = v.fixed ? `<span class="fix">→ ${escapeHtml(v.fixed)}</span>` : '';
+        return `<div><span class="violation">${escapeHtml(v.original)}</span>${fixed}</div>`;
+      }).join('');
+      const notes = Array.from(new Set(result.violations.map(v => v.note).filter(Boolean)));
+      const noteHtml = notes.length ? `<div class="notes"><b>備註說明：</b><br>${notes.map(escapeHtml).join('<br>')}</div>` : '';
+      auditReport.innerHTML = main + noteHtml;
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    }
+
+    function loadFile(file) {
+      if (!file || !file.type.startsWith('image/')) { setStatus('請上傳圖片檔。'); return; }
+      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = URL.createObjectURL(file);
+      baseImg = new Image();
+      baseImg.onload = () => {
+        const scale = Number(scaleSelect.value) || 2;
+        displayCanvas = makeScaledCanvas(baseImg, scale);
+        canvas.width = displayCanvas.width;
+        canvas.height = displayCanvas.height;
+        imageLoaded = true;
+        selection = null;
+        output.value = '';
+        auditReport.textContent = '尚無審核內容';
+        const preset = applyPresetRegions(scale);
+        redraw();
+        ocrBtn.disabled = true;
+        fullBtn.disabled = false;
+        clearBtn.disabled = false;
+        copyBtn.disabled = true;
+        setProgress(0);
+        setStatus(preset ? `圖片已載入並放大 ${scale} 倍，符合 ${preset.name}，已框出 ${detectedRegions.length} 個固定辨識範圍。` : `圖片已載入並放大 ${scale} 倍：${baseImg.naturalWidth}×${baseImg.naturalHeight} → ${canvas.width}×${canvas.height}`);
+        if (autoOcr.checked) {
+          if (detectedRegions.length) runPresetOcr();
+          else runOcr({ x: 0, y: 0, w: canvas.width, h: canvas.height });
+        }
+      };
+      baseImg.onerror = () => setStatus('圖片載入失敗，請換一張圖片。');
+      baseImg.src = currentObjectUrl;
+    }
+
+    fileInput.addEventListener('change', (e) => loadFile(e.target.files?.[0]));
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+    dropZone.addEventListener('drop', e => loadFile(e.dataTransfer.files?.[0]));
+
+    scaleSelect.addEventListener('change', () => {
+      if (!imageLoaded || !baseImg.complete) return;
+      const scale = Number(scaleSelect.value) || 2;
+      displayCanvas = makeScaledCanvas(baseImg, scale);
+      canvas.width = displayCanvas.width;
+      canvas.height = displayCanvas.height;
+      selection = null;
+      ocrBtn.disabled = true;
+      const preset = applyPresetRegions(scale);
+      redraw();
+      setStatus(preset ? `已重新套用 ${scale} 倍放大，並框出 ${preset.name} 的固定辨識範圍。` : `已重新套用 ${scale} 倍放大。`);
+      if (autoOcr.checked) {
+        if (detectedRegions.length) runPresetOcr();
+        else runOcr({ x: 0, y: 0, w: canvas.width, h: canvas.height });
+      }
+    });
+
+    function getCanvasPoint(evt) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: (evt.clientX - rect.left) * canvas.width / rect.width, y: (evt.clientY - rect.top) * canvas.height / rect.height };
+    }
+    function normalizeRect(a, b) {
+      const x = Math.max(0, Math.min(a.x, b.x));
+      const y = Math.max(0, Math.min(a.y, b.y));
+      const right = Math.min(canvas.width, Math.max(a.x, b.x));
+      const bottom = Math.min(canvas.height, Math.max(a.y, b.y));
+      return { x, y, w: right - x, h: bottom - y };
+    }
+    canvas.addEventListener('mousedown', evt => { if (!imageLoaded) return; isDragging = true; start = getCanvasPoint(evt); selection = { x: start.x, y: start.y, w: 0, h: 0 }; redraw(); });
+    canvas.addEventListener('mousemove', evt => { if (!isDragging || !start) return; selection = normalizeRect(start, getCanvasPoint(evt)); redraw(); });
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      if (selection && selection.w >= 5 && selection.h >= 5) { ocrBtn.disabled = false; setStatus('已選取範圍，可以開始辨識。'); }
+      else { selection = null; ocrBtn.disabled = true; setStatus('選取範圍太小，請重新框選。'); }
+      redraw();
+    });
+    clearBtn.addEventListener('click', () => { selection = null; ocrBtn.disabled = true; redraw(); setStatus(imageLoaded ? '已清除選取。' : '請先上傳圖片。'); });
+    copyBtn.addEventListener('click', async () => { await navigator.clipboard.writeText(output.value); setStatus('已複製辨識結果。'); });
+
+    async function runPresetOcr() {
+      const parts = [];
+      const roleText = {};
+      for (const region of detectedRegions) {
+        setStatus(`分區辨識中：${region.label}`);
+        const result = await runOcr(region, true);
+        parts.push(`${region.label}：${result.bestText || ''}`);
+        roleText[region.role] = result.bestText || '';
+      }
+      output.value = parts.join('\n');
+      renderAudit(output.value, roleText);
+      copyBtn.disabled = !output.value;
+      setStatus('固定範圍分區辨識完成。');
+    }
+
+    async function runOcr(rect, silentReturn = false) {
+      if (!imageLoaded) return { bestText: '' };
+      ocrBtn.disabled = true;
+      fullBtn.disabled = true;
+      copyBtn.disabled = true;
+      if (!silentReturn) output.value = '';
+      setProgress(0);
+
+      const baseCrop = cropCanvas(rect);
+      const variants = [];
+      for (const prep of getPreprocessList()) {
+        const img = preprocessCanvas(baseCrop, prep);
+        for (const psm of getPsmList()) variants.push({ prep, psm, img });
+      }
+
+      const results = [];
+      try {
+        const w = await getWorker();
+        for (let i = 0; i < variants.length; i++) {
+          const v = variants[i];
+          setStatus(`辨識中：${i + 1}/${variants.length}，影像=${v.prep}，模式=PSM ${v.psm}`);
+          setProgress((i / variants.length) * 100);
+          await w.setParameters({ tessedit_pageseg_mode: String(v.psm) });
+          const res = await w.recognize(v.img);
+          const raw = res.data.text.trim();
+          const cleaned = cleanSpaces.checked ? cleanGenericSpaces(raw) : raw;
+          results.push({ prep: v.prep, psm: v.psm, confidence: res.data.confidence, raw, text: cleaned, score: scoreResult({ text: cleaned, confidence: res.data.confidence }) });
+        }
+        results.sort((a, b) => b.score - a.score);
+        const best = results[0];
+        const bestText = best ? best.text : '';
+        if (silentReturn) return { bestText, results };
+
+        output.value = bestText;
+        renderAudit(bestText, {});
+        copyBtn.disabled = !output.value;
+        setProgress(100);
+        setStatus(output.value ? '辨識完成，已選出分數最高的結果。' : '辨識完成，但沒有偵測到文字。');
+        return { bestText, results };
+      } catch (err) {
+        console.error(err);
+        setStatus('辨識失敗。請確認網路可連到 Tesseract.js CDN，或換一張更清楚的圖片。');
+        return { bestText: '' };
+      } finally {
+        fullBtn.disabled = false;
+        ocrBtn.disabled = !selection;
+        redraw();
+      }
+    }
+
+    ocrBtn.addEventListener('click', () => { if (selection) runOcr(selection); });
+    fullBtn.addEventListener('click', () => {
+      if (detectedRegions.length) runPresetOcr();
+      else runOcr({ x: 0, y: 0, w: canvas.width, h: canvas.height });
+    });
+  </script>
+</body>
+</html>
