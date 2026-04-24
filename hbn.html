@@ -83,7 +83,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   #horiz .brand img{max-height:50px;height:auto;width:auto;object-fit:contain;display:block}
 
   /* 方形 Logo app設定：105 x 105 盒 */
-  #square .brand{position:absolute;left:45px;top:125px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
+  #square .brand{position:absolute;left:47px;top:125px;display:flex;align-items:center;justify-content:center;z-index:5;margin:0}
   #square .logo-box{ position:relative; width:auto; height:auto; display:flex; align-items:center; justify-content:center; }
   #square .logo-box img{ width:auto !important; height:105px !important; max-width:none !important; max-height:none !important; object-fit:contain !important; display:block; }
 
@@ -1591,6 +1591,19 @@ label:has(#editZoom){
   #bgScaleH .tag,#bgScaleS .tag,#bgScalePH .tag,#bgScalePS .tag,
   #ddBgScaleHoriz .tag,#ddBgScaleSquare .tag{
     text-align:center !important;
+  }
+</style>
+
+
+<style id="assistant-square-logo-x47-hard-fix">
+  /* 方 LOGO 的 HBN logo 固定在 x=47，避免被後續樣式或暫存狀態覆蓋 */
+  #square > .brand,
+  #square .brand.is-editable{
+    position:absolute !important;
+    left:47px !important;
+    top:125px !important;
+    right:auto !important;
+    margin:0 !important;
   }
 </style>
 
@@ -9418,56 +9431,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
   }
 
-  function getObjectFitContainRect(boxRect, naturalW, naturalH){
-    const boxW = boxRect.width || 0;
-    const boxH = boxRect.height || 0;
-    if(!(boxW > 0 && boxH > 0 && naturalW > 0 && naturalH > 0)){
-      return { left: boxRect.left, top: boxRect.top, width: boxW, height: boxH };
-    }
-
-    const boxRatio = boxW / boxH;
-    const imgRatio = naturalW / naturalH;
-    let drawW, drawH, drawLeft, drawTop;
-
-    if(imgRatio > boxRatio){
-      drawW = boxW;
-      drawH = boxW / imgRatio;
-      drawLeft = boxRect.left;
-      drawTop = boxRect.top + (boxH - drawH) / 2;
-    }else{
-      drawH = boxH;
-      drawW = boxH * imgRatio;
-      drawTop = boxRect.top;
-      drawLeft = boxRect.left + (boxW - drawW) / 2;
-    }
-
-    return { left: drawLeft, top: drawTop, width: drawW, height: drawH };
-  }
-
   function captureVisibleHbnLocks(node){
     const nodeRect = node.getBoundingClientRect();
     const locks = [];
     node.querySelectorAll('.editor-item:not(.editor-bg)').forEach(function(box){
       const img = box.querySelector('img');
       if(!img) return;
-
-      // The frontend uses .editor-item img { width:100%; height:100%; object-fit:contain }.
-      // getBoundingClientRect() on the <img> returns the full item box, not the actual
-      // letterboxed product pixels.  When a product was cropped to a different aspect
-      // ratio, drawing that full box during export stretched it.  Export the same
-      // contain rectangle that the browser visually shows inside the item box.
-      const boxRect = box.getBoundingClientRect();
-      const naturalW = img.naturalWidth || 0;
-      const naturalH = img.naturalHeight || 0;
-      const drawRect = getObjectFitContainRect(boxRect, naturalW, naturalH);
-      if(!(drawRect.width > 0 && drawRect.height > 0)) return;
-
+      const imgRect = img.getBoundingClientRect();
+      if(!(imgRect.width > 0 && imgRect.height > 0)) return;
       locks.push({
         src: img.currentSrc || img.src || '',
-        left: drawRect.left - nodeRect.left,
-        top: drawRect.top - nodeRect.top,
-        width: drawRect.width,
-        height: drawRect.height,
+        left: imgRect.left - nodeRect.left,
+        top: imgRect.top - nodeRect.top,
+        width: imgRect.width,
+        height: imgRect.height,
         zIndex: getComputedStyle(box).zIndex || '4'
       });
     });
@@ -15209,6 +15186,47 @@ body.ui-left-ready .control-card .toolbar .hex-color-wrap .color-picker-btn{
 </script>
 
 <script src="./editor-plugin.js"></script>
+
+<script id="assistant-square-logo-x47-runtime-fix">
+(function(){
+  function lockSquareLogoX47(){
+    var brand = document.querySelector('#square > .brand');
+    if(!brand) return;
+    brand.style.setProperty('position', 'absolute', 'important');
+    brand.style.setProperty('left', '47px', 'important');
+    brand.style.setProperty('top', '125px', 'important');
+    brand.style.setProperty('right', 'auto', 'important');
+    brand.style.setProperty('margin', '0', 'important');
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', lockSquareLogoX47);
+  }else{
+    lockSquareLogoX47();
+  }
+
+  setTimeout(lockSquareLogoX47, 100);
+  setTimeout(lockSquareLogoX47, 500);
+  setTimeout(lockSquareLogoX47, 1200);
+
+  document.addEventListener('change', function(e){
+    if(e.target && e.target.id === 'logo-square'){
+      setTimeout(lockSquareLogoX47, 50);
+      setTimeout(lockSquareLogoX47, 300);
+    }
+  }, true);
+
+  document.addEventListener('click', function(e){
+    if(e.target && (e.target.id === 'jsonImportBtn' || e.target.id === 'dl-s')){
+      lockSquareLogoX47();
+      setTimeout(lockSquareLogoX47, 80);
+    }
+  }, true);
+
+  window.lockSquareLogoX47 = lockSquareLogoX47;
+})();
+</script>
+
 </body>
 </html>
 <style id="logo-editor-layer-and-wheel-fix-v4">
