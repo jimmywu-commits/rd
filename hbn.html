@@ -1420,7 +1420,7 @@ label:has(#editZoom){
     opacity:1;
     transform:translateY(0);
   }
-  .dd-guide-top-h{ top:330px; }
+  .dd-guide-top-h{ top:350px; }
   .dd-guide-bottom-h{ top:674px; }
   .dd-guide-top-s{ top:370px; }
   .dd-guide-bottom-s{ top:674px; }
@@ -5709,7 +5709,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(state.width != null) box.style.width = state.width + 'px';
     if(state.height != null) box.style.height = state.height + 'px';
     try{
-      const ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      const ys = prefix === 'ddSquare' ? [350, 674] : [350, 674];
       const top = parseFloat(box.style.top) || 0;
       const h = box.offsetHeight || parseFloat(box.style.height) || 0;
       if(ys.some(y => top < y + 2 && (top + h) > y - 2) && typeof showDdGuideWarning === 'function'){
@@ -9731,7 +9731,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       var top = parseFloat(box.style.top) || 0;
       var h = box.offsetHeight || parseFloat(box.style.height) || 0;
-      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      var ys = prefix === 'ddSquare' ? [350, 674] : [350, 674];
       if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
         showDdGuideWarning(prefix);
       }
@@ -9956,7 +9956,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       var top = parseFloat(box.style.top) || 0;
       var h = box.offsetHeight || parseFloat(box.style.height) || 0;
-      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      var ys = prefix === 'ddSquare' ? [350, 674] : [350, 674];
       if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
         showDdGuideWarning(prefix);
       }
@@ -10493,7 +10493,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       var top = parseFloat(box.style.top) || 0;
       var h = box.offsetHeight || parseFloat(box.style.height) || 0;
-      var ys = prefix === 'ddSquare' ? [370, 674] : [330, 674];
+      var ys = prefix === 'ddSquare' ? [350, 674] : [350, 674];
       if(ys.some(function(y){ return top < y + 2 && (top + h) > y - 2; }) && typeof showDdGuideWarning === 'function'){
         showDdGuideWarning(prefix);
       }
