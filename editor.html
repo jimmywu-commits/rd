@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>自適應圖片編輯器 Demo</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --danger: #fb7185;
+      --border: rgba(255,255,255,.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    .app {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    header, .toolbar, .status {
+      background: rgba(17, 24, 39, .88);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 40px rgba(0,0,0,.22);
+    }
+
+    header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 { font-size: 18px; margin: 0; }
+    .hint { color: var(--muted); font-size: 13px; }
+
+    .toolbar {
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button, label.file-label {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    button:hover, label.file-label:hover {
+      transform: translateY(-1px);
+      border-color: rgba(56, 189, 248, .55);
+    }
+
+    button.active { background: rgba(56, 189, 248, .18); border-color: var(--accent); }
+    button.danger { color: #fecdd3; border-color: rgba(251,113,133,.45); }
+    input[type="file"] { display: none; }
+
+    .control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      padding: 0 6px;
+      font-size: 13px;
+    }
+
+    input[type="range"] { width: 110px; }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+    }
+
+    .canvas-wrap {
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 20px;
+      border: 1px solid #d1d5db;
+      background-color: #ffffff;
+      background-image:
+        linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+        linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+        linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: none;
+    }
+
+    canvas {
+      position: relative;
+      z-index: 2;
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      image-rendering: auto;
+      touch-action: none;
+      border-radius: 10px;
+    }
+
+    .empty {
+      position: absolute;
+      text-align: center;
+      color: var(--muted);
+      pointer-events: none;
+      line-height: 1.7;
+      padding: 24px;
+    }
+
+    .crop-box {
+      position: absolute;
+      border: 2px solid #2563eb;
+      background: rgba(37, 99, 235, .08);
+      display: none;
+      z-index: 2;
+    }
+
+    .crop-edge {
+      position: absolute;
+      background: rgba(37, 99, 235, .95);
+      pointer-events: auto;
+    }
+
+    .crop-edge.top,
+    .crop-edge.bottom {
+      left: -8px;
+      right: -8px;
+      height: 12px;
+      cursor: ns-resize;
+    }
+
+    .crop-edge.top { top: -7px; }
+    .crop-edge.bottom { bottom: -7px; }
+
+    .crop-edge.left,
+    .crop-edge.right {
+      top: -8px;
+      bottom: -8px;
+      width: 12px;
+      cursor: ew-resize;
+    }
+
+    .crop-edge.left { left: -7px; }
+    .crop-edge.right { right: -7px; }
+
+    .crop-edge::after {
+      content: "";
+      position: absolute;
+      background: #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    }
+
+    .crop-edge.top::after,
+    .crop-edge.bottom::after {
+      width: 42px;
+      height: 4px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .crop-edge.left::after,
+    .crop-edge.right::after {
+      width: 4px;
+      height: 42px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .brush-preview {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border: 2px solid rgba(255,255,255,.92);
+      border-radius: 999px;
+      pointer-events: none;
+      display: none;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 1px rgba(15,23,42,.75), 0 0 16px rgba(56,189,248,.45);
+      background: rgba(56,189,248,.08);
+      z-index: 3;
+    }
+
+
+    .shadow-layer {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      z-index: 1;
+      touch-action: none;
+    }
+
+    .shadow-layer.active {
+      pointer-events: auto;
+      outline: 2px solid rgba(37, 99, 235, .9);
+      outline-offset: 2px;
+      z-index: 5;
+    }
+
+    .shadow-layer img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .shadow-handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #2563eb;
+      background: #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.28);
+      display: none;
+      pointer-events: auto;
+      z-index: 4;
+    }
+
+    .shadow-layer.active .shadow-handle { display: block; }
+
+    .shadow-handle.nw { left: -9px; top: -9px; cursor: nwse-resize; }
+    .shadow-handle.ne { right: -9px; top: -9px; cursor: nesw-resize; }
+    .shadow-handle.sw { left: -9px; bottom: -9px; cursor: nesw-resize; }
+    .shadow-handle.se { right: -9px; bottom: -9px; cursor: nwse-resize; }
+    .shadow-handle.n { left: 50%; top: -9px; transform: translateX(-50%); cursor: ns-resize; }
+    .shadow-handle.s { left: 50%; bottom: -9px; transform: translateX(-50%); cursor: ns-resize; }
+    .shadow-handle.w { left: -9px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+    .shadow-handle.e { right: -9px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+
+    body.shadow-editing canvas {
+      pointer-events: none;
+    }
+
+    .shadow-layer.active::after {
+      content: "拖曳移動，拉控制點縮放/變形";
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 10px);
+      transform: translateX(-50%);
+      white-space: nowrap;
+      color: #111827;
+      background: rgba(255,255,255,.94);
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    }
+
+    .color-chip {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    }
+
+    .status {
+      min-height: 38px;
+      padding: 9px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .app { padding: 8px; gap: 8px; }
+      header { align-items: flex-start; flex-direction: column; }
+      button, label.file-label { padding: 8px 10px; font-size: 13px; }
+      input[type="range"] { width: 88px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>自適應圖片編輯器 Demo</h1>
+        <div class="hint">支援上傳、橡皮擦、裁切、簡易去背、加陰影、Undo / Redo、下載。</div>
+      </div>
+      <div class="hint">畫板會跟著瀏覽器高度與寬度縮放，不裁切。</div>
+    </header>
+
+    <section class="workspace">
+      <div class="toolbar">
+        <label class="file-label">上傳圖片<input id="fileInput" type="file" accept="image/*"></label>
+        <button id="eraserBtn">橡皮擦</button>
+        <button id="cropBtn">裁切模式</button>
+        <button id="applyCropBtn">套用裁切</button>
+        <button id="removeBgBtn">自動去背</button>
+        <button id="pickBgBtn">點選顏色去背</button>
+        <button id="shadowBtn">加 / 編輯影子</button>
+        <button id="undoBtn">回上一步</button>
+        <button id="redoBtn">下一步</button>
+        <button id="downloadBtn">下載 PNG</button>
+        <button id="resetBtn" class="danger">清除</button>
+        <span class="control">橡皮擦大小 <strong id="brushSizeValue">32px</strong> <input id="brushSize" type="range" min="5" max="90" value="32"></span>
+        <span class="control">去背容差 <input id="tolerance" type="range" min="10" max="120" value="48"></span>
+        <span class="control">選取色 <span id="pickedColorChip" class="color-chip" title="尚未選取顏色"></span></span>
+      </div>
+
+      <div id="canvasWrap" class="canvas-wrap">
+        <div id="shadowLayer" class="shadow-layer">
+          <img id="shadowImg" alt="shadow">
+          <span class="shadow-handle nw" data-handle="nw"></span>
+          <span class="shadow-handle n" data-handle="n"></span>
+          <span class="shadow-handle ne" data-handle="ne"></span>
+          <span class="shadow-handle e" data-handle="e"></span>
+          <span class="shadow-handle se" data-handle="se"></span>
+          <span class="shadow-handle s" data-handle="s"></span>
+          <span class="shadow-handle sw" data-handle="sw"></span>
+          <span class="shadow-handle w" data-handle="w"></span>
+        </div>
+        <canvas id="canvas"></canvas>
+        <div id="cropBox" class="crop-box">
+          <div class="crop-edge top" data-edge="top"></div>
+          <div class="crop-edge right" data-edge="right"></div>
+          <div class="crop-edge bottom" data-edge="bottom"></div>
+          <div class="crop-edge left" data-edge="left"></div>
+        </div>
+        <div id="brushPreview" class="brush-preview"></div>
+        <div id="empty" class="empty">請先上傳圖片<br>或把圖片拖曳到這裡</div>
+      </div>
+    </section>
+
+    <footer class="status">
+      <span id="statusText">Ready</span>
+      <span id="sizeText">Canvas: -</span>
+    </footer>
+  </main>
+
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const wrap = document.getElementById('canvasWrap');
+  const empty = document.getElementById('empty');
+  const cropBox = document.getElementById('cropBox');
+  const brushPreview = document.getElementById('brushPreview');
+  const shadowLayer = document.getElementById('shadowLayer');
+  const shadowImg = document.getElementById('shadowImg');
+  const statusText = document.getElementById('statusText');
+  const sizeText = document.getElementById('sizeText');
+
+  const fileInput = document.getElementById('fileInput');
+  const eraserBtn = document.getElementById('eraserBtn');
+  const cropBtn = document.getElementById('cropBtn');
+  const applyCropBtn = document.getElementById('applyCropBtn');
+  const removeBgBtn = document.getElementById('removeBgBtn');
+  const pickBgBtn = document.getElementById('pickBgBtn');
+  const shadowBtn = document.getElementById('shadowBtn');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const brushSize = document.getElementById('brushSize');
+  const brushSizeValue = document.getElementById('brushSizeValue');
+  const toleranceInput = document.getElementById('tolerance');
+  const pickedColorChip = document.getElementById('pickedColorChip');
+
+  let mode = 'none';
+  let isDrawing = false;
+  let cropStart = null;
+  let cropEnd = null;
+  let activeCropEdge = null;
+  const minCropSize = 20;
+  let lastPointerPoint = null;
+  let pickedBgColor = null;
+  let shadowState = null;
+  let shadowLoaded = false;
+  let activeShadowHandle = null;
+  let isDraggingShadow = false;
+  let shadowPointerStart = null;
+  let shadowStartState = null;
+  const undoStack = [];
+  const redoStack = [];
+  const maxHistory = 30;
+
+  function setStatus(text) { statusText.textContent = text; }
+
+  function hasImage() { return canvas.width > 0 && canvas.height > 0; }
+
+  function updateCanvasCssSize() {
+    if (!hasImage()) return;
+    const pad = 28;
+    const maxW = Math.max(100, wrap.clientWidth - pad);
+    const maxH = Math.max(100, wrap.clientHeight - pad);
+    const scale = Math.min(maxW / canvas.width, maxH / canvas.height, 1);
+    canvas.style.width = Math.round(canvas.width * scale) + 'px';
+    canvas.style.height = Math.round(canvas.height * scale) + 'px';
+    sizeText.textContent = `Canvas: ${canvas.width} × ${canvas.height} / View: ${canvas.style.width} × ${canvas.style.height}`;
+    updateCropBox();
+    updateBrushPreview(lastPointerPoint);
+    updateShadowLayer();
+  }
+
+  new ResizeObserver(updateCanvasCssSize).observe(wrap);
+  window.addEventListener('resize', updateCanvasCssSize);
+
+  function pushHistory() {
+    if (!hasImage()) return;
+    undoStack.push(canvas.toDataURL('image/png'));
+    if (undoStack.length > maxHistory) undoStack.shift();
+    redoStack.length = 0;
+  }
+
+  function restoreFrom(dataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      empty.style.display = 'none';
+      autoAttachShadowAfterImageChange();
+      updateCanvasCssSize();
+    };
+    img.src = dataUrl;
+  }
+
+  function setMode(nextMode) {
+    mode = mode === nextMode ? 'none' : nextMode;
+    eraserBtn.classList.toggle('active', mode === 'eraser');
+    cropBtn.classList.toggle('active', mode === 'crop');
+    pickBgBtn.classList.toggle('active', mode === 'removeBgPick');
+    shadowBtn.classList.toggle('active', mode === 'shadowEdit');
+    shadowLayer.classList.toggle('active', mode === 'shadowEdit' && !!shadowState);
+    document.body.classList.toggle('shadow-editing', mode === 'shadowEdit' && !!shadowState);
+    if (mode === 'crop' && hasImage()) {
+      if (!cropStart || !cropEnd) resetCropToImageBounds();
+      updateCropBox();
+    } else {
+      cropBox.style.display = 'none';
+      activeCropEdge = null;
+    }
+    updateBrushPreview(lastPointerPoint);
+
+    if (mode === 'eraser') setStatus('橡皮擦模式：拖曳圖片即可擦除，白色圓圈為目前橡皮擦範圍');
+    else if (mode === 'crop') setStatus('裁切模式：已自動產生圖片四邊框線，拖拉上、下、左、右線條調整範圍，再按「套用裁切」');
+    else if (mode === 'removeBgPick') setStatus('點選顏色去背：請在圖片上點選想去除的背景顏色');
+    else if (mode === 'shadowEdit') setStatus('影子模式：使用同層資料夾 bg.png，商品變更後會自動重新吸附，bg.png 商品最下面位置會與 bg.png 高度中心點相接，且寬度會自動等於商品寬度；也可拖曳影子微調');
+    else setStatus('Ready');
+  }
+
+  function getCanvasPoint(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+    return {
+      x: Math.max(0, Math.min(canvas.width, (clientX - rect.left) * canvas.width / rect.width)),
+      y: Math.max(0, Math.min(canvas.height, (clientY - rect.top) * canvas.height / rect.height))
+    };
+  }
+
+
+  function updateBrushSizeLabel() {
+    brushSizeValue.textContent = brushSize.value + 'px';
+    updateBrushPreview(lastPointerPoint);
+  }
+
+  function updateBrushPreview(point) {
+    if (!hasImage() || mode !== 'eraser' || !point) {
+      brushPreview.style.display = 'none';
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+    const size = Number(brushSize.value);
+    const displaySize = Math.max(2, size * ((scaleX + scaleY) / 2));
+    brushPreview.style.width = displaySize + 'px';
+    brushPreview.style.height = displaySize + 'px';
+    brushPreview.style.left = (rect.left - wrapRect.left + point.x * scaleX) + 'px';
+    brushPreview.style.top = (rect.top - wrapRect.top + point.y * scaleY) + 'px';
+    brushPreview.style.display = 'block';
+  }
+
+  function setPickedColor(color) {
+    pickedBgColor = [color[0], color[1], color[2]];
+    pickedColorChip.style.background = `rgb(${pickedBgColor[0]}, ${pickedBgColor[1]}, ${pickedBgColor[2]})`;
+    pickedColorChip.title = `RGB(${pickedBgColor[0]}, ${pickedBgColor[1]}, ${pickedBgColor[2]})`;
+  }
+
+  function loadImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 2200;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        empty.style.display = 'none';
+        undoStack.length = 0;
+        redoStack.length = 0;
+        pushHistory();
+        cropStart = cropEnd = null;
+        shadowState = null;
+        shadowLayer.style.display = 'none';
+        if (mode === 'crop') resetCropToImageBounds();
+        updateCanvasCssSize();
+        setStatus('圖片已載入');
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  fileInput.addEventListener('change', e => loadImageFile(e.target.files[0]));
+
+  wrap.addEventListener('dragover', e => { e.preventDefault(); setStatus('放開以上傳圖片'); });
+  wrap.addEventListener('drop', e => {
+    e.preventDefault();
+    loadImageFile(e.dataTransfer.files[0]);
+  });
+
+  function eraseAt(point) {
+    const size = Number(brushSize.value);
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function resetCropToImageBounds() {
+    cropStart = { x: 0, y: 0 };
+    cropEnd = { x: canvas.width, y: canvas.height };
+  }
+
+  function updateCropBox() {
+    if (!cropStart || !cropEnd || mode !== 'crop') return;
+    const rect = canvas.getBoundingClientRect();
+    const x1 = Math.min(cropStart.x, cropEnd.x);
+    const y1 = Math.min(cropStart.y, cropEnd.y);
+    const x2 = Math.max(cropStart.x, cropEnd.x);
+    const y2 = Math.max(cropStart.y, cropEnd.y);
+    const wrapRect = wrap.getBoundingClientRect();
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+    cropBox.style.left = (rect.left - wrapRect.left + x1 * scaleX) + 'px';
+    cropBox.style.top = (rect.top - wrapRect.top + y1 * scaleY) + 'px';
+    cropBox.style.width = Math.max(2, (x2 - x1) * scaleX) + 'px';
+    cropBox.style.height = Math.max(2, (y2 - y1) * scaleY) + 'px';
+    cropBox.style.display = 'block';
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!hasImage()) return;
+    canvas.setPointerCapture(e.pointerId);
+    const p = getCanvasPoint(e);
+    lastPointerPoint = p;
+    if (mode === 'eraser') {
+      pushHistory();
+      isDrawing = true;
+      eraseAt(p);
+    } else if (mode === 'crop') {
+      if (!cropStart || !cropEnd) resetCropToImageBounds();
+      updateCropBox();
+    } else if (mode === 'removeBgPick') {
+      const pixel = ctx.getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
+      setPickedColor(pixel);
+      removeBgByColor(pickedBgColor);
+    }
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!hasImage()) return;
+    const p = getCanvasPoint(e);
+    lastPointerPoint = p;
+    updateBrushPreview(p);
+    if (mode === 'eraser' && isDrawing) eraseAt(p);
+    if (mode === 'crop' && activeCropEdge && cropStart && cropEnd) {
+      resizeCropByEdge(activeCropEdge, p);
+      updateCropBox();
+    }
+  });
+
+  canvas.addEventListener('pointerup', () => {
+    if (mode === 'eraser' && isDrawing) {
+      isDrawing = false;
+      autoAttachShadowAfterImageChange();
+      setStatus('已擦除，影子已自動重新吸附：商品最下面位置與 bg.png 高度中心點相接');
+    } else {
+      isDrawing = false;
+    }
+    activeCropEdge = null;
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    lastPointerPoint = null;
+    brushPreview.style.display = 'none';
+  });
+
+
+  cropBox.addEventListener('pointerdown', e => {
+    const edge = e.target.dataset.edge;
+    if (!edge || mode !== 'crop' || !hasImage()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    activeCropEdge = edge;
+    cropBox.setPointerCapture(e.pointerId);
+  });
+
+  cropBox.addEventListener('pointermove', e => {
+    if (!activeCropEdge || mode !== 'crop' || !hasImage()) return;
+    e.preventDefault();
+    const p = getCanvasPoint(e);
+    resizeCropByEdge(activeCropEdge, p);
+    updateCropBox();
+  });
+
+  cropBox.addEventListener('pointerup', e => {
+    activeCropEdge = null;
+    try { cropBox.releasePointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  cropBox.addEventListener('pointerleave', () => {
+    if (!activeCropEdge) return;
+  });
+
+  function resizeCropByEdge(edge, point) {
+    const left = Math.min(cropStart.x, cropEnd.x);
+    const right = Math.max(cropStart.x, cropEnd.x);
+    const top = Math.min(cropStart.y, cropEnd.y);
+    const bottom = Math.max(cropStart.y, cropEnd.y);
+
+    let nextLeft = left;
+    let nextRight = right;
+    let nextTop = top;
+    let nextBottom = bottom;
+
+    if (edge === 'left') nextLeft = Math.min(Math.max(0, point.x), right - minCropSize);
+    if (edge === 'right') nextRight = Math.max(Math.min(canvas.width, point.x), left + minCropSize);
+    if (edge === 'top') nextTop = Math.min(Math.max(0, point.y), bottom - minCropSize);
+    if (edge === 'bottom') nextBottom = Math.max(Math.min(canvas.height, point.y), top + minCropSize);
+
+    cropStart = { x: nextLeft, y: nextTop };
+    cropEnd = { x: nextRight, y: nextBottom };
+  }
+
+  eraserBtn.addEventListener('click', () => setMode('eraser'));
+  cropBtn.addEventListener('click', () => setMode('crop'));
+
+  applyCropBtn.addEventListener('click', () => {
+    if (!hasImage() || !cropStart || !cropEnd) return setStatus('請先進入裁切模式');
+    const x = Math.round(Math.min(cropStart.x, cropEnd.x));
+    const y = Math.round(Math.min(cropStart.y, cropEnd.y));
+    const w = Math.round(Math.abs(cropEnd.x - cropStart.x));
+    const h = Math.round(Math.abs(cropEnd.y - cropStart.y));
+    if (w < 5 || h < 5) return setStatus('裁切範圍太小');
+    pushHistory();
+    const imageData = ctx.getImageData(x, y, w, h);
+    canvas.width = w;
+    canvas.height = h;
+    ctx.putImageData(imageData, 0, 0);
+    autoAttachShadowAfterImageChange();
+    cropStart = cropEnd = null;
+    lastPointerPoint = null;
+    pickedBgColor = null;
+    shadowState = null;
+    shadowLayer.style.display = 'none';
+    shadowLayer.classList.remove('active');
+    pickedColorChip.style.background = 'transparent';
+    pickedColorChip.title = '尚未選取顏色';
+    cropBox.style.display = 'none';
+    brushPreview.style.display = 'none';
+    setMode('none');
+    updateCanvasCssSize();
+    setStatus('裁切完成');
+  });
+
+  function colorDistance(a, b) {
+    return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+  }
+
+  function removeBgByColor(bg) {
+    if (!hasImage()) return;
+    pushHistory();
+    const tolerance = Number(toleranceInput.value);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const dist = colorDistance([d[i], d[i+1], d[i+2]], bg);
+      if (dist < tolerance) d[i+3] = 0;
+      else if (dist < tolerance + 22) d[i+3] = Math.max(0, d[i+3] * ((dist - tolerance) / 22));
+    }
+    ctx.putImageData(imageData, 0, 0);
+    autoAttachShadowAfterImageChange();
+  }
+
+  removeBgBtn.addEventListener('click', () => {
+    if (!hasImage()) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imageData.data;
+    const samplePoints = [0, (canvas.width - 1) * 4, ((canvas.height - 1) * canvas.width) * 4, ((canvas.height * canvas.width) - 1) * 4];
+    const bg = [0, 0, 0];
+    samplePoints.forEach(i => { bg[0] += d[i]; bg[1] += d[i+1]; bg[2] += d[i+2]; });
+    bg[0] = Math.round(bg[0] / 4); bg[1] = Math.round(bg[1] / 4); bg[2] = Math.round(bg[2] / 4);
+    setPickedColor(bg);
+    removeBgByColor(bg);
+    setStatus('自動去背完成：系統以圖片四角平均色當背景色');
+  });
+
+  pickBgBtn.addEventListener('click', () => setMode('removeBgPick'));
+
+  brushSize.addEventListener('input', updateBrushSizeLabel);
+  updateBrushSizeLabel();
+
+
+  function getCanvasRectMetrics() {
+    const rect = canvas.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    return {
+      left: rect.left - wrapRect.left,
+      top: rect.top - wrapRect.top,
+      width: rect.width,
+      height: rect.height,
+      scaleX: rect.width / canvas.width,
+      scaleY: rect.height / canvas.height
+    };
+  }
+
+  function updateShadowLayer() {
+    if (!hasImage() || !shadowState) {
+      shadowLayer.style.display = 'none';
+      shadowLayer.classList.remove('active');
+      return;
+    }
+    const m = getCanvasRectMetrics();
+    shadowLayer.style.left = (m.left + shadowState.x * m.scaleX) + 'px';
+    shadowLayer.style.top = (m.top + shadowState.y * m.scaleY) + 'px';
+    shadowLayer.style.width = Math.max(2, shadowState.w * m.scaleX) + 'px';
+    shadowLayer.style.height = Math.max(2, shadowState.h * m.scaleY) + 'px';
+    shadowLayer.style.display = 'block';
+    shadowLayer.classList.toggle('active', mode === 'shadowEdit');
+  }
+
+  function getVisibleImageBounds() {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imageData.data;
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const a = d[(y * canvas.width + x) * 4 + 3];
+        if (a > 8) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < 0 || maxY < 0) {
+      return { x: 0, y: 0, w: canvas.width, h: canvas.height, bottom: canvas.height };
+    }
+
+    return {
+      x: minX,
+      y: minY,
+      w: maxX - minX + 1,
+      h: maxY - minY + 1,
+      bottom: maxY + 1
+    };
+  }
+
+  function makeDefaultShadow() {
+    const b = getVisibleImageBounds();
+    const w = b.w;
+    const h = Math.max(14, b.h * 0.10);
+    const x = b.x;
+    const y = b.bottom - h / 2;
+
+    return {
+      x,
+      y,
+      w,
+      h
+    };
+  }
+
+  function attachShadowBelowProduct() {
+    if (!shadowState) return;
+    const b = getVisibleImageBounds();
+
+    // 吸附規則：
+    // 商品吸附點 = 商品不透明像素範圍的最底部
+    // bg.png 吸附點 = bg.png 自身高度中心線，也就是 shadowState.h / 2
+    // 兩點重合，所以 shadow top = 商品底部 - 影子高度 / 2
+    shadowState.w = b.w;
+    shadowState.x = b.x;
+    shadowState.y = b.bottom - shadowState.h / 2;
+
+    shadowState = clampShadowState(shadowState);
+    updateShadowLayer();
+  }
+
+  function autoAttachShadowAfterImageChange() {
+    if (!shadowState) return;
+    attachShadowBelowProduct();
+  }
+
+  function loadShadowImage(callback) {
+    if (shadowLoaded) {
+      callback && callback();
+      return;
+    }
+    shadowImg.onload = () => {
+      shadowLoaded = true;
+      callback && callback();
+    };
+    shadowImg.onerror = () => {
+      setStatus('找不到 bg.png：請確認 bg.png 跟 HTML 放在同一層資料夾');
+    };
+    shadowImg.src = 'bg.png';
+  }
+
+  function setShadowMode() {
+    if (!hasImage()) return setStatus('請先上傳圖片');
+    loadShadowImage(() => {
+      if (!shadowState) {
+        shadowState = makeDefaultShadow();
+      }
+      updateShadowLayer();
+      setMode('shadowEdit');
+      setStatus('影子已吸附：商品最下面位置與 bg.png 高度中心點已相接，可拖曳移動，也可拉 8 個控制點放大、縮小或變形');
+    });
+  }
+
+  function getWrapPoint(evt) {
+    const wrapRect = wrap.getBoundingClientRect();
+    return {
+      x: evt.clientX - wrapRect.left,
+      y: evt.clientY - wrapRect.top
+    };
+  }
+
+  function clampShadowState(s) {
+    const minW = 20;
+    const minH = 8;
+    s.w = Math.max(minW, s.w);
+    s.h = Math.max(minH, s.h);
+    s.x = Math.min(canvas.width - minW, Math.max(-canvas.width, s.x));
+    s.y = Math.min(canvas.height, Math.max(-canvas.height, s.y));
+    return s;
+  }
+
+  function resizeShadow(handle, dx, dy) {
+    const s = { ...shadowStartState };
+    if (handle.includes('e')) s.w = shadowStartState.w + dx;
+    if (handle.includes('s')) s.h = shadowStartState.h + dy;
+    if (handle.includes('w')) {
+      s.x = shadowStartState.x + dx;
+      s.w = shadowStartState.w - dx;
+    }
+    if (handle.includes('n')) {
+      s.y = shadowStartState.y + dy;
+      s.h = shadowStartState.h - dy;
+    }
+    shadowState = clampShadowState(s);
+    updateShadowLayer();
+  }
+
+  shadowLayer.addEventListener('pointerdown', e => {
+    if (mode !== 'shadowEdit' || !shadowState) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const handle = e.target.dataset.handle || null;
+    activeShadowHandle = handle;
+    isDraggingShadow = !handle;
+
+    const p = getWrapPoint(e);
+    const m = getCanvasRectMetrics();
+    shadowPointerStart = {
+      x: (p.x - m.left) / m.scaleX,
+      y: (p.y - m.top) / m.scaleY
+    };
+    shadowStartState = { ...shadowState };
+    shadowLayer.setPointerCapture(e.pointerId);
+  });
+
+  shadowLayer.addEventListener('pointermove', e => {
+    if (mode !== 'shadowEdit' || !shadowState || !shadowPointerStart) return;
+    e.preventDefault();
+
+    const p = getWrapPoint(e);
+    const m = getCanvasRectMetrics();
+    const current = {
+      x: (p.x - m.left) / m.scaleX,
+      y: (p.y - m.top) / m.scaleY
+    };
+    const dx = current.x - shadowPointerStart.x;
+    const dy = current.y - shadowPointerStart.y;
+
+    if (isDraggingShadow) {
+      shadowState = clampShadowState({
+        ...shadowStartState,
+        x: shadowStartState.x + dx,
+        y: shadowStartState.y + dy
+      });
+      updateShadowLayer();
+    } else if (activeShadowHandle) {
+      resizeShadow(activeShadowHandle, dx, dy);
+    }
+  });
+
+  shadowLayer.addEventListener('pointerup', e => {
+    activeShadowHandle = null;
+    isDraggingShadow = false;
+    shadowPointerStart = null;
+    shadowStartState = null;
+    try { shadowLayer.releasePointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  function renderCanvasWithShadow() {
+    if (!hasImage()) return null;
+    const output = document.createElement('canvas');
+    output.width = canvas.width;
+    output.height = canvas.height;
+    const outCtx = output.getContext('2d');
+
+    if (shadowState && shadowLoaded) {
+      outCtx.drawImage(
+        shadowImg,
+        shadowState.x,
+        shadowState.y,
+        shadowState.w,
+        shadowState.h
+      );
+    }
+
+    outCtx.drawImage(canvas, 0, 0);
+    return output;
+  }
+
+  shadowBtn.addEventListener('click', setShadowMode);
+
+
+  undoBtn.addEventListener('click', () => {
+    if (undoStack.length <= 1) return setStatus('沒有可回復的步驟');
+    redoStack.push(undoStack.pop());
+    restoreFrom(undoStack[undoStack.length - 1]);
+    setStatus('已回上一步');
+  });
+
+  redoBtn.addEventListener('click', () => {
+    if (!redoStack.length) return setStatus('沒有下一步');
+    const next = redoStack.pop();
+    undoStack.push(next);
+    restoreFrom(next);
+    setStatus('已到下一步');
+  });
+
+  downloadBtn.addEventListener('click', () => {
+    if (!hasImage()) return;
+    const output = renderCanvasWithShadow();
+    const a = document.createElement('a');
+    a.href = output.toDataURL('image/png');
+    a.download = 'edited-image.png';
+    a.click();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    canvas.width = 0;
+    canvas.height = 0;
+    canvas.removeAttribute('style');
+    empty.style.display = 'block';
+    undoStack.length = redoStack.length = 0;
+    cropStart = cropEnd = null;
+    lastPointerPoint = null;
+    pickedBgColor = null;
+    shadowState = null;
+    shadowLayer.style.display = 'none';
+    shadowLayer.classList.remove('active');
+    pickedColorChip.style.background = 'transparent';
+    pickedColorChip.title = '尚未選取顏色';
+    cropBox.style.display = 'none';
+    brushPreview.style.display = 'none';
+    setMode('none');
+    sizeText.textContent = 'Canvas: -';
+    setStatus('已清除');
+  });
+})();
+</script>
+</body>
+</html>

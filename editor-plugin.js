@@ -1,0 +1,608 @@
+
+/*!
+ * HBN Product Editor Plugin
+ * External plugin replacement for HBN product image editor.
+ * Requires bg.png in the same folder.
+ */
+(function(){
+  if (window.__HBN_PRODUCT_EDITOR_PLUGIN__) return;
+  window.__HBN_PRODUCT_EDITOR_PLUGIN__ = true;
+
+  const oldOpenEraseEditor = window.openEraseEditor;
+
+  const css = `
+  .hbn-plugin-modal{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:100050;display:none;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  .hbn-plugin-modal.open{display:flex;}
+  .hbn-plugin-panel{width:min(96vw,1120px);height:min(94vh,860px);background:#111827;color:#e5e7eb;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.45);display:grid;grid-template-rows:auto 1fr auto;overflow:hidden;border:1px solid rgba(255,255,255,.12);}
+  .hbn-plugin-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border-bottom:1px solid rgba(255,255,255,.12);background:#0f172a;}
+  .hbn-plugin-toolbar button{appearance:none;border:1px solid rgba(255,255,255,.16);background:#1f2937;color:#e5e7eb;padding:8px 11px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;}
+  .hbn-plugin-toolbar button.active{border-color:#38bdf8;background:rgba(56,189,248,.18);}
+  .hbn-plugin-toolbar button.danger{border-color:rgba(251,113,133,.6);color:#fecdd3;}
+  .hbn-plugin-toolbar label{display:inline-flex;align-items:center;gap:6px;color:#94a3b8;font-size:13px;}
+  .hbn-plugin-toolbar input[type=range]{width:110px;}
+  .hbn-plugin-chip{width:18px;height:18px;border-radius:99px;border:1px solid rgba(255,255,255,.2);background:transparent;}
+  .hbn-plugin-workspace{position:relative;min-height:0;margin:12px;border-radius:16px;border:1px solid #d1d5db;overflow:hidden;display:flex;align-items:center;justify-content:center;background-color:#fff;background-image:linear-gradient(45deg,#e5e7eb 25%,transparent 25%),linear-gradient(-45deg,#e5e7eb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e7eb 75%),linear-gradient(-45deg,transparent 75%,#e5e7eb 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;}
+  .hbn-plugin-workspace canvas{position:relative;z-index:2;display:block;max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;border-radius:10px;}
+  .hbn-plugin-status{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.12);color:#94a3b8;font-size:13px;}
+  .hbn-plugin-crop{position:absolute;border:2px solid #2563eb;background:rgba(37,99,235,.08);display:none;z-index:6;}
+  .hbn-plugin-edge{position:absolute;background:rgba(37,99,235,.95);pointer-events:auto;}
+  .hbn-plugin-edge.top,.hbn-plugin-edge.bottom{left:-8px;right:-8px;height:12px;cursor:ns-resize;}
+  .hbn-plugin-edge.left,.hbn-plugin-edge.right{top:-8px;bottom:-8px;width:12px;cursor:ew-resize;}
+  .hbn-plugin-edge.top{top:-7px}.hbn-plugin-edge.bottom{bottom:-7px}.hbn-plugin-edge.left{left:-7px}.hbn-plugin-edge.right{right:-7px}
+  .hbn-plugin-edge:after{content:"";position:absolute;background:#fff;border-radius:99px;box-shadow:0 1px 4px rgba(0,0,0,.25);}
+  .hbn-plugin-edge.top:after,.hbn-plugin-edge.bottom:after{width:42px;height:4px;left:50%;top:50%;transform:translate(-50%,-50%);}
+  .hbn-plugin-edge.left:after,.hbn-plugin-edge.right:after{width:4px;height:42px;left:50%;top:50%;transform:translate(-50%,-50%);}
+  .hbn-plugin-brush{position:absolute;border:2px solid rgba(255,255,255,.95);border-radius:99px;pointer-events:none;display:none;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(15,23,42,.8),0 0 14px rgba(56,189,248,.45);background:rgba(56,189,248,.08);z-index:8;}
+  .hbn-plugin-shadow{position:absolute;display:none;pointer-events:none;z-index:1;touch-action:none;}
+  .hbn-plugin-shadow.active{display:block;pointer-events:auto;outline:2px solid rgba(37,99,235,.95);outline-offset:2px;z-index:9;}
+  .hbn-plugin-shadow img{width:100%;height:100%;display:block;user-select:none;pointer-events:none;}
+  .hbn-plugin-handle{position:absolute;width:14px;height:14px;border:2px solid #2563eb;background:#fff;border-radius:99px;box-shadow:0 1px 4px rgba(0,0,0,.28);display:none;pointer-events:auto;z-index:10;}
+  .hbn-plugin-shadow.active .hbn-plugin-handle{display:block;}
+  .hbn-plugin-handle.nw{left:-9px;top:-9px;cursor:nwse-resize}.hbn-plugin-handle.ne{right:-9px;top:-9px;cursor:nesw-resize}.hbn-plugin-handle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.hbn-plugin-handle.se{right:-9px;bottom:-9px;cursor:nwse-resize}.hbn-plugin-handle.n{left:50%;top:-9px;transform:translateX(-50%);cursor:ns-resize}.hbn-plugin-handle.s{left:50%;bottom:-9px;transform:translateX(-50%);cursor:ns-resize}.hbn-plugin-handle.w{left:-9px;top:50%;transform:translateY(-50%);cursor:ew-resize}.hbn-plugin-handle.e{right:-9px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+  .hbn-plugin-shadow.active:after{content:"拖曳移動，拉控制點縮放/變形";position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;color:#111827;background:rgba(255,255,255,.94);border:1px solid #d1d5db;border-radius:999px;padding:4px 10px;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.12);}
+  .hbn-plugin-modal.shadow-editing canvas{pointer-events:none;}
+  `;
+
+  const html = `
+    <div class="hbn-plugin-panel">
+      <div class="hbn-plugin-toolbar">
+        <button data-act="eraser">橡皮擦</button>
+        <button data-act="crop">裁切模式</button>
+        <button data-act="applyCrop">套用裁切</button>
+        <button data-act="autoBg">自動去背</button>
+        <button data-act="pickBg">點選顏色去背</button>
+        <button data-act="shadow">加 / 編輯影子</button>
+        <button data-act="undo">回上一步</button>
+        <button data-act="redo">下一步</button>
+        <button data-act="reset" class="danger">重作</button>
+        <label>橡皮擦 <strong data-role="brushVal">32px</strong><input data-role="brush" type="range" min="5" max="90" value="32"></label>
+        <label>去背容差 <input data-role="tol" type="range" min="10" max="120" value="48"></label>
+        <label>選取色 <span data-role="chip" class="hbn-plugin-chip"></span></label>
+      </div>
+      <div class="hbn-plugin-workspace" data-role="wrap">
+        <div class="hbn-plugin-shadow" data-role="shadowLayer">
+          <img data-role="shadowImg" alt="shadow">
+          <span class="hbn-plugin-handle nw" data-handle="nw"></span>
+          <span class="hbn-plugin-handle n" data-handle="n"></span>
+          <span class="hbn-plugin-handle ne" data-handle="ne"></span>
+          <span class="hbn-plugin-handle e" data-handle="e"></span>
+          <span class="hbn-plugin-handle se" data-handle="se"></span>
+          <span class="hbn-plugin-handle s" data-handle="s"></span>
+          <span class="hbn-plugin-handle sw" data-handle="sw"></span>
+          <span class="hbn-plugin-handle w" data-handle="w"></span>
+        </div>
+        <canvas data-role="canvas"></canvas>
+        <div class="hbn-plugin-crop" data-role="cropBox">
+          <div class="hbn-plugin-edge top" data-edge="top"></div>
+          <div class="hbn-plugin-edge right" data-edge="right"></div>
+          <div class="hbn-plugin-edge bottom" data-edge="bottom"></div>
+          <div class="hbn-plugin-edge left" data-edge="left"></div>
+        </div>
+        <div class="hbn-plugin-brush" data-role="brushPreview"></div>
+      </div>
+      <div class="hbn-plugin-status">
+        <span data-role="status">Ready</span>
+        <span>
+          <button data-act="cancel" class="danger">取消</button>
+          <button data-act="apply">完成套用</button>
+        </span>
+      </div>
+    </div>`;
+
+  function ensureModal(){
+    let modal = document.getElementById('hbnProductEditorPlugin');
+    if(modal) return modal;
+    const style = document.createElement('style');
+    style.id = 'hbn-product-editor-plugin-style';
+    style.textContent = css;
+    document.head.appendChild(style);
+    modal = document.createElement('div');
+    modal.id = 'hbnProductEditorPlugin';
+    modal.className = 'hbn-plugin-modal';
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+    return modal;
+  }
+
+  function makeEditor(){
+    const modal = ensureModal();
+    const $ = (sel) => modal.querySelector(sel);
+    const canvas = $('[data-role="canvas"]');
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    const wrap = $('[data-role="wrap"]');
+    const cropBox = $('[data-role="cropBox"]');
+    const brushPreview = $('[data-role="brushPreview"]');
+    const shadowLayer = $('[data-role="shadowLayer"]');
+    const shadowImg = $('[data-role="shadowImg"]');
+    const brush = $('[data-role="brush"]');
+    const brushVal = $('[data-role="brushVal"]');
+    const tol = $('[data-role="tol"]');
+    const chip = $('[data-role="chip"]');
+    const status = $('[data-role="status"]');
+
+    let targetImg = null, targetBox = null, originalSrc = '';
+    let mode = 'none', isDrawing=false, cropStart=null, cropEnd=null, activeCropEdge=null;
+    let lastPointerPoint=null, pickedBgColor=null;
+    let undoStack=[], redoStack=[];
+    let shadowState=null, shadowLoaded=false, activeShadowHandle=null, isDraggingShadow=false, shadowPointerStart=null, shadowStartState=null;
+    const minCropSize = 20;
+
+    function setStatus(t){ status.textContent = t; }
+    function hasImage(){ return canvas.width > 0 && canvas.height > 0; }
+    function setActive(){
+      modal.querySelectorAll('[data-act]').forEach(b=>b.classList.remove('active'));
+      const map = {eraser:'eraser', crop:'crop', removeBgPick:'pickBg', shadowEdit:'shadow'};
+      const act = map[mode];
+      if(act) modal.querySelector(`[data-act="${act}"]`)?.classList.add('active');
+      shadowLayer.classList.toggle('active', mode === 'shadowEdit' && !!shadowState);
+      modal.classList.toggle('shadow-editing', mode === 'shadowEdit' && !!shadowState);
+    }
+
+    function setMode(next){
+      mode = mode === next ? 'none' : next;
+      if(mode === 'crop' && hasImage()){
+        if(!cropStart || !cropEnd) resetCropToImageBounds();
+        updateCropBox();
+      }else{
+        cropBox.style.display = 'none';
+        activeCropEdge = null;
+      }
+      setActive();
+      updateBrushPreview(lastPointerPoint);
+      if(mode === 'eraser') setStatus('橡皮擦模式：拖曳圖片即可擦除，白色圓圈為目前橡皮擦範圍');
+      else if(mode === 'crop') setStatus('裁切模式：自動產生圖片四邊框線，拖拉上、下、左、右線條調整範圍');
+      else if(mode === 'removeBgPick') setStatus('點選顏色去背：請在圖片上點選想去除的背景顏色');
+      else if(mode === 'shadowEdit') setStatus('影子模式：bg.png 寬度等於商品寬度，商品底部吸附點與 bg.png 高度中心點相接');
+      else setStatus('Ready');
+    }
+
+    function updateCanvasCssSize(){
+      if(!hasImage()) return;
+      const pad = 28;
+      const maxW = Math.max(100, wrap.clientWidth - pad);
+      const maxH = Math.max(100, wrap.clientHeight - pad);
+      const scale = Math.min(maxW / canvas.width, maxH / canvas.height, 1);
+      canvas.style.width = Math.round(canvas.width * scale) + 'px';
+      canvas.style.height = Math.round(canvas.height * scale) + 'px';
+      updateCropBox();
+      updateBrushPreview(lastPointerPoint);
+      updateShadowLayer();
+    }
+
+    new ResizeObserver(updateCanvasCssSize).observe(wrap);
+
+    function pushHistory(){
+      if(!hasImage()) return;
+      undoStack.push(canvas.toDataURL('image/png'));
+      if(undoStack.length > 30) undoStack.shift();
+      redoStack.length = 0;
+    }
+
+    function restoreFrom(url){
+      const img = new Image();
+      img.onload = ()=>{
+        canvas.width = img.width; canvas.height = img.height;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        autoAttachShadowAfterImageChange();
+        updateCanvasCssSize();
+      };
+      img.src = url;
+    }
+
+    function getCanvasPoint(evt){
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(canvas.width, (evt.clientX - rect.left) * canvas.width / rect.width)),
+        y: Math.max(0, Math.min(canvas.height, (evt.clientY - rect.top) * canvas.height / rect.height))
+      };
+    }
+
+    function updateBrushPreview(p){
+      if(!hasImage() || mode !== 'eraser' || !p){ brushPreview.style.display='none'; return; }
+      const rect = canvas.getBoundingClientRect();
+      const wrect = wrap.getBoundingClientRect();
+      const scaleX = rect.width / canvas.width;
+      const scaleY = rect.height / canvas.height;
+      const size = Number(brush.value);
+      const d = Math.max(2, size * ((scaleX + scaleY) / 2));
+      brushPreview.style.width = d + 'px';
+      brushPreview.style.height = d + 'px';
+      brushPreview.style.left = (rect.left - wrect.left + p.x * scaleX) + 'px';
+      brushPreview.style.top = (rect.top - wrect.top + p.y * scaleY) + 'px';
+      brushPreview.style.display = 'block';
+    }
+
+    brush.addEventListener('input', ()=>{ brushVal.textContent = brush.value + 'px'; updateBrushPreview(lastPointerPoint); });
+
+    function eraseAt(p){
+      const size = Number(brush.value);
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, size/2, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function resetCropToImageBounds(){
+      cropStart = {x:0,y:0};
+      cropEnd = {x:canvas.width,y:canvas.height};
+    }
+
+    function updateCropBox(){
+      if(!cropStart || !cropEnd || mode !== 'crop') return;
+      const rect = canvas.getBoundingClientRect();
+      const wrect = wrap.getBoundingClientRect();
+      const x1 = Math.min(cropStart.x,cropEnd.x), y1 = Math.min(cropStart.y,cropEnd.y);
+      const x2 = Math.max(cropStart.x,cropEnd.x), y2 = Math.max(cropStart.y,cropEnd.y);
+      const sx = rect.width / canvas.width, sy = rect.height / canvas.height;
+      cropBox.style.left = (rect.left - wrect.left + x1 * sx) + 'px';
+      cropBox.style.top = (rect.top - wrect.top + y1 * sy) + 'px';
+      cropBox.style.width = Math.max(2, (x2 - x1) * sx) + 'px';
+      cropBox.style.height = Math.max(2, (y2 - y1) * sy) + 'px';
+      cropBox.style.display = 'block';
+    }
+
+    function resizeCropByEdge(edge, p){
+      const left = Math.min(cropStart.x,cropEnd.x), right = Math.max(cropStart.x,cropEnd.x);
+      const top = Math.min(cropStart.y,cropEnd.y), bottom = Math.max(cropStart.y,cropEnd.y);
+      let l=left,r=right,t=top,b=bottom;
+      if(edge === 'left') l = Math.min(Math.max(0,p.x), right-minCropSize);
+      if(edge === 'right') r = Math.max(Math.min(canvas.width,p.x), left+minCropSize);
+      if(edge === 'top') t = Math.min(Math.max(0,p.y), bottom-minCropSize);
+      if(edge === 'bottom') b = Math.max(Math.min(canvas.height,p.y), top+minCropSize);
+      cropStart = {x:l,y:t}; cropEnd = {x:r,y:b};
+    }
+
+    function colorDistance(a,b){ return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2); }
+    function setPickedColor(c){
+      pickedBgColor = [c[0],c[1],c[2]];
+      chip.style.background = `rgb(${pickedBgColor[0]},${pickedBgColor[1]},${pickedBgColor[2]})`;
+    }
+
+    function removeBgByColor(bg){
+      if(!hasImage()) return;
+      pushHistory();
+      const tolerance = Number(tol.value);
+      const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const d = imageData.data;
+      for(let i=0;i<d.length;i+=4){
+        const dist = colorDistance([d[i],d[i+1],d[i+2]], bg);
+        if(dist < tolerance) d[i+3] = 0;
+        else if(dist < tolerance + 22) d[i+3] = Math.max(0, d[i+3] * ((dist - tolerance) / 22));
+      }
+      ctx.putImageData(imageData,0,0);
+      autoAttachShadowAfterImageChange();
+    }
+
+    function getVisibleImageBounds(){
+      const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+      const d = imageData.data;
+      let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
+      for(let y=0;y<canvas.height;y++){
+        for(let x=0;x<canvas.width;x++){
+          const a = d[(y*canvas.width+x)*4+3];
+          if(a > 8){
+            if(x<minX) minX=x; if(y<minY) minY=y; if(x>maxX) maxX=x; if(y>maxY) maxY=y;
+          }
+        }
+      }
+      if(maxX<0 || maxY<0) return {x:0,y:0,w:canvas.width,h:canvas.height,bottom:canvas.height};
+      return {x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1,bottom:maxY+1};
+    }
+
+    function makeDefaultShadow(){
+      const b = getVisibleImageBounds();
+      const w = b.w;
+      const h = Math.max(14, b.h * 0.10);
+      return {x:b.x, y:b.bottom - h/2, w, h};
+    }
+
+    function attachShadowBelowProduct(){
+      if(!shadowState) return;
+      const b = getVisibleImageBounds();
+      shadowState.w = b.w;
+      shadowState.x = b.x;
+      shadowState.y = b.bottom - shadowState.h / 2;
+      shadowState = clampShadowState(shadowState);
+      updateShadowLayer();
+    }
+    function autoAttachShadowAfterImageChange(){ if(shadowState) attachShadowBelowProduct(); }
+
+    function getCanvasRectMetrics(){
+      const rect = canvas.getBoundingClientRect();
+      const wrect = wrap.getBoundingClientRect();
+      return {left:rect.left-wrect.left, top:rect.top-wrect.top, scaleX:rect.width/canvas.width, scaleY:rect.height/canvas.height};
+    }
+    function updateShadowLayer(){
+      if(!hasImage() || !shadowState){ shadowLayer.style.display='none'; shadowLayer.classList.remove('active'); return; }
+      const m = getCanvasRectMetrics();
+      shadowLayer.style.left = (m.left + shadowState.x*m.scaleX)+'px';
+      shadowLayer.style.top = (m.top + shadowState.y*m.scaleY)+'px';
+      shadowLayer.style.width = Math.max(2, shadowState.w*m.scaleX)+'px';
+      shadowLayer.style.height = Math.max(2, shadowState.h*m.scaleY)+'px';
+      shadowLayer.style.display = 'block';
+      shadowLayer.classList.toggle('active', mode === 'shadowEdit');
+    }
+    function clampShadowState(s){
+      s.w = Math.max(20, s.w);
+      s.h = Math.max(8, s.h);
+      s.x = Math.min(canvas.width-20, Math.max(-canvas.width, s.x));
+      s.y = Math.min(canvas.height, Math.max(-canvas.height, s.y));
+      return s;
+    }
+    function loadShadowImage(cb){
+      if(shadowLoaded){ cb && cb(); return; }
+      shadowImg.onload = ()=>{ shadowLoaded=true; cb && cb(); };
+      shadowImg.onerror = ()=> setStatus('找不到 bg.png：請確認 bg.png 跟 hbn.html 放在同一層資料夾');
+      shadowImg.src = 'bg.png';
+    }
+    function setShadowMode(){
+      if(!hasImage()) return;
+      loadShadowImage(()=>{
+        if(!shadowState) shadowState = makeDefaultShadow();
+        updateShadowLayer();
+        setMode('shadowEdit');
+      });
+    }
+
+    function renderProductOnlyCanvas(){
+      const out = document.createElement('canvas');
+      out.width = canvas.width; out.height = canvas.height;
+      out.getContext('2d').drawImage(canvas,0,0);
+      return out;
+    }
+
+    function renderWithShadowCanvas(){
+      const out = document.createElement('canvas');
+      out.width = canvas.width; out.height = canvas.height;
+      const o = out.getContext('2d');
+      if(shadowState && shadowLoaded){
+        o.drawImage(shadowImg, shadowState.x, shadowState.y, shadowState.w, shadowState.h);
+      }
+      o.drawImage(canvas,0,0);
+      return out;
+    }
+
+    function applyCrop(){
+      if(!hasImage() || !cropStart || !cropEnd) return;
+      const x = Math.round(Math.min(cropStart.x,cropEnd.x));
+      const y = Math.round(Math.min(cropStart.y,cropEnd.y));
+      const w = Math.round(Math.abs(cropEnd.x-cropStart.x));
+      const h = Math.round(Math.abs(cropEnd.y-cropStart.y));
+      if(w<5 || h<5) return setStatus('裁切範圍太小');
+      pushHistory();
+      const imageData = ctx.getImageData(x,y,w,h);
+      canvas.width=w; canvas.height=h;
+      ctx.putImageData(imageData,0,0);
+      cropStart=cropEnd=null; cropBox.style.display='none';
+      autoAttachShadowAfterImageChange();
+      setMode('none');
+      updateCanvasCssSize();
+      setStatus('裁切完成，影子已依商品重新吸附');
+    }
+
+    function resetToOriginal(){
+      if(!originalSrc) return;
+      const img = new Image();
+      img.onload = ()=>{
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        undoStack = []; redoStack = [];
+        pushHistory();
+        shadowState = null;
+        cropStart = cropEnd = null;
+        chip.style.background = 'transparent';
+        updateCanvasCssSize();
+        setMode('none');
+      };
+      img.src = originalSrc;
+    }
+
+    function applyToTarget(){
+      if(!targetImg || !hasImage()) return;
+      const productOnly = renderProductOnlyCanvas();
+      const final = renderWithShadowCanvas();
+      const productUrl = productOnly.toDataURL('image/png');
+      const finalUrl = final.toDataURL('image/png');
+
+      if(targetBox && targetBox.dataset){
+        targetBox.dataset.baseSrc = productUrl;
+        targetBox.dataset.shadowEnabled = shadowState ? '1' : '0';
+      }
+
+      const prevW = targetBox ? (targetBox.style.width || (targetBox.offsetWidth + 'px')) : '';
+      const prevH = targetBox ? (targetBox.style.height || (targetBox.offsetHeight + 'px')) : '';
+      const prevL = targetBox ? targetBox.style.left : '';
+      const prevT = targetBox ? targetBox.style.top : '';
+
+      targetImg.onload = ()=>{
+        if(targetBox){
+          if(prevW) targetBox.style.width = prevW;
+          if(prevH) targetBox.style.height = prevH;
+          if(prevL) targetBox.style.left = prevL;
+          if(prevT) targetBox.style.top = prevT;
+          targetBox.dataset.fixedW = String(Math.round(parseFloat(prevW) || targetBox.offsetWidth || 0));
+          targetBox.dataset.fixedH = String(Math.round(parseFloat(prevH) || targetBox.offsetHeight || 0));
+        }
+        targetImg.style.objectFit = 'contain';
+        targetImg.style.width = '100%';
+        targetImg.style.height = '100%';
+        if(typeof window.syncDdLinkedCanvases === 'function'){
+          setTimeout(()=>window.syncDdLinkedCanvases(), 80);
+        }
+      };
+      targetImg.src = finalUrl;
+
+      close();
+      if(typeof window.showToast === 'function') window.showToast('商品圖已套用外掛編輯器結果', 'ok', 1600);
+    }
+
+    function close(){
+      modal.classList.remove('open');
+      setMode('none');
+      targetImg = null; targetBox = null; originalSrc = '';
+    }
+
+    canvas.addEventListener('pointerdown', e=>{
+      if(!hasImage()) return;
+      const p = getCanvasPoint(e);
+      lastPointerPoint = p;
+      if(mode === 'eraser'){
+        pushHistory(); isDrawing = true; eraseAt(p);
+      }else if(mode === 'crop'){
+        if(!cropStart || !cropEnd) resetCropToImageBounds();
+        updateCropBox();
+      }else if(mode === 'removeBgPick'){
+        const px = ctx.getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
+        setPickedColor(px); removeBgByColor(pickedBgColor); setStatus('點選顏色去背完成，影子已重新吸附');
+      }
+    });
+    canvas.addEventListener('pointermove', e=>{
+      if(!hasImage()) return;
+      const p = getCanvasPoint(e);
+      lastPointerPoint = p;
+      updateBrushPreview(p);
+      if(mode === 'eraser' && isDrawing) eraseAt(p);
+    });
+    window.addEventListener('pointerup', ()=>{
+      if(isDrawing){ isDrawing=false; autoAttachShadowAfterImageChange(); setStatus('已擦除，影子已自動重新吸附'); }
+      activeCropEdge = null;
+    });
+    canvas.addEventListener('pointerleave', ()=>{ lastPointerPoint=null; brushPreview.style.display='none'; });
+
+    cropBox.addEventListener('pointerdown', e=>{
+      const edge = e.target.dataset.edge;
+      if(!edge || mode !== 'crop' || !hasImage()) return;
+      e.preventDefault(); e.stopPropagation();
+      activeCropEdge = edge;
+      cropBox.setPointerCapture(e.pointerId);
+    });
+    cropBox.addEventListener('pointermove', e=>{
+      if(!activeCropEdge || mode !== 'crop' || !hasImage()) return;
+      e.preventDefault();
+      const p = getCanvasPoint(e);
+      resizeCropByEdge(activeCropEdge, p);
+      updateCropBox();
+    });
+    cropBox.addEventListener('pointerup', e=>{
+      activeCropEdge = null;
+      try{ cropBox.releasePointerCapture(e.pointerId); }catch(_){}
+    });
+
+    function getWrapPoint(e){
+      const r = wrap.getBoundingClientRect();
+      return {x:e.clientX-r.left, y:e.clientY-r.top};
+    }
+    function resizeShadow(handle, dx, dy){
+      const s = {...shadowStartState};
+      if(handle.includes('e')) s.w = shadowStartState.w + dx;
+      if(handle.includes('s')) s.h = shadowStartState.h + dy;
+      if(handle.includes('w')){ s.x = shadowStartState.x + dx; s.w = shadowStartState.w - dx; }
+      if(handle.includes('n')){ s.y = shadowStartState.y + dy; s.h = shadowStartState.h - dy; }
+      shadowState = clampShadowState(s);
+      updateShadowLayer();
+    }
+    shadowLayer.addEventListener('pointerdown', e=>{
+      if(mode !== 'shadowEdit' || !shadowState) return;
+      e.preventDefault(); e.stopPropagation();
+      activeShadowHandle = e.target.dataset.handle || null;
+      isDraggingShadow = !activeShadowHandle;
+      const p = getWrapPoint(e), m = getCanvasRectMetrics();
+      shadowPointerStart = {x:(p.x-m.left)/m.scaleX, y:(p.y-m.top)/m.scaleY};
+      shadowStartState = {...shadowState};
+      shadowLayer.setPointerCapture(e.pointerId);
+    });
+    shadowLayer.addEventListener('pointermove', e=>{
+      if(mode !== 'shadowEdit' || !shadowState || !shadowPointerStart) return;
+      e.preventDefault();
+      const p = getWrapPoint(e), m = getCanvasRectMetrics();
+      const cur = {x:(p.x-m.left)/m.scaleX, y:(p.y-m.top)/m.scaleY};
+      const dx = cur.x - shadowPointerStart.x, dy = cur.y - shadowPointerStart.y;
+      if(isDraggingShadow){
+        shadowState = clampShadowState({...shadowStartState, x:shadowStartState.x+dx, y:shadowStartState.y+dy});
+        updateShadowLayer();
+      }else if(activeShadowHandle) resizeShadow(activeShadowHandle, dx, dy);
+    });
+    shadowLayer.addEventListener('pointerup', e=>{
+      activeShadowHandle=null; isDraggingShadow=false; shadowPointerStart=null; shadowStartState=null;
+      try{ shadowLayer.releasePointerCapture(e.pointerId); }catch(_){}
+    });
+
+    modal.addEventListener('click', e=>{
+      const act = e.target.dataset.act;
+      if(!act) return;
+      if(act === 'eraser') setMode('eraser');
+      if(act === 'crop') setMode('crop');
+      if(act === 'applyCrop') applyCrop();
+      if(act === 'autoBg'){
+        if(!hasImage()) return;
+        const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
+        const d = imageData.data;
+        const pts = [0,(canvas.width-1)*4,((canvas.height-1)*canvas.width)*4,((canvas.height*canvas.width)-1)*4];
+        const bg = [0,0,0];
+        pts.forEach(i=>{bg[0]+=d[i];bg[1]+=d[i+1];bg[2]+=d[i+2];});
+        bg[0]=Math.round(bg[0]/4); bg[1]=Math.round(bg[1]/4); bg[2]=Math.round(bg[2]/4);
+        setPickedColor(bg); removeBgByColor(bg); setStatus('自動去背完成，影子已重新吸附');
+      }
+      if(act === 'pickBg') setMode('removeBgPick');
+      if(act === 'shadow') setShadowMode();
+      if(act === 'undo'){
+        if(undoStack.length <= 1) return setStatus('沒有可回復的步驟');
+        redoStack.push(undoStack.pop()); restoreFrom(undoStack[undoStack.length-1]); setStatus('已回上一步');
+      }
+      if(act === 'redo'){
+        if(!redoStack.length) return setStatus('沒有下一步');
+        const next = redoStack.pop(); undoStack.push(next); restoreFrom(next); setStatus('已到下一步');
+      }
+      if(act === 'reset') resetToOriginal();
+      if(act === 'cancel') close();
+      if(act === 'apply') applyToTarget();
+    });
+
+    function open(imgEl){
+      targetImg = imgEl;
+      targetBox = imgEl.closest('.editor-item');
+      originalSrc = (targetBox && targetBox.dataset && targetBox.dataset.baseSrc) ? targetBox.dataset.baseSrc : imgEl.src;
+      modal.classList.add('open');
+      const img = new Image();
+      img.onload = ()=>{
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        undoStack = []; redoStack = [];
+        pushHistory();
+        mode = 'none';
+        cropStart = cropEnd = null;
+        shadowState = null;
+        pickedBgColor = null;
+        chip.style.background = 'transparent';
+        setActive();
+        updateCanvasCssSize();
+        setStatus('外掛商品編輯器已開啟');
+      };
+      img.src = originalSrc;
+    }
+
+    return {open};
+  }
+
+  let editorInstance = null;
+  function openPluginProductEditor(imgEl){
+    if(!editorInstance) editorInstance = makeEditor();
+    editorInstance.open(imgEl);
+  }
+
+  window.openEraseEditor = function(imgEl, options){
+    if(options && options.isLogoEdit && typeof oldOpenEraseEditor === 'function'){
+      return oldOpenEraseEditor.apply(this, arguments);
+    }
+    return openPluginProductEditor(imgEl);
+  };
+
+  window.HBNProductEditorPlugin = { open: openPluginProductEditor, version: '1.0.0' };
+})();
