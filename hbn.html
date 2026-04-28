@@ -16693,3 +16693,57 @@ body.ui-left-ready .control-card .toolbar .hex-color-wrap .hex-input{
   mo.observe(document.documentElement, { childList:true, subtree:true });
 })();
 </script>
+<!-- Assistant patch 20260428: restore HBN background zoom controls in DDCard dark style -->
+<style id="assistant-restore-hbn-bg-zoom-like-ddcard">
+  .assistant-hbn-bgscale-host{width:100% !important;max-width:none !important;display:flex !important;justify-content:flex-end !important;align-items:center !important;margin:6px 0 6px !important;padding:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important;overflow:visible !important;}
+  .assistant-hbn-bgscale-host .bg-scale-panel,#bgScaleH,#bgScaleS{position:relative !important;inset:auto !important;left:auto !important;right:auto !important;top:auto !important;bottom:auto !important;float:none !important;width:fit-content !important;max-width:max-content !important;min-width:0 !important;margin:0 0 0 auto !important;display:flex !important;justify-content:flex-end !important;align-items:center !important;gap:6px !important;background:rgba(17,17,17,.72) !important;color:#fff !important;border-radius:10px !important;padding:6px 8px !important;font-size:12px !important;line-height:1.2 !important;z-index:20 !important;box-shadow:none !important;backdrop-filter:none !important;}
+  .assistant-hbn-bgscale-host .bg-scale-panel button,#bgScaleH button,#bgScaleS button{border:0 !important;border-radius:6px !important;background:#fff !important;color:#111 !important;cursor:pointer !important;padding:4px 8px !important;min-width:28px !important;font-size:12px !important;line-height:1.2 !important;box-shadow:none !important;}
+  .assistant-hbn-bgscale-host .bg-scale-panel .tag,#bgScaleH .tag,#bgScaleS .tag{background:#222 !important;color:#fff !important;border-radius:6px !important;padding:4px 6px !important;font-weight:700 !important;white-space:nowrap !important;}
+  .assistant-hbn-bgscale-host .bg-scale-panel span[id],#bgScaleValH,#bgScaleValS{min-width:44px !important;text-align:center !important;color:#fff !important;font-weight:700 !important;}
+  .is-exporting .assistant-hbn-bgscale-host,.is-exporting #bgScaleH,.is-exporting #bgScaleS{display:none !important;}
+</style>
+<script id="assistant-restore-hbn-bg-zoom-like-ddcard-script">
+(function(){
+  function ensurePanel(id, valId, labelText){
+    var panel = document.getElementById(id);
+    if(!panel){
+      panel = document.createElement('div');
+      panel.className = 'bg-scale-panel';
+      panel.id = id;
+      panel.innerHTML = '<span class="tag"></span><button data-step="-0.05" type="button">–</button><span id="' + valId + '">100%</span><button data-step="0.05" type="button">+</button>';
+    }
+    panel.hidden = false;
+    panel.style.removeProperty('display');
+    panel.style.setProperty('display','flex','important');
+    var tag = panel.querySelector('.tag');
+    if(tag) tag.textContent = labelText;
+    return panel;
+  }
+  function movePanelAboveCanvas(panelId, canvasId, labelText, valId){
+    var canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    var panel = ensurePanel(panelId, valId, labelText);
+    var host = panel.closest('.assistant-hbn-bgscale-host');
+    if(!host){
+      host = document.createElement('div');
+      host.className = 'assistant-hbn-bgscale-host hbn-bgscale-host';
+      canvas.parentNode.insertBefore(host, canvas);
+      host.appendChild(panel);
+    }else if(host.nextElementSibling !== canvas){
+      canvas.parentNode.insertBefore(host, canvas);
+    }
+    host.style.setProperty('display','flex','important');
+    panel.style.setProperty('display','flex','important');
+  }
+  function restoreHbnBgPanels(){
+    movePanelAboveCanvas('bgScaleH', 'horiz', 'HBN 橫LOGO 背景圖尺寸 放大縮小鈕 >', 'bgScaleValH');
+    movePanelAboveCanvas('bgScaleS', 'square', 'HBN 方LOGO 背景圖尺寸 放大縮小鈕 >', 'bgScaleValS');
+  }
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restoreHbnBgPanels);
+  else restoreHbnBgPanels();
+  setTimeout(restoreHbnBgPanels, 80);
+  setTimeout(restoreHbnBgPanels, 300);
+  setTimeout(restoreHbnBgPanels, 1000);
+  window.restoreHbnBgPanels = restoreHbnBgPanels;
+})();
+</script>
