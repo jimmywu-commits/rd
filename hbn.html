@@ -1756,7 +1756,7 @@ label:has(#editZoom){
 <label>容差：<input id="tolerance" max="80" min="0" type="range" value="20"/></label>
 <label style="display:flex;align-items:center;gap:6px"><input id="toggleShadow" type="checkbox"/> 增加影子</label>
 <label style="display:flex;align-items:center;gap:6px"><input checked="" id="applyUploadSize" type="checkbox"/> 完成後套用上傳尺寸規則</label>
-<label id="logoWhiteBaseWrap" style="display:none;align-items:center;gap:6px;margin-left:auto;font-weight:700"><input id="logoWhiteBaseChk" type="checkbox"/> 加白底</label>
+<label id="logoWhiteBaseWrap" style="display:none;align-items:center;gap:6px;margin-left:auto;font-weight:700"><input id="logoWhiteBaseChk" type="checkbox"/> 加圓角</label>
 <label>縮放：<input id="editZoom" max="300" min="10" type="range" value="100"/></label><span class="pill" id="editZoomVal">100%</span><span class="note">裁切：拖曳框選；智慧選取：點擊或多點；擦除：拖曳</span>
 </div>
 <div class="checkerboard" id="eraseWrap">
@@ -2521,7 +2521,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     if(!imgEl) return;
 
     // 若目前畫布上的 logo 已套白底，進編輯器時先還原成原始 logo，
-    // 讓編輯器只顯示未加白底狀態；編輯完成後也維持未加白底。
+    // 讓編輯器只顯示未加圓角狀態；編輯完成後也維持未加圓角。
     if(options.isLogoEdit && imgEl.dataset.logoWhiteBaseEnabled === '1' && imgEl.dataset.logoOriginalSrc){
       imgEl.src = imgEl.dataset.logoOriginalSrc;
       imgEl.dataset.logoWhiteBaseEnabled = '';
@@ -3535,7 +3535,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
       }
     }
     redrawOriginal();
-    showToast(logoWhiteBaseEnabled ? '已啟用白底（預覽中）' : '已取消白底', 'ok', 1200);
+    showToast(logoWhiteBaseEnabled ? '已啟用白底（預覽中）' : '已取消圓角', 'ok', 1200);
   });
   document.getElementById('cropConfirm').addEventListener('click', ()=>{ applyCroppedToTarget(false); if(!editingModeIsLogo && shadowToggle?.checked){ autoPlaceShadowByVisibleBounds(); } showToast('已套用裁切（可繼續編輯）','ok',1600); });
 
@@ -5212,7 +5212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = wrap && wrap.querySelector('.logo-white-btn');
     if(!btn) return;
     btn.classList.toggle('is-on', img.dataset.logoWhiteBaseEnabled === '1');
-    btn.title = img.dataset.logoWhiteBaseEnabled === '1' ? '取消白底' : '加白底';
+    btn.title = img.dataset.logoWhiteBaseEnabled === '1' ? '取消圓角' : '加圓角';
   }
 
   function syncCanvasWhiteBaseMirror(img){
@@ -12387,7 +12387,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       { key:'edit', label:'編輯' },
       { key:'swap', label:'交換位置', hidden:!inHoriz },
       { key:'delete', label:'刪除' },
-      { key:'white', label:(img && img.dataset && img.dataset.logoWhiteBaseEnabled === '1') ? '取消白底' : '加白底' }
+      { key:'white', label:(img && img.dataset && img.dataset.logoWhiteBaseEnabled === '1') ? '取消圓角' : '加圓角' }
     ].filter(function(item){ return !item.hidden; });
   }
   function runLogoAction(wrap, img, action){
@@ -12573,7 +12573,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(!img) return;
       var whiteBtn = menu.querySelector('[data-action="white"]');
       if(whiteBtn){
-        whiteBtn.textContent = (img.dataset.logoWhiteBaseEnabled === '1') ? '取消白底' : '加白底';
+        whiteBtn.textContent = (img.dataset.logoWhiteBaseEnabled === '1') ? '取消圓角' : '加圓角';
       }
     });
   }
@@ -12695,7 +12695,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       '<button type="button" data-action="edit">編輯</button>' +
       '<button type="button" data-action="swap">交換位置</button>' +
       '<button type="button" data-action="delete">刪除</button>' +
-      '<button type="button" data-action="white">加白底</button>';
+      '<button type="button" data-action="white">加圓角</button>';
     document.body.appendChild(menu);
     return menu;
   }
@@ -12703,7 +12703,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var menu = ensureMenu();
     var btn = menu.querySelector('[data-action="white"]');
     if(!btn) return;
-    btn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消白底' : '加白底';
+    btn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消圓角' : '加圓角';
   }
   function closeMenu(){ ensureMenu().classList.remove('show'); }
   function openMenu(wrap, img, anchor){
@@ -12863,7 +12863,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       '<button type="button" data-action="edit">編輯</button>',
       '<button type="button" data-action="swap">交換位置</button>',
       '<button type="button" data-action="delete">刪除</button>',
-      '<button type="button" data-action="white">加白底</button>'
+      '<button type="button" data-action="white">加圓角</button>'
     ].join('');
     document.body.appendChild(menu);
     return menu;
@@ -12890,7 +12890,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!menu) return;
     var btn = menu.querySelector('[data-action="white"]');
     var swap = menu.querySelector('[data-action="swap"]');
-    if(btn) btn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消白底' : '加白底';
+    if(btn) btn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消圓角' : '加圓角';
     if(swap) swap.style.display = (ctx && ctx.wrap && ctx.wrap.closest && ctx.wrap.closest('#brandH')) ? '' : 'none';
   }
 
@@ -13113,7 +13113,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       '<button type="button" data-action="edit">編輯</button>',
       '<button type="button" data-action="swap">交換位置</button>',
       '<button type="button" data-action="delete">刪除</button>',
-      '<button type="button" data-action="white">加白底</button>'
+      '<button type="button" data-action="white">加圓角</button>'
     ].join('');
     document.body.appendChild(menu);
     menu.addEventListener('click', function(e){
@@ -13139,7 +13139,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var swapBtn = menu.querySelector('[data-action="swap"]');
     var whiteBtn = menu.querySelector('[data-action="white"]');
     if(swapBtn) swapBtn.style.display = (ctx && ctx.kind === 'horiz') ? '' : 'none';
-    if(whiteBtn) whiteBtn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消白底' : '加白底';
+    if(whiteBtn) whiteBtn.textContent = (ctx && ctx.img && ctx.img.dataset.logoWhiteBaseEnabled === '1') ? '取消圓角' : '加圓角';
   }
 
   function openMenu(wrap, img, trigger, kind){
@@ -15450,6 +15450,498 @@ body.ui-left-ready .control-card .toolbar .hex-color-wrap .color-picker-btn{
 })();
 </script>
 
+
+<style id="remove-canvas-shadow-final">
+  /* 移除所有藍底區陰影（HBN + DDCard） */
+  .canvas,
+  .dd-canvas,
+  #horiz,
+  #square,
+  #ddHorizCanvas,
+  #ddSquareCanvas{
+    box-shadow:none !important;
+    filter:none !important;
+  }
+</style>
+
+
+<style id="assistant-allow-products-outside-canvas">
+  /* 商品圖可拖出藍底畫布外仍可看見/編輯；
+     下載仍以藍底畫布本身為輸出範圍，不會把外面的部分輸出。 */
+  #horizontal,
+  #square,
+  #ddHorizCanvas,
+  #ddSquareCanvas,
+  .canvas,
+  .dd-canvas{
+    overflow: visible !important;
+  }
+
+  .products,
+  .dd-products,
+  #horizProducts,
+  #squareProducts,
+  #ddHorizProducts,
+  #ddSquareProducts{
+    overflow: visible !important;
+    pointer-events: none;
+  }
+
+  .editor-item,
+  .dd-product,
+  .product-item{
+    overflow: visible !important;
+    pointer-events: auto;
+  }
+
+  .editor-item img,
+  .dd-product img,
+  .product-item img{
+    pointer-events: auto;
+  }
+
+  /* 避免外層工作區把拖出去的商品圖裁掉 */
+  .wrap,
+  .stage,
+  .editor-stage,
+  .editor-stage-v2,
+  .preview-area,
+  .preview-workspace,
+  .workspace,
+  .right-section,
+  .right-editor-v1{
+    overflow: visible !important;
+  }
+</style>
+
+<style id="assistant-download-product-ratio-fix-style-v2">
+  /* 下載比例修正版 v2：
+     下載瞬間隱藏原商品圖整個外框，只輸出校正後的 proxy，
+     避免出現「校正版 + 原本變形版」兩張疊圖。 */
+  .assistant-export-product-fit-proxy{
+    position:absolute !important;
+    pointer-events:none !important;
+    z-index:999999 !important;
+    overflow:visible !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+  .assistant-export-product-fit-proxy img{
+    display:block !important;
+    width:100% !important;
+    height:100% !important;
+    object-fit:contain !important;
+    object-position:center center !important;
+    visibility:visible !important;
+    opacity:1 !important;
+  }
+
+  /* 重點：隱藏整個原商品外框，而不是只 hidden img。
+     這樣 html2canvas 或 DOM export 不會同時抓到原本被拉伸的商品。 */
+  .assistant-export-hide-real-product{
+    visibility:hidden !important;
+    opacity:0 !important;
+  }
+</style>
+
+
+<script id="assistant-download-product-ratio-fix-script-v2">
+(function(){
+  if(window.__assistantDownloadProductRatioFixInstalledV2) return;
+  window.__assistantDownloadProductRatioFixInstalledV2 = true;
+
+  function px(n){ return (Math.round(n * 1000) / 1000) + 'px'; }
+
+  function getImgNaturalSize(img){
+    return {
+      w: Number(img.naturalWidth || img.videoWidth || img.width || 1),
+      h: Number(img.naturalHeight || img.videoHeight || img.height || 1)
+    };
+  }
+
+  function getVisibleContainRect(img, box){
+    var boxRect = box.getBoundingClientRect();
+    var imgRect = img.getBoundingClientRect();
+
+    // 商品圖通常是 width/height:100%，如果 imgRect 不可靠，就用外框。
+    var baseRect = (imgRect.width > 1 && imgRect.height > 1) ? imgRect : boxRect;
+    var ns = getImgNaturalSize(img);
+    var naturalRatio = ns.w / Math.max(1, ns.h);
+    var boxRatio = baseRect.width / Math.max(1, baseRect.height);
+
+    var drawW, drawH, offsetX, offsetY;
+    if(boxRatio > naturalRatio){
+      drawH = baseRect.height;
+      drawW = drawH * naturalRatio;
+      offsetX = (baseRect.width - drawW) / 2;
+      offsetY = 0;
+    }else{
+      drawW = baseRect.width;
+      drawH = drawW / naturalRatio;
+      offsetX = 0;
+      offsetY = (baseRect.height - drawH) / 2;
+    }
+
+    return {
+      left: baseRect.left + offsetX,
+      top: baseRect.top + offsetY,
+      width: drawW,
+      height: drawH
+    };
+  }
+
+  function closestCanvasLike(el){
+    return el && (
+      el.closest('#horizontal') ||
+      el.closest('#square') ||
+      el.closest('#ddHorizCanvas') ||
+      el.closest('#ddSquareCanvas') ||
+      el.closest('.canvas') ||
+      el.closest('.dd-canvas')
+    );
+  }
+
+  function collectProductBoxes(root){
+    var scope = root || document;
+    var list = Array.from(scope.querySelectorAll('.editor-item,.dd-product,.product-item'));
+    return list.filter(function(box){
+      if(box.classList.contains('assistant-export-product-fit-proxy')) return false;
+      var img = box.querySelector('img');
+      if(!img || !img.src) return false;
+      if(img.closest('.brand,.dd-brand')) return false;
+      if(box.closest('.brand,.dd-brand')) return false;
+      return !!closestCanvasLike(box);
+    });
+  }
+
+  function copyUsefulStyles(from, to){
+    var cs = getComputedStyle(from);
+    ['transform','transformOrigin','borderRadius','filter','mixBlendMode'].forEach(function(prop){
+      try{ to.style.setProperty(prop, cs.getPropertyValue(prop), 'important'); }catch(_){}
+    });
+  }
+
+  function cleanupExportProductRatio(){
+    var items = window.__assistantExportProductRatioItems || [];
+    items.forEach(function(item){
+      if(item.box) item.box.classList.remove('assistant-export-hide-real-product');
+      if(item.proxy && item.proxy.parentNode) item.proxy.parentNode.removeChild(item.proxy);
+    });
+    window.__assistantExportProductRatioItems = [];
+    document.querySelectorAll('.assistant-export-product-fit-proxy').forEach(function(el){ el.remove(); });
+    document.querySelectorAll('.assistant-export-hide-real-product').forEach(function(el){
+      el.classList.remove('assistant-export-hide-real-product');
+    });
+  }
+
+  function prepareExportProductRatio(root){
+    cleanupExportProductRatio();
+
+    var created = [];
+    collectProductBoxes(root).forEach(function(box){
+      var img = box.querySelector('img');
+      var canvasLike = closestCanvasLike(box);
+      if(!img || !canvasLike) return;
+
+      var rect = getVisibleContainRect(img, box);
+      var parentRect = canvasLike.getBoundingClientRect();
+
+      var proxy = document.createElement('div');
+      proxy.className = 'assistant-export-product-fit-proxy';
+      proxy.style.left = px(rect.left - parentRect.left);
+      proxy.style.top = px(rect.top - parentRect.top);
+      proxy.style.width = px(rect.width);
+      proxy.style.height = px(rect.height);
+
+      copyUsefulStyles(box, proxy);
+
+      var cloneImg = document.createElement('img');
+      cloneImg.crossOrigin = img.crossOrigin || 'anonymous';
+      cloneImg.src = img.currentSrc || img.src;
+      cloneImg.alt = '';
+
+      proxy.appendChild(cloneImg);
+
+      // proxy 放進同一個輸出藍底範圍，藍底外仍自然不輸出。
+      canvasLike.appendChild(proxy);
+
+      // v2 重點：隱藏整個原商品框，不只 img。
+      box.classList.add('assistant-export-hide-real-product');
+
+      created.push({box:box, proxy:proxy});
+    });
+
+    window.__assistantExportProductRatioItems = created;
+  }
+
+  window.prepareExportProductRatio = prepareExportProductRatio;
+  window.cleanupExportProductRatio = cleanupExportProductRatio;
+
+  function installHtml2CanvasHook(){
+    if(typeof window.html2canvas !== 'function') return;
+
+    // 若上一版已 hook，先還原到原始 html2canvas，避免重複 hook。
+    if(window.html2canvas.__assistantOriginal){
+      window.html2canvas = window.html2canvas.__assistantOriginal;
+    }
+    if(window.html2canvas.__assistantRatioHookedV2) return;
+
+    var original = window.html2canvas;
+    function hookedHtml2Canvas(element, options){
+      prepareExportProductRatio(element || document);
+      var p;
+      try{
+        p = original.call(this, element, options);
+      }catch(err){
+        cleanupExportProductRatio();
+        throw err;
+      }
+      return Promise.resolve(p).finally(function(){
+        setTimeout(cleanupExportProductRatio, 0);
+      });
+    }
+
+    Object.keys(original).forEach(function(k){
+      try{ hookedHtml2Canvas[k] = original[k]; }catch(_){}
+    });
+
+    hookedHtml2Canvas.__assistantRatioHookedV2 = true;
+    hookedHtml2Canvas.__assistantOriginal = original;
+    window.html2canvas = hookedHtml2Canvas;
+  }
+
+  installHtml2CanvasHook();
+  setTimeout(installHtml2CanvasHook, 100);
+  setTimeout(installHtml2CanvasHook, 500);
+  setTimeout(installHtml2CanvasHook, 1200);
+
+  document.addEventListener('click', function(e){
+    var target = e.target && e.target.closest && e.target.closest('button,a');
+    if(!target) return;
+    var id = target.id || '';
+    var txt = (target.textContent || '').trim();
+    if(/^dl-|download|下載/.test(id) || txt.indexOf('下載') >= 0){
+      prepareExportProductRatio(document);
+      setTimeout(cleanupExportProductRatio, 1800);
+    }
+  }, true);
+})();
+</script>
+
+<script id="jimmy-product-export-as-preview-ratio-fix-20260424">
+(function(){
+  if(window.__jimmyProductExportAsPreviewRatioFix20260424) return;
+  window.__jimmyProductExportAsPreviewRatioFix20260424 = true;
+
+  function exportIgnoreStrict(el){
+    if(!el) return false;
+    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
+    if(!el.classList) return false;
+    return el.classList.contains('ctrl') ||
+           el.classList.contains('logo-edit-btn') ||
+           el.classList.contains('logo-swap-btn') ||
+           el.classList.contains('logo-white-btn') ||
+           el.classList.contains('toggle-tag') ||
+           el.classList.contains('panel') ||
+           el.classList.contains('bg-scale-panel') ||
+           el.classList.contains('guide-line') ||
+           el.classList.contains('guide-warning') ||
+           el.classList.contains('guide-doc-overlay') ||
+           el.classList.contains('dd-guide-line') ||
+           el.classList.contains('dd-guide-warning') ||
+           el.classList.contains('float-meter') ||
+           el.classList.contains('modal') ||
+           el.classList.contains('nudge') ||
+           el.classList.contains('json-toolbar') ||
+           el.classList.contains('manual-icon') ||
+           el.classList.contains('brush-cursor') ||
+           el.classList.contains('ui-only');
+  }
+
+  function hexToRgb(hex){
+    var h = String(hex || '#ffffff').replace('#','');
+    var b = h.length === 3 ? h.split('').map(function(c){ return c + c; }).join('') : h;
+    return {
+      r: parseInt(b.slice(0,2), 16) || 255,
+      g: parseInt(b.slice(2,4), 16) || 255,
+      b: parseInt(b.slice(4,6), 16) || 255
+    };
+  }
+
+  function toBlobAsync(canvas, type, quality){
+    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
+  }
+
+  function triggerDownload(blob, name){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url, '_blank');
+    else a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
+  }
+
+  function containedRectInBox(boxRect, img){
+    var nw = img.naturalWidth || 0;
+    var nh = img.naturalHeight || 0;
+    var bw = boxRect.width || 0;
+    var bh = boxRect.height || 0;
+    if(!(nw > 0 && nh > 0 && bw > 0 && bh > 0)){
+      return { left: boxRect.left, top: boxRect.top, width: bw, height: bh };
+    }
+    var imgRatio = nw / nh;
+    var boxRatio = bw / bh;
+    var w, h, l, t;
+    if(imgRatio > boxRatio){
+      w = bw;
+      h = bw / imgRatio;
+      l = boxRect.left;
+      t = boxRect.top + (bh - h) / 2;
+    }else{
+      h = bh;
+      w = bh * imgRatio;
+      t = boxRect.top;
+      l = boxRect.left + (bw - w) / 2;
+    }
+    return { left:l, top:t, width:w, height:h };
+  }
+
+  function getProductLocks(node){
+    var nodeRect = node.getBoundingClientRect();
+    var locks = [];
+    var selector = '.editor-item:not(.editor-bg), .dd-product';
+    node.querySelectorAll(selector).forEach(function(box, idx){
+      var img = box.querySelector('img');
+      if(!img || !(img.currentSrc || img.src)) return;
+
+      // Use the product BOX as the crop/contain area, then compute the actual visible image rect.
+      // This matches frontend object-fit:contain behavior and prevents export-time stretching.
+      var boxRect = box.getBoundingClientRect();
+      var drawRect = containedRectInBox(boxRect, img);
+      if(!(drawRect.width > 0 && drawRect.height > 0)) return;
+
+      var cs = getComputedStyle(box);
+      var z = parseInt(cs.zIndex || box.style.zIndex || '4', 10);
+      if(isNaN(z)) z = box.classList.contains('dd-product') ? (4 + idx) : 4;
+
+      locks.push({
+        src: img.currentSrc || img.src || '',
+        left: drawRect.left - nodeRect.left,
+        top: drawRect.top - nodeRect.top,
+        width: drawRect.width,
+        height: drawRect.height,
+        zIndex: z,
+        isDd: box.classList.contains('dd-product')
+      });
+    });
+    return locks;
+  }
+
+  function applyProductOverlay(doc, clonedNode, locks){
+    if(!clonedNode) return;
+
+    clonedNode.querySelectorAll('.editor-item:not(.editor-bg), .dd-product').forEach(function(box){
+      box.style.visibility = 'hidden';
+    });
+
+    locks.forEach(function(lock){
+      var img = doc.createElement('img');
+      img.src = lock.src;
+      img.style.position = 'absolute';
+      img.style.left = lock.left + 'px';
+      img.style.top = lock.top + 'px';
+      img.style.width = lock.width + 'px';
+      img.style.height = lock.height + 'px';
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = 'none';
+      img.style.objectFit = 'contain';
+      img.style.display = 'block';
+      img.style.pointerEvents = 'none';
+      img.style.zIndex = String(lock.zIndex);
+      clonedNode.appendChild(img);
+    });
+  }
+
+  async function exportCanvas(node, bgColorInputId, filename){
+    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
+
+    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
+    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
+    var bgHex = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || '#ffffff';
+    var locks = getProductLocks(node);
+
+    node.classList.add('is-exporting');
+    document.body.classList.add('is-exporting');
+
+    try{
+      var snap = await html2canvas(node, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        removeContainer: true,
+        logging: false,
+        width: exportW,
+        height: exportH,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        ignoreElements: exportIgnoreStrict,
+        onclone: function(doc){
+          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
+          var clonedNode = doc.getElementById(node.id);
+          if(!clonedNode) return;
+          clonedNode.style.overflow = 'hidden';
+          clonedNode.classList.add('hide-dd-icons');
+          applyProductOverlay(doc, clonedNode, locks);
+        }
+      });
+
+      var out = document.createElement('canvas');
+      out.width = exportW;
+      out.height = exportH;
+      var ctx = out.getContext('2d');
+      var rgb = hexToRgb(bgHex);
+      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+      ctx.fillRect(0, 0, exportW, exportH);
+      ctx.drawImage(snap, 0, 0, exportW, exportH);
+
+      var base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
+      var pngBlob = await toBlobAsync(out, 'image/png');
+      if(pngBlob && pngBlob.size <= 145 * 1024){
+        triggerDownload(pngBlob, base + '.png');
+        if(typeof showToast === 'function') showToast('已下載圖片（商品比例與前端預覽一致，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2400);
+        return;
+      }
+
+      var quality = 0.98;
+      var jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > 145 * 1024 && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載圖片（商品比例與前端預覽一致，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
+    } finally {
+      node.classList.remove('is-exporting');
+      document.body.classList.remove('is-exporting');
+    }
+  }
+
+  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
+    var node = document.getElementById(canvasId);
+    if(!node) return;
+    return exportCanvas(node, bgColorInputId, filename);
+  };
+})();
+</script>
+
 </body>
 </html>
 <style id="logo-editor-layer-and-wheel-fix-v4">
@@ -16691,59 +17183,5 @@ body.ui-left-ready .control-card .toolbar .hex-color-wrap .hex-input{
 
   var mo = new MutationObserver(function(){ init(); });
   mo.observe(document.documentElement, { childList:true, subtree:true });
-})();
-</script>
-<!-- Assistant patch 20260428: restore HBN background zoom controls in DDCard dark style -->
-<style id="assistant-restore-hbn-bg-zoom-like-ddcard">
-  .assistant-hbn-bgscale-host{width:100% !important;max-width:none !important;display:flex !important;justify-content:flex-end !important;align-items:center !important;margin:6px 0 6px !important;padding:0 !important;background:transparent !important;border:0 !important;box-shadow:none !important;overflow:visible !important;}
-  .assistant-hbn-bgscale-host .bg-scale-panel,#bgScaleH,#bgScaleS{position:relative !important;inset:auto !important;left:auto !important;right:auto !important;top:auto !important;bottom:auto !important;float:none !important;width:fit-content !important;max-width:max-content !important;min-width:0 !important;margin:0 0 0 auto !important;display:flex !important;justify-content:flex-end !important;align-items:center !important;gap:6px !important;background:rgba(17,17,17,.72) !important;color:#fff !important;border-radius:10px !important;padding:6px 8px !important;font-size:12px !important;line-height:1.2 !important;z-index:20 !important;box-shadow:none !important;backdrop-filter:none !important;}
-  .assistant-hbn-bgscale-host .bg-scale-panel button,#bgScaleH button,#bgScaleS button{border:0 !important;border-radius:6px !important;background:#fff !important;color:#111 !important;cursor:pointer !important;padding:4px 8px !important;min-width:28px !important;font-size:12px !important;line-height:1.2 !important;box-shadow:none !important;}
-  .assistant-hbn-bgscale-host .bg-scale-panel .tag,#bgScaleH .tag,#bgScaleS .tag{background:#222 !important;color:#fff !important;border-radius:6px !important;padding:4px 6px !important;font-weight:700 !important;white-space:nowrap !important;}
-  .assistant-hbn-bgscale-host .bg-scale-panel span[id],#bgScaleValH,#bgScaleValS{min-width:44px !important;text-align:center !important;color:#fff !important;font-weight:700 !important;}
-  .is-exporting .assistant-hbn-bgscale-host,.is-exporting #bgScaleH,.is-exporting #bgScaleS{display:none !important;}
-</style>
-<script id="assistant-restore-hbn-bg-zoom-like-ddcard-script">
-(function(){
-  function ensurePanel(id, valId, labelText){
-    var panel = document.getElementById(id);
-    if(!panel){
-      panel = document.createElement('div');
-      panel.className = 'bg-scale-panel';
-      panel.id = id;
-      panel.innerHTML = '<span class="tag"></span><button data-step="-0.05" type="button">–</button><span id="' + valId + '">100%</span><button data-step="0.05" type="button">+</button>';
-    }
-    panel.hidden = false;
-    panel.style.removeProperty('display');
-    panel.style.setProperty('display','flex','important');
-    var tag = panel.querySelector('.tag');
-    if(tag) tag.textContent = labelText;
-    return panel;
-  }
-  function movePanelAboveCanvas(panelId, canvasId, labelText, valId){
-    var canvas = document.getElementById(canvasId);
-    if(!canvas) return;
-    var panel = ensurePanel(panelId, valId, labelText);
-    var host = panel.closest('.assistant-hbn-bgscale-host');
-    if(!host){
-      host = document.createElement('div');
-      host.className = 'assistant-hbn-bgscale-host hbn-bgscale-host';
-      canvas.parentNode.insertBefore(host, canvas);
-      host.appendChild(panel);
-    }else if(host.nextElementSibling !== canvas){
-      canvas.parentNode.insertBefore(host, canvas);
-    }
-    host.style.setProperty('display','flex','important');
-    panel.style.setProperty('display','flex','important');
-  }
-  function restoreHbnBgPanels(){
-    movePanelAboveCanvas('bgScaleH', 'horiz', 'HBN 橫LOGO 背景圖尺寸 放大縮小鈕 >', 'bgScaleValH');
-    movePanelAboveCanvas('bgScaleS', 'square', 'HBN 方LOGO 背景圖尺寸 放大縮小鈕 >', 'bgScaleValS');
-  }
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restoreHbnBgPanels);
-  else restoreHbnBgPanels();
-  setTimeout(restoreHbnBgPanels, 80);
-  setTimeout(restoreHbnBgPanels, 300);
-  setTimeout(restoreHbnBgPanels, 1000);
-  window.restoreHbnBgPanels = restoreHbnBgPanels;
 })();
 </script>
