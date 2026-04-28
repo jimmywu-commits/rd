@@ -355,13 +355,27 @@
     }
 
     function renderWithShadowCanvas(){
+      const hasShadow = !!(shadowState && shadowLoaded);
+      const minX = hasShadow ? Math.min(0, shadowState.x) : 0;
+      const minY = hasShadow ? Math.min(0, shadowState.y) : 0;
+      const maxX = hasShadow ? Math.max(canvas.width, shadowState.x + shadowState.w) : canvas.width;
+      const maxY = hasShadow ? Math.max(canvas.height, shadowState.y + shadowState.h) : canvas.height;
+
       const out = document.createElement('canvas');
-      out.width = canvas.width; out.height = canvas.height;
+      out.width = Math.max(1, Math.ceil(maxX - minX));
+      out.height = Math.max(1, Math.ceil(maxY - minY));
       const o = out.getContext('2d');
-      if(shadowState && shadowLoaded){
-        o.drawImage(shadowImg, shadowState.x, shadowState.y, shadowState.w, shadowState.h);
+
+      if(hasShadow){
+        o.drawImage(shadowImg, shadowState.x - minX, shadowState.y - minY, shadowState.w, shadowState.h);
       }
-      o.drawImage(canvas,0,0);
+      o.drawImage(canvas, -minX, -minY);
+
+      // Metadata for applyToTarget(): product remains at this offset inside the expanded result.
+      out._productOffsetX = -minX;
+      out._productOffsetY = -minY;
+      out._productW = canvas.width;
+      out._productH = canvas.height;
       return out;
     }
 
@@ -409,33 +423,63 @@
       const productUrl = productOnly.toDataURL('image/png');
       const finalUrl = final.toDataURL('image/png');
 
-      if(targetBox && targetBox.dataset){
-        targetBox.dataset.baseSrc = productUrl;
-        targetBox.dataset.shadowEnabled = shadowState ? '1' : '0';
+      // Keep stable references before close() clears the editor state.
+      // Otherwise the onload callback cannot restore the original product box size.
+      const boxRef = targetBox;
+      const imgRef = targetImg;
+
+      if(boxRef && boxRef.dataset){
+        boxRef.dataset.baseSrc = productUrl;
+        boxRef.dataset.shadowEnabled = shadowState ? '1' : '0';
       }
 
-      const prevW = targetBox ? (targetBox.style.width || (targetBox.offsetWidth + 'px')) : '';
-      const prevH = targetBox ? (targetBox.style.height || (targetBox.offsetHeight + 'px')) : '';
-      const prevL = targetBox ? targetBox.style.left : '';
-      const prevT = targetBox ? targetBox.style.top : '';
+      const prevW = boxRef ? (parseFloat(boxRef.style.width) || boxRef.offsetWidth || 0) : 0;
+      const prevH = boxRef ? (parseFloat(boxRef.style.height) || boxRef.offsetHeight || 0) : 0;
+      const prevL = boxRef ? (parseFloat(boxRef.style.left) || boxRef.offsetLeft || 0) : 0;
+      const prevT = boxRef ? (parseFloat(boxRef.style.top) || boxRef.offsetTop || 0) : 0;
 
-      targetImg.onload = ()=>{
-        if(targetBox){
-          if(prevW) targetBox.style.width = prevW;
-          if(prevH) targetBox.style.height = prevH;
-          if(prevL) targetBox.style.left = prevL;
-          if(prevT) targetBox.style.top = prevT;
-          targetBox.dataset.fixedW = String(Math.round(parseFloat(prevW) || targetBox.offsetWidth || 0));
-          targetBox.dataset.fixedH = String(Math.round(parseFloat(prevH) || targetBox.offsetHeight || 0));
+      function containRect(boxW, boxH, imgW, imgH){
+        if(!boxW || !boxH || !imgW || !imgH) return {x:0,y:0,w:boxW,h:boxH,scale:1};
+        const scale = Math.min(boxW / imgW, boxH / imgH);
+        const w = imgW * scale;
+        const h = imgH * scale;
+        return { x:(boxW - w) / 2, y:(boxH - h) / 2, w, h, scale };
+      }
+
+      imgRef.onload = ()=>{
+        if(boxRef){
+          let targetW = prevW;
+          let targetH = prevH;
+          let targetL = prevL;
+          let targetT = prevT;
+
+          if(shadowState && (final.width !== productOnly.width || final.height !== productOnly.height)){
+            const prevDraw = containRect(prevW, prevH, productOnly.width, productOnly.height);
+            const scale = prevDraw.scale || 1;
+            targetW = Math.max(20, Math.round(final.width * scale));
+            targetH = Math.max(20, Math.round(final.height * scale));
+            targetL = Math.round(prevL + prevDraw.x - (final._productOffsetX || 0) * scale);
+            targetT = Math.round(prevT + prevDraw.y - (final._productOffsetY || 0) * scale);
+          }
+
+          boxRef.style.width = targetW + 'px';
+          boxRef.style.height = targetH + 'px';
+          boxRef.style.left = targetL + 'px';
+          boxRef.style.top = targetT + 'px';
+          boxRef.dataset.fixedW = String(Math.round(targetW || boxRef.offsetWidth || 0));
+          boxRef.dataset.fixedH = String(Math.round(targetH || boxRef.offsetHeight || 0));
         }
-        targetImg.style.objectFit = 'contain';
-        targetImg.style.width = '100%';
-        targetImg.style.height = '100%';
+        imgRef.style.objectFit = 'contain';
+        imgRef.style.width = '100%';
+        imgRef.style.height = '100%';
+        imgRef.style.maxWidth = '100%';
+        imgRef.style.maxHeight = '100%';
+        imgRef.style.display = 'block';
         if(typeof window.syncDdLinkedCanvases === 'function'){
           setTimeout(()=>window.syncDdLinkedCanvases(), 80);
         }
       };
-      targetImg.src = finalUrl;
+      imgRef.src = finalUrl;
 
       close();
       if(typeof window.showToast === 'function') window.showToast('商品圖已套用外掛編輯器結果', 'ok', 1600);
