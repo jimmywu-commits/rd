@@ -20,6 +20,12 @@
   .hbn-plugin-toolbar button.danger{border-color:rgba(251,113,133,.6);color:#fecdd3;}
   .hbn-plugin-toolbar label{display:inline-flex;align-items:center;gap:6px;color:#94a3b8;font-size:13px;}
   .hbn-plugin-toolbar input[type=range]{width:110px;}
+  .hbn-plugin-control-group{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .hbn-plugin-tool-separator{width:1px;height:28px;background:rgba(255,255,255,.16);margin:0 2px;}
+  .hbn-plugin-history{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding-left:12px;border-left:1px solid rgba(255,255,255,.18);}
+  .hbn-plugin-history button{background:#fff !important;color:#111827 !important;border-color:#fff !important;box-shadow:0 1px 4px rgba(0,0,0,.18);}
+  .hbn-plugin-history button.active{background:#fff !important;color:#111827 !important;border-color:#fff !important;}
+  .hbn-plugin-history button:disabled{background:#fff !important;color:#fff !important;border-color:rgba(255,255,255,.5) !important;opacity:.35;}
   .hbn-plugin-chip{width:18px;height:18px;border-radius:99px;border:1px solid rgba(255,255,255,.2);background:transparent;}
   .hbn-plugin-workspace{position:relative;min-height:0;margin:12px;border-radius:16px;border:1px solid #d1d5db;overflow:hidden;display:flex;align-items:center;justify-content:center;background-color:#fff;background-image:linear-gradient(45deg,#e5e7eb 25%,transparent 25%),linear-gradient(-45deg,#e5e7eb 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e5e7eb 75%),linear-gradient(-45deg,transparent 75%,#e5e7eb 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;}
   .hbn-plugin-workspace canvas{position:relative;z-index:2;display:block;max-width:100%;max-height:100%;width:auto;height:auto;touch-action:none;border-radius:10px;}
@@ -41,23 +47,37 @@
   .hbn-plugin-handle.nw{left:-9px;top:-9px;cursor:nwse-resize}.hbn-plugin-handle.ne{right:-9px;top:-9px;cursor:nesw-resize}.hbn-plugin-handle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.hbn-plugin-handle.se{right:-9px;bottom:-9px;cursor:nwse-resize}.hbn-plugin-handle.n{left:50%;top:-9px;transform:translateX(-50%);cursor:ns-resize}.hbn-plugin-handle.s{left:50%;bottom:-9px;transform:translateX(-50%);cursor:ns-resize}.hbn-plugin-handle.w{left:-9px;top:50%;transform:translateY(-50%);cursor:ew-resize}.hbn-plugin-handle.e{right:-9px;top:50%;transform:translateY(-50%);cursor:ew-resize}
   .hbn-plugin-shadow.active:after{content:"拖曳移動，拉控制點縮放/變形";position:absolute;left:50%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;color:#111827;background:rgba(255,255,255,.94);border:1px solid #d1d5db;border-radius:999px;padding:4px 10px;font-size:12px;box-shadow:0 4px 12px rgba(0,0,0,.12);}
   .hbn-plugin-modal.shadow-editing canvas{pointer-events:none;}
+  .hbn-plugin-toolbar button:disabled,.hbn-plugin-status button:disabled,.hbn-plugin-toolbar input:disabled{opacity:.38;cursor:not-allowed;filter:grayscale(.8);transform:none !important;}
+  .hbn-plugin-toolbar label.is-disabled{opacity:.38;cursor:not-allowed;}
+  .hbn-plugin-modal.crop-locked .hbn-plugin-panel{box-shadow:0 0 0 3px rgba(249,115,22,.35),0 24px 70px rgba(0,0,0,.45);}
+  .hbn-plugin-modal.crop-locked [data-act="applyCrop"]{border-color:#fb923c !important;background:rgba(249,115,22,.18) !important;color:#fed7aa !important;box-shadow:0 0 0 2px rgba(249,115,22,.45),0 0 18px rgba(249,115,22,.35);}
+  .hbn-plugin-crop-help{display:none;margin-left:4px;color:#fed7aa;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.45);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700;}
+  .hbn-plugin-modal.crop-locked .hbn-plugin-crop-help{display:inline-flex;}
   `;
 
   const html = `
     <div class="hbn-plugin-panel">
       <div class="hbn-plugin-toolbar">
-        <button data-act="eraser">橡皮擦</button>
+        <span class="hbn-plugin-control-group hbn-plugin-eraser-group">
+          <button data-act="eraser">橡皮擦</button>
+          <label>橡皮擦 <strong data-role="brushVal">32px</strong><input data-role="brush" type="range" min="5" max="90" value="32"></label>
+        </span>
         <button data-act="crop">裁切模式</button>
         <button data-act="applyCrop">套用裁切</button>
+        <span class="hbn-plugin-crop-help">請按「套用裁切」完成裁切後，其他工具才會恢復</span>
+        <span class="hbn-plugin-tool-separator"></span>
         <button data-act="autoBg">自動去背</button>
-        <button data-act="pickBg">點選顏色去背</button>
+        <span class="hbn-plugin-control-group hbn-plugin-pickbg-group">
+          <button data-act="pickBg">點選顏色去背</button>
+          <label>選取色 <span data-role="chip" class="hbn-plugin-chip"></span></label>
+          <label>去背容差 <input data-role="tol" type="range" min="10" max="120" value="48"></label>
+        </span>
         <button data-act="shadow">加 / 編輯影子</button>
-        <button data-act="undo">回上一步</button>
-        <button data-act="redo">下一步</button>
         <button data-act="reset" class="danger">重作</button>
-        <label>橡皮擦 <strong data-role="brushVal">32px</strong><input data-role="brush" type="range" min="5" max="90" value="32"></label>
-        <label>去背容差 <input data-role="tol" type="range" min="10" max="120" value="48"></label>
-        <label>選取色 <span data-role="chip" class="hbn-plugin-chip"></span></label>
+        <span class="hbn-plugin-history">
+          <button data-act="undo">回上一步</button>
+          <button data-act="redo">下一步</button>
+        </span>
       </div>
       <div class="hbn-plugin-workspace" data-role="wrap">
         <div class="hbn-plugin-shadow" data-role="shadowLayer">
@@ -136,6 +156,27 @@
       if(act) modal.querySelector(`[data-act="${act}"]`)?.classList.add('active');
       shadowLayer.classList.toggle('active', mode === 'shadowEdit' && !!shadowState);
       modal.classList.toggle('shadow-editing', mode === 'shadowEdit' && !!shadowState);
+      updateCropFocusState();
+    }
+
+    function updateCropFocusState(){
+      const locked = mode === 'crop';
+      modal.classList.toggle('crop-locked', locked);
+      modal.querySelectorAll('button[data-act]').forEach(btn => {
+        const act = btn.dataset.act;
+        if(locked){
+          // 裁切模式：只允許「套用裁切」，避免使用者在未套用前誤按其他工具。
+          btn.disabled = act !== 'applyCrop';
+        }else{
+          // 非裁切模式：「套用裁切」沒有意義，平常維持反灰不可按。
+          btn.disabled = act === 'applyCrop';
+        }
+      });
+      modal.querySelectorAll('.hbn-plugin-toolbar input').forEach(input => {
+        input.disabled = locked;
+        const label = input.closest('label');
+        if(label) label.classList.toggle('is-disabled', locked);
+      });
     }
 
     function setMode(next){
@@ -150,7 +191,7 @@
       setActive();
       updateBrushPreview(lastPointerPoint);
       if(mode === 'eraser') setStatus('橡皮擦模式：拖曳圖片即可擦除，白色圓圈為目前橡皮擦範圍');
-      else if(mode === 'crop') setStatus('裁切模式：自動產生圖片四邊框線，拖拉上、下、左、右線條調整範圍');
+      else if(mode === 'crop') setStatus('裁切模式：其他工具已暫停。調整範圍後，請按橘框「套用裁切」才會完成裁切。');
       else if(mode === 'removeBgPick') setStatus('點選顏色去背：請在圖片上點選想去除的背景顏色');
       else if(mode === 'shadowEdit') setStatus('影子模式：bg.png 寬度等於商品寬度，商品底部吸附點與 bg.png 高度中心點相接');
       else setStatus('Ready');
@@ -648,5 +689,5 @@
     return openPluginProductEditor(imgEl);
   };
 
-  window.HBNProductEditorPlugin = { open: openPluginProductEditor, version: '1.0.0' };
+  window.HBNProductEditorPlugin = { open: openPluginProductEditor, version: '1.1.1-crop-button-and-upload-perf' };
 })();
