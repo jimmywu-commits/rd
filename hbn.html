@@ -13336,6 +13336,136 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 <!-- /Jimmy patch: product fit red frame display only -->
 
+
+<!-- Jimmy patch: floating history buttons on right canvas -->
+<style id="jimmy-floating-history-style">
+  body.hbn-left-ui-b .hbn-main-b{
+    position:relative !important;
+  }
+
+  .hbn-floating-history-b{
+    position:sticky;
+    top:16px;
+    z-index:10060;
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    width:100%;
+    height:0;
+    pointer-events:none;
+  }
+
+  .hbn-floating-history-b button{
+    pointer-events:auto;
+    appearance:none;
+    border:1px solid rgba(15,23,42,.12);
+    background:rgba(255,255,255,.95);
+    color:#0f172a;
+    border-radius:999px;
+    padding:10px 14px;
+    font-size:13px;
+    line-height:1;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 24px rgba(15,23,42,.16);
+    backdrop-filter:saturate(1.2) blur(8px);
+  }
+
+  .hbn-floating-history-b button:hover{
+    transform:translateY(-1px);
+    box-shadow:0 14px 28px rgba(15,23,42,.20);
+  }
+
+  .hbn-floating-history-b button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+    transform:none !important;
+  }
+
+  body:not(.hbn-left-ui-b) .hbn-floating-history-b{
+    position:fixed;
+    top:20px;
+    right:20px;
+    width:auto;
+    height:auto;
+  }
+
+  .json-toolbar #undoBtn,
+  .json-toolbar #redoBtn{
+    display:none !important;
+  }
+
+  .hbn-floating-history-b #undoBtn,
+  .hbn-floating-history-b #redoBtn{
+    display:inline-flex !important;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .is-exporting .hbn-floating-history-b,
+  body.is-exporting .hbn-floating-history-b{
+    display:none !important;
+  }
+
+  @media (max-width:980px){
+    .hbn-floating-history-b{
+      position:fixed;
+      top:14px;
+      right:14px;
+      width:auto;
+      height:auto;
+    }
+  }
+</style>
+
+<script id="jimmy-floating-history-script">
+(function(){
+  if(window.__JIMMY_FLOATING_HISTORY__) return;
+  window.__JIMMY_FLOATING_HISTORY__ = true;
+
+  function moveHistoryButtons(){
+    var undo = document.getElementById('undoBtn');
+    var redo = document.getElementById('redoBtn');
+    if(!undo || !redo) return false;
+
+    var host = document.getElementById('hbnFloatingHistory');
+    if(!host){
+      host = document.createElement('div');
+      host.id = 'hbnFloatingHistory';
+      host.className = 'hbn-floating-history-b';
+    }
+
+    var main = document.querySelector('.hbn-main-b') || document.querySelector('.wrap') || document.body;
+    if(host.parentNode !== main){
+      main.insertBefore(host, main.firstChild);
+    }
+
+    if(undo.parentNode !== host) host.appendChild(undo);
+    if(redo.parentNode !== host) host.appendChild(redo);
+
+    return true;
+  }
+
+  function init(){
+    moveHistoryButtons();
+    setTimeout(moveHistoryButtons, 100);
+    setTimeout(moveHistoryButtons, 400);
+    setTimeout(moveHistoryButtons, 1000);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  }else{
+    init();
+  }
+
+  try{
+    new MutationObserver(moveHistoryButtons).observe(document.documentElement, {childList:true, subtree:true});
+  }catch(_){}
+})();
+</script>
+<!-- /Jimmy patch: floating history buttons on right canvas -->
+
 </body>
 </html>
 
