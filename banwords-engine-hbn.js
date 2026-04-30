@@ -234,9 +234,9 @@
     let out = String(text || '');
 
     if (role === 'date') {
-      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$\/-]/gu, '');
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/-]/gu, '');
     } else {
-      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$]/gu, '');
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%]/gu, '');
     }
 
     out = out.replace(/\u00A0/g, ' ');
@@ -631,7 +631,6 @@
       el.addEventListener('input', function(){
         const raw = getEditablePlainText(el);
         let next = sanitizeAllowedCharacters(raw, role);
-        next = trimTextToLimit(next, limit);
 
         if (next !== raw) {
           setEditableText(el, next);
@@ -641,7 +640,6 @@
       el.addEventListener('compositionend', function(){
         const raw = getEditablePlainText(el);
         let next = sanitizeAllowedCharacters(raw, role);
-        next = trimTextToLimit(next, limit);
 
         if (next !== raw) {
           setEditableText(el, next);
@@ -650,16 +648,13 @@
 
       el.addEventListener('paste', function(e){
         const text = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
-        const sanitized = trimTextToLimit(sanitizeAllowedCharacters(text, role), limit);
+        const sanitized = sanitizeAllowedCharacters(text, role);
         if (text !== sanitized) {
           e.preventDefault();
           try {
             document.execCommand('insertText', false, sanitized);
           } catch (err) {
-            setEditableText(el, trimTextToLimit(
-              sanitizeAllowedCharacters(getEditablePlainText(el) + sanitized, role),
-              limit
-            ));
+            setEditableText(el, sanitizeAllowedCharacters(getEditablePlainText(el) + sanitized, role));
           }
         }
       });

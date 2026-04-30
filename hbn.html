@@ -1877,6 +1877,7 @@ label:has(#editZoom){
         </div>
       </div>
       <div class="modal-actions">
+        <button class="btn-ghost" id="erasePhotoRoomLink" type="button" style="margin-right:auto;">最強去背工具連結</button>
         <button class="btn-ghost" id="eraseReset" type="button">重作</button>
         <button class="btn-primary" id="cropConfirm" type="button" title="只套用裁切，不關閉視窗">確定裁切</button>
         <button class="btn-primary" id="eraseApply" type="button">完成</button>
@@ -3637,6 +3638,7 @@ document.getElementById('eraseCancel').addEventListener('click', ()=>{ document.
     editingTargetBox = null;
   });
   document.getElementById('nudgeImg').addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
+  document.getElementById('erasePhotoRoomLink')?.addEventListener('click', ()=>{ window.open('https://www.photoroom.com/tools/background-remover','_blank'); });
   document.getElementById('eraseApply').addEventListener('click', ()=>{ applyCroppedToTarget(true); });
   logoWhiteBaseChk?.addEventListener('change', ()=>{
     if(!editingModeIsLogo) return;
@@ -13698,6 +13700,240 @@ document.addEventListener('DOMContentLoaded', ()=>{
       try{ msg = (e.reason && (e.reason.message || String(e.reason))) || ''; }catch(_){ }
       if(msg.indexOf('banwords.xlsx') !== -1 || msg.indexOf('HTTP') !== -1) markFailed('禁用語 Excel 載入失敗：' + msg);
     });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
+<!-- Assistant stable patch 20260430: allow over-limit editing, persistent warning, and block download while over limit -->
+<style id="assistant-overlimit-stable-style">
+  #assistantOverLimitNotice{
+    position:fixed;
+    left:12px;
+    bottom:12px;
+    z-index:100500;
+    display:none;
+    max-width:560px;
+    padding:10px 12px;
+    border-radius:10px;
+    background:rgba(17,17,17,.92);
+    color:#fff;
+    font-size:13px;
+    line-height:1.45;
+    box-shadow:0 8px 24px rgba(0,0,0,.28);
+    pointer-events:none;
+  }
+  [contenteditable="true"].assistant-over-limit{
+    outline:2px solid #ff4d4f !important;
+    box-shadow:0 0 0 3px rgba(255,77,79,.16) !important;
+  }
+</style>
+<script id="assistant-overlimit-stable-script">
+(function(){
+  if(window.__assistantOverLimitStablePatch20260430) return;
+  window.__assistantOverLimitStablePatch20260430 = true;
+
+  var LIMITS = { h1:8, h2:7, date:14 };
+  var ROLE_LABELS = { h1:'主標', h2:'副標', date:'日期' };
+  var hanRegex = /\p{Script=Han}/u;
+
+  function calcUnitsLocal(str){
+    var units = 0;
+    var text = String(str || '');
+    for(var i = 0; i < text.length; i++){
+      var ch = text[i];
+      units += hanRegex.test(ch) ? 1 : 0.5;
+    }
+    return units;
+  }
+
+  function getPlainEditableText(el){
+    if(!el) return '';
+    var clone = el.cloneNode(true);
+    clone.querySelectorAll('.counter,.audit-tip').forEach(function(n){ n.remove(); });
+    return (clone.textContent || '').replace(/\n/g, '');
+  }
+
+  function sanitizeLocal(text, role){
+    var out = String(text || '');
+    if(role === 'date') out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/-]/gu, '');
+    else out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%]/gu, '');
+    out = out.replace(/\u00A0/g, ' ').replace(/\s{2,}/g, ' ');
+    return out;
+  }
+
+  function ensureNotice(){
+    var notice = document.getElementById('assistantOverLimitNotice');
+    if(!notice){
+      notice = document.createElement('div');
+      notice.id = 'assistantOverLimitNotice';
+      notice.setAttribute('aria-live', 'polite');
+      document.body.appendChild(notice);
+    }
+    return notice;
+  }
+
+  function ensureCounter(el){
+    if(typeof window.ensureCounter === 'function') return window.ensureCounter(el);
+    var c = el.querySelector('.counter');
+    if(!c){
+      c = document.createElement('span');
+      c.className = 'counter';
+      c.setAttribute('aria-hidden', 'true');
+      el.appendChild(c);
+    }
+    return c;
+  }
+
+  function updateOneCounter(el){
+    if(!el) return;
+    if(typeof window.updateCounter === 'function'){
+      try{ window.updateCounter(el); return; }catch(_){ }
+    }
+    var role = el.dataset ? el.dataset.role : '';
+    var limit = LIMITS[role] || parseFloat((el.dataset && el.dataset.limit) || '');
+    if(!limit || !isFinite(limit)) return;
+    var units = calcUnitsLocal(getPlainEditableText(el));
+    ensureCounter(el).textContent = '（' + (Math.round(units * 10) / 10) + ' / ' + limit + '）';
+  }
+
+  function currentOverLimitItems(){
+    var items = [];
+    document.querySelectorAll('[contenteditable="true"][data-role]').forEach(function(el){
+      var role = el.dataset.role || '';
+      var limit = LIMITS[role] || parseFloat(el.dataset.limit || '');
+      if(!limit || !isFinite(limit)) return;
+      var units = calcUnitsLocal(getPlainEditableText(el));
+      var over = units > limit;
+      el.classList.toggle('assistant-over-limit', over);
+      updateOneCounter(el);
+      if(over){
+        items.push({ el:el, role:role, limit:limit, units:units, label:ROLE_LABELS[role] || role || '文字' });
+      }
+    });
+    return items;
+  }
+
+  function updatePersistentOverLimitNotice(){
+    var notice = ensureNotice();
+    var items = currentOverLimitItems();
+    if(!items.length){
+      notice.style.display = 'none';
+      notice.textContent = '';
+      return items;
+    }
+    notice.textContent = '⚠️ 字數超過上限，請修改後才能下載圖片：' +
+      items.map(function(item){ return item.label + ' ' + (Math.round(item.units * 10) / 10) + '/' + item.limit; }).join('；');
+    notice.style.display = 'block';
+    return items;
+  }
+
+  function insertTextAtSelection(text){
+    try{
+      if(document.queryCommandSupported && document.queryCommandSupported('insertText')){
+        return document.execCommand('insertText', false, text);
+      }
+    }catch(_){ }
+    var sel = window.getSelection();
+    if(sel && sel.rangeCount){
+      var range = sel.getRangeAt(0);
+      range.deleteContents();
+      var node = document.createTextNode(text);
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.setEndAfter(node);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    }
+    return false;
+  }
+
+  function bindEditable(el){
+    if(!el || el.dataset.assistantOverLimitStableBound === '1') return;
+    el.dataset.assistantOverLimitStableBound = '1';
+
+    el.addEventListener('beforeinput', function(e){
+      if(e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak'){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return;
+      }
+      if(typeof e.data === 'string' && e.data){
+        var role = el.dataset.role || '';
+        var sanitized = sanitizeLocal(e.data, role);
+        if(!sanitized){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return;
+        }
+        // Let browser insert the text, but skip older length-blocking handlers.
+        e.stopImmediatePropagation();
+      }
+    }, true);
+
+    el.addEventListener('paste', function(e){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var role = el.dataset.role || '';
+      var raw = (e.clipboardData && e.clipboardData.getData('text/plain')) || '';
+      var text = sanitizeLocal(raw, role)
+        .replace(/[\u00A0\u2000-\u200B\u3000]/g, ' ')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      if(text) insertTextAtSelection(text);
+      setTimeout(updatePersistentOverLimitNotice, 0);
+    }, true);
+
+    el.addEventListener('input', function(){
+      var role = el.dataset.role || '';
+      var raw = getPlainEditableText(el);
+      var sanitized = sanitizeLocal(raw, role);
+      if(sanitized !== raw){
+        var counter = el.querySelector('.counter');
+        el.textContent = sanitized;
+        if(counter) el.appendChild(counter);
+      }
+      updatePersistentOverLimitNotice();
+    });
+    el.addEventListener('keyup', updatePersistentOverLimitNotice);
+    el.addEventListener('blur', updatePersistentOverLimitNotice);
+    el.addEventListener('focus', updatePersistentOverLimitNotice);
+  }
+
+  function bindEditablesOnce(){
+    document.querySelectorAll('[contenteditable="true"][data-role]').forEach(bindEditable);
+    updatePersistentOverLimitNotice();
+  }
+
+  function wrapDownloadFunction(){
+    var oldDownload = window.downloadJpgFor;
+    if(typeof oldDownload !== 'function' || oldDownload.__assistantOverLimitStableWrapped) return;
+    var wrapped = async function(){
+      var items = updatePersistentOverLimitNotice();
+      if(items.length){
+        var detail = items.map(function(item){ return item.label + ' ' + (Math.round(item.units * 10) / 10) + '/' + item.limit; }).join('；');
+        alert('字數超過上限，請先修改：' + detail + '\n\n修正到未超過上限後，才會提供下載圖片。');
+        if(typeof window.showToast === 'function') window.showToast('字數超過上限，已停止下載', 'err', 2600);
+        return;
+      }
+      return oldDownload.apply(this, arguments);
+    };
+    wrapped.__assistantOverLimitStableWrapped = true;
+    window.downloadJpgFor = wrapped;
+  }
+
+  window.assistantUpdateOverLimitNotice = updatePersistentOverLimitNotice;
+  window.assistantHasOverLimitText = function(){ return updatePersistentOverLimitNotice().length > 0; };
+
+  function init(){
+    bindEditablesOnce();
+    wrapDownloadFunction();
+    setTimeout(wrapDownloadFunction, 50);
+    setTimeout(wrapDownloadFunction, 300);
+    setTimeout(wrapDownloadFunction, 1000);
   }
 
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

@@ -53,6 +53,12 @@
   .hbn-plugin-modal.crop-locked [data-act="applyCrop"]{border-color:#fb923c !important;background:rgba(249,115,22,.18) !important;color:#fed7aa !important;box-shadow:0 0 0 2px rgba(249,115,22,.45),0 0 18px rgba(249,115,22,.35);}
   .hbn-plugin-crop-help{display:none;margin-left:4px;color:#fed7aa;background:rgba(249,115,22,.14);border:1px solid rgba(249,115,22,.45);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:700;}
   .hbn-plugin-modal.crop-locked .hbn-plugin-crop-help{display:inline-flex;}
+  .hbn-plugin-link-btn{border:0;background:#fff;color:#111827;padding:6px 10px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;margin-right:auto;}
+  .hbn-plugin-nudge{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100080;background:rgba(0,0,0,.55);}
+  .hbn-plugin-nudge.show{display:flex;}
+  .hbn-plugin-nudge-box{position:relative;width:300px;height:200px;background:#0000;border-radius:10px;overflow:hidden;box-shadow:none;}
+  .hbn-plugin-nudge-box img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+  .hbn-plugin-nudge-close{position:absolute;right:6px;top:6px;width:28px;height:28px;border-radius:999px;background:#111;color:#fff;border:0;cursor:pointer;font-size:16px;line-height:28px;text-align:center;}
   `;
 
   const html = `
@@ -101,11 +107,18 @@
         <div class="hbn-plugin-brush" data-role="brushPreview"></div>
       </div>
       <div class="hbn-plugin-status">
+        <button data-act="photoroom" class="hbn-plugin-link-btn">最強去背工具連結</button>
         <span data-role="status">Ready</span>
         <span>
           <button data-act="cancel" class="danger">取消</button>
           <button data-act="apply">完成套用</button>
         </span>
+      </div>
+    </div>
+    <div class="hbn-plugin-nudge" data-role="pluginNudge" aria-hidden="true">
+      <div class="hbn-plugin-nudge-box">
+        <button class="hbn-plugin-nudge-close" data-act="pluginNudgeClose" aria-label="關閉">✖</button>
+        <img data-act="pluginNudgeImage" src="程式檔案/跳出.png" alt="跳出提示">
       </div>
     </div>`;
 
@@ -532,6 +545,21 @@
       targetImg = null; targetBox = null; originalSrc = '';
     }
 
+    function openPhotoRoomLink(){
+      window.open('https://www.photoroom.com/tools/background-remover','_blank');
+    }
+
+    function showCancelNudge(){
+      const nudge = $('[data-role="pluginNudge"]');
+      if(nudge) nudge.classList.add('show');
+    }
+
+    function hideCancelNudgeAndClose(){
+      const nudge = $('[data-role="pluginNudge"]');
+      if(nudge) nudge.classList.remove('show');
+      close();
+    }
+
     canvas.addEventListener('pointerdown', e=>{
       if(!hasImage()) return;
       const p = getCanvasPoint(e);
@@ -644,7 +672,10 @@
         const next = redoStack.pop(); undoStack.push(next); restoreFrom(next); setStatus('已到下一步');
       }
       if(act === 'reset') resetToOriginal();
-      if(act === 'cancel') close();
+      if(act === 'photoroom') openPhotoRoomLink();
+      if(act === 'pluginNudgeImage') openPhotoRoomLink();
+      if(act === 'pluginNudgeClose') hideCancelNudgeAndClose();
+      if(act === 'cancel') showCancelNudge();
       if(act === 'apply') applyToTarget();
     });
 
