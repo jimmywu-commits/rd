@@ -394,6 +394,14 @@
     }
     function setShadowMode(){
       if(!hasImage()) return;
+      // 再按一次「加/編輯影子」→ 清除影子並回到 none 模式
+      if(mode === 'shadowEdit'){
+        shadowState = null;
+        updateShadowLayer();
+        setMode('none');
+        setStatus('已關閉影子');
+        return;
+      }
       loadShadowImage(()=>{
         if(!shadowState) shadowState = makeDefaultShadow();
         updateShadowLayer();
@@ -485,6 +493,17 @@
       if(boxRef && boxRef.dataset){
         boxRef.dataset.baseSrc = productUrl;
         boxRef.dataset.shadowEnabled = shadowState ? '1' : '0';
+        if(shadowState){
+          boxRef.dataset.pluginShadowX = String(shadowState.x);
+          boxRef.dataset.pluginShadowY = String(shadowState.y);
+          boxRef.dataset.pluginShadowW = String(shadowState.w);
+          boxRef.dataset.pluginShadowH = String(shadowState.h);
+        } else {
+          delete boxRef.dataset.pluginShadowX;
+          delete boxRef.dataset.pluginShadowY;
+          delete boxRef.dataset.pluginShadowW;
+          delete boxRef.dataset.pluginShadowH;
+        }
       }
 
       const prevW = boxRef ? (parseFloat(boxRef.style.width) || boxRef.offsetWidth || 0) : 0;
@@ -694,9 +713,26 @@
         pushHistory();
         mode = 'none';
         cropStart = cropEnd = null;
-        shadowState = null;
         pickedBgColor = null;
         chip.style.background = 'transparent';
+
+        // 還原上次儲存的影子狀態
+        const hasSavedShadow = targetBox && targetBox.dataset && targetBox.dataset.shadowEnabled === '1';
+        if(hasSavedShadow){
+          const sx = parseFloat(targetBox.dataset.pluginShadowX);
+          const sy = parseFloat(targetBox.dataset.pluginShadowY);
+          const sw = parseFloat(targetBox.dataset.pluginShadowW);
+          const sh = parseFloat(targetBox.dataset.pluginShadowH);
+          if(isFinite(sx) && isFinite(sy) && isFinite(sw) && isFinite(sh) && sw > 0 && sh > 0){
+            shadowState = {x:sx, y:sy, w:sw, h:sh};
+          } else {
+            shadowState = makeDefaultShadow();
+          }
+          loadShadowImage(()=>{ updateShadowLayer(); });
+        } else {
+          shadowState = null;
+        }
+
         setActive();
         updateCanvasCssSize();
         setStatus('外掛商品編輯器已開啟');

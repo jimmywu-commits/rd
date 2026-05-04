@@ -2655,14 +2655,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
     const toggle = document.getElementById('toggleShadow');
     const shadowEnabled = (!editingModeIsLogo && box?.dataset?.shadowEnabled === '1');
+    console.log('[SHADOW] openEraseEditor: shadowEnabled=', shadowEnabled, 'dataset=', box?.dataset?.shadowEnabled);
     if(toggle) toggle.checked = !!shadowEnabled;
-
-    // 快照此次開啟時的影子狀態，避免後續 patch wrapper 清掉它
-    const _openBoxShadowEnabled = shadowEnabled;
-    const _openBoxShadowX = shadowEnabled && box ? parseFloat(box.dataset.shadowX) : NaN;
-    const _openBoxShadowY = shadowEnabled && box ? parseFloat(box.dataset.shadowY) : NaN;
-    const _openBoxShadowW = shadowEnabled && box ? parseFloat(box.dataset.shadowW) : NaN;
-    const _openBoxShadowH = shadowEnabled && box ? parseFloat(box.dataset.shadowH) : NaN;
 
     const shadowWrap = toggle?.closest('label') || toggle?.parentElement;
     const shadowBoxUi = document.getElementById('shadowModalBox');
@@ -2723,38 +2717,6 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
       if(!editingModeIsLogo && box){
         initShadowModalForBox(box);
-      }
-
-      // === 影子狀態保護還原 ===
-      // 確保若此次開啟時有影子設定，toggle 與影子框都能正確恢復，
-      // 即使有其他 patch 在 onload 後異步改動了 toggle 狀態。
-      if(_openBoxShadowEnabled){
-        const _restoreShadow = ()=>{
-          const tog = document.getElementById('toggleShadow');
-          if(!tog) return;
-          if(!tog.checked) tog.checked = true;
-          if(typeof initShadowModalForBox === 'function' && box){
-            // 若 initShadowModalForBox 已還原座標，直接用；否則重跑
-            const sbUi = document.getElementById('shadowModalBox');
-            if(sbUi && sbUi.style.display === 'none'){
-              initShadowModalForBox(box);
-            }else if(
-              Number.isFinite(_openBoxShadowX) && Number.isFinite(_openBoxShadowY) &&
-              Number.isFinite(_openBoxShadowW) && Number.isFinite(_openBoxShadowH) &&
-              _openBoxShadowW > 0 && _openBoxShadowH > 0
-            ){
-              // 強制重套已知的好座標
-              if(typeof setShadowBoxLogical === 'function'){
-                if(sbUi) sbUi.style.display = 'block';
-                setShadowBoxLogical(_openBoxShadowX, _openBoxShadowY, _openBoxShadowW, _openBoxShadowH);
-                if(typeof renderShadowPreview === 'function') renderShadowPreview();
-              }
-            }
-          }
-        };
-        requestAnimationFrame(_restoreShadow);
-        setTimeout(_restoreShadow, 50);
-        setTimeout(_restoreShadow, 150);
       }
     };
     originalImg.src = baseSrc;
@@ -2867,6 +2829,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   }
 
   function autoPlaceShadowByVisibleBounds(){
+    console.log('[SHADOW] autoPlaceShadowByVisibleBounds called, toggle=', shadowToggle?.checked);
+    console.trace('[SHADOW] autoPlace trace');
     if(!shadowBox || !shadowToggle?.checked) return;
     const bounds = getAlphaBounds(eraseCanvas, 1);
     const cw = eraseCanvas.width || 800;
@@ -2899,11 +2863,14 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   function initShadowModalForBox(box){
     if(!shadowBox || !shadowToggle) return;
     const enabled = shadowToggle.checked;
+    console.log('[SHADOW] initShadowModalForBox called, toggle.checked=', enabled, 'box.shadowEnabled=', box?.dataset?.shadowEnabled);
+    console.trace('[SHADOW] called from');
 
     if(!enabled){
       shadowBox.style.display = 'none';
       shadowBox.setAttribute('aria-hidden','true');
       if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
+      console.log('[SHADOW] → hidden shadow box');
       return;
     }
 
@@ -2921,6 +2888,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         }
       : null;
 
+    console.log('[SHADOW] saved coords=', saved);
     if(saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) && Number.isFinite(saved.w) && Number.isFinite(saved.h) && saved.w > 0 && saved.h > 0){
       setShadowBoxLogical(saved.x, saved.y, saved.w, saved.h);
       renderShadowPreview();
@@ -2931,6 +2899,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   // Toggle shadow on/off
   shadowToggle?.addEventListener('change', ()=>{
+    console.log('[SHADOW] toggle change event fired, checked=', shadowToggle.checked);
+    console.trace('[SHADOW] toggle change trace');
     if(!shadowToggle.checked){
       initShadowModalForBox(editingTargetBox);
       if(shadowCtx && shadowCanvas){ shadowCtx.clearRect(0,0,shadowCanvas.width, shadowCanvas.height); }
@@ -3502,10 +3472,19 @@ function applyCroppedToTarget(closeAfter){
 
       if(box){
         box.dataset.shadowEnabled = '1';
-        box.dataset.shadowX = String(Math.round(x));
-        box.dataset.shadowY = String(Math.round(y));
-        box.dataset.shadowW = String(Math.round(w));
-        box.dataset.shadowH = String(Math.round(h));
+        // 優先用邏輯座標（getShadowBoxLogical 已做 zoom 換算，是真實 canvas pixel 座標）
+        const logical = (typeof getShadowBoxLogical === 'function') ? getShadowBoxLogical() : null;
+        if(logical && logical.w > 0 && logical.h > 0){
+          box.dataset.shadowX = String(Math.round(logical.x));
+          box.dataset.shadowY = String(Math.round(logical.y));
+          box.dataset.shadowW = String(Math.round(logical.w));
+          box.dataset.shadowH = String(Math.round(logical.h));
+        } else {
+          box.dataset.shadowX = String(Math.round(x));
+          box.dataset.shadowY = String(Math.round(y));
+          box.dataset.shadowW = String(Math.round(w));
+          box.dataset.shadowH = String(Math.round(h));
+        }
       }
 
       const sImg = document.getElementById('shadowModalImg');
@@ -14410,185 +14389,56 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 <!-- ===== 影子狀態持久化修正 ===== -->
+<!-- ===== 影子修正 ===== -->
 <script id="shadow-state-persist-fix">
 (function(){
-  if(window.__shadowPersistFixApplied) return;
-  window.__shadowPersistFixApplied = true;
+  if(window.__shadowFinalFix) return;
+  window.__shadowFinalFix = true;
 
-  /* ── 工具函式 ── */
-  function getBox(){ return window.editingTargetBox || null; }
-  function getToggle(){ return document.getElementById('toggleShadow'); }
-  function getShadowBoxUi(){ return document.getElementById('shadowModalBox'); }
+  /* 需求：完成編輯後再次進入，要保留影子的位置大小
+  
+     問題：confirm-only-visible-bounds-patch 在按完成時，先呼叫
+     rebuildEditorPreviewFromVisibleBounds（非同步），60ms 後才呼叫
+     applyCroppedToTarget。rebuild 的 onload 裡會呼叫 autoPlaceShadowByVisibleBounds，
+     這會改變 shadowBox 的 UI 位置。
 
-  /* 從 box.dataset 讀影子座標快照 */
-  function readBoxShadow(box){
-    if(!box || box.dataset.shadowEnabled !== '1') return null;
-    var x = parseFloat(box.dataset.shadowX);
-    var y = parseFloat(box.dataset.shadowY);
-    var w = parseFloat(box.dataset.shadowW);
-    var h = parseFloat(box.dataset.shadowH);
-    if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return null;
-    return {x:x, y:y, w:w, h:h};
+     但 applyCroppedToTarget 已改為用 getShadowBoxLogical() 存座標，
+     所以這個問題應已修正。這個 patch 只做最後一道保險：
+     在 openEraseEditor 的 onload 後，確認一次座標還原。  */
+
+  function restoreIfNeeded(box){
+    if(!box || box.dataset.shadowEnabled !== '1') return;
+    var tog = document.getElementById('toggleShadow');
+    if(!tog || !tog.checked) return;
+    var x=parseFloat(box.dataset.shadowX), y=parseFloat(box.dataset.shadowY);
+    var w=parseFloat(box.dataset.shadowW), h=parseFloat(box.dataset.shadowH);
+    if(!isFinite(x)||!isFinite(y)||!isFinite(w)||!isFinite(h)||w<=0||h<=0) return;
+    var sbUi=document.getElementById('shadowModalBox');
+    if(sbUi) sbUi.style.display='block';
+    if(typeof window.setShadowBoxLogical==='function') window.setShadowBoxLogical(x,y,w,h);
+    if(typeof window.renderShadowPreview==='function') window.renderShadowPreview();
   }
 
-  /* 強制把影子框顯示到正確位置並繪製 */
-  function forceRestoreShadow(box){
-    var saved = readBoxShadow(box);
-    if(!saved) return;
-    var tog = getToggle();
-    if(!tog) return;
-    if(!tog.checked) tog.checked = true;
-    var sbUi = getShadowBoxUi();
-    if(sbUi) sbUi.style.display = 'block';
-    if(typeof window.setShadowBoxLogical === 'function'){
-      window.setShadowBoxLogical(saved.x, saved.y, saved.w, saved.h);
-    }
-    if(typeof window.renderShadowPreview === 'function'){
-      window.renderShadowPreview();
-    }
-  }
-
-  /* ── 1. 攔截 openEraseEditor：開啟編輯器後確保影子還原 ── */
-  function patchOpenEraseEditor(){
-    var orig = window.openEraseEditor;
-    if(typeof orig !== 'function' || orig.__shadowPersistPatched) return;
-
-    window.openEraseEditor = function(imgEl, options){
-      var opt = options || {};
-      var isLogo = !!opt.isLogoEdit || !!opt.isLogo || !!opt.logoMode;
-
-      /* 先記下此次要編輯的 box 與影子狀態（在 orig 呼叫前，任何 wrapper 改動之前）*/
-      var box = imgEl && imgEl.closest ? imgEl.closest('.editor-item') : null;
-      var savedShadow = (!isLogo && box) ? readBoxShadow(box) : null;
-
-      var result = orig.apply(this, arguments);
-
-      /* orig 內部有 originalImg.onload，是非同步的。
-         用 MutationObserver 偵測 eraseModal 加上 'show' class 的瞬間，
-         然後確認影子狀態，這比 setTimeout 更可靠。 */
-      if(!isLogo && savedShadow){
-        var modal = document.getElementById('eraseModal');
-        if(!modal) return result;
-
-        /* 嘗試最多 300ms，每 rAF 檢查一次 */
-        var deadline = Date.now() + 300;
-        function check(){
-          if(!modal.classList.contains('show')){
-            if(Date.now() < deadline) requestAnimationFrame(check);
-            return;
-          }
-          /* modal 已開啟，現在還原影子 */
-          var currentBox = window.editingTargetBox || box;
-          if(currentBox && currentBox.dataset.shadowEnabled === '1'){
-            forceRestoreShadow(currentBox);
-            /* 多補幾次，確保任何在 onload 之後執行的 patch 不會蓋掉 */
-            setTimeout(function(){ forceRestoreShadow(currentBox); }, 30);
-            setTimeout(function(){ forceRestoreShadow(currentBox); }, 100);
-            setTimeout(function(){ forceRestoreShadow(currentBox); }, 250);
-          }
-        }
-        requestAnimationFrame(check);
-      }
-
-      return result;
-    };
-    window.openEraseEditor.__shadowPersistPatched = true;
-  }
-
-  /* ── 2. 攔截 rebuildEditorPreviewFromVisibleBounds：
-         重建後不要 autoPlace，而是還原已存座標 ── */
+  /* 攔截 rebuildEditorPreviewFromVisibleBounds：rebuild 後還原座標 */
   function patchRebuild(){
     var orig = window.rebuildEditorPreviewFromVisibleBounds;
-    if(typeof orig !== 'function' || orig.__shadowPersistPatched) return;
-
+    if(typeof orig!=='function'||orig.__sfFixed) return;
     window.rebuildEditorPreviewFromVisibleBounds = function(){
-      /* 在呼叫 orig 前快照 box 影子狀態 */
-      var box = window.editingTargetBox || null;
-      var savedShadow = box ? readBoxShadow(box) : null;
-
-      var result = orig.apply(this, arguments);
-
-      /* orig 是非同步（nextImg.onload），在裡面會呼叫 autoPlaceShadowByVisibleBounds。
-         我們在 onload 完成後強制還原已存座標（如果有的話）。*/
-      if(savedShadow && box){
-        /* 等 orig 的 onload 跑完（約 16-50ms），再覆蓋回去 */
-        setTimeout(function(){ forceRestoreShadow(box); }, 80);
-        setTimeout(function(){ forceRestoreShadow(box); }, 200);
+      var box = window.editingTargetBox||null;
+      var result = orig.apply(this,arguments);
+      if(box){
+        setTimeout(function(){ restoreIfNeeded(box); }, 100);
+        setTimeout(function(){ restoreIfNeeded(box); }, 250);
       }
-
       return result;
     };
-    window.rebuildEditorPreviewFromVisibleBounds.__shadowPersistPatched = true;
+    window.rebuildEditorPreviewFromVisibleBounds.__sfFixed=true;
   }
 
-  /* ── 3. 攔截 applyCroppedToTarget：
-         apply 前確保 box.dataset.shadow* 已正確寫入 ── */
-  function patchApply(){
-    var orig = window.applyCroppedToTarget;
-    if(typeof orig !== 'function' || orig.__shadowPersistApplyPatched) return;
-
-    window.applyCroppedToTarget = function(closeAfter){
-      /* 在 apply 完成後，若 shadowEnabled='1'，
-         把實際的座標快照同步回 box.dataset，
-         確保下次重開編輯器時能讀到正確座標 */
-      var box = window.editingTargetBox || null;
-      var result = orig.apply(this, arguments);
-
-      /* orig 已把 shadowEnabled='1'/shadowX/Y/W/H 寫入 box.dataset
-         我們不需要額外做什麼，但要確保 closeAfter 後 box 仍持有這些值
-         （orig 只清空 editingTargetBox 指標，不清 box DOM 上的 dataset）*/
-      return result;
-    };
-    window.applyCroppedToTarget.__shadowPersistApplyPatched = true;
-  }
-
-  /* ── 4. 全局防護：監聽 eraseModal show class 的變化。
-         每次 modal 重新顯示（新一輪編輯開啟），確認影子狀態。── */
-  function bindModalObserver(){
-    var modal = document.getElementById('eraseModal');
-    if(!modal || modal.dataset.shadowPersistObserved === '1') return;
-    modal.dataset.shadowPersistObserved = '1';
-
-    var mo = new MutationObserver(function(muts){
-      muts.forEach(function(m){
-        if(m.attributeName !== 'class') return;
-        var isShow = modal.classList.contains('show');
-        if(!isShow) return;
-
-        /* modal 剛開啟：100ms 後確認影子狀態 */
-        setTimeout(function(){
-          var box = window.editingTargetBox;
-          if(box && box.dataset.shadowEnabled === '1'){
-            forceRestoreShadow(box);
-          }
-        }, 100);
-        setTimeout(function(){
-          var box = window.editingTargetBox;
-          if(box && box.dataset.shadowEnabled === '1'){
-            forceRestoreShadow(box);
-          }
-        }, 250);
-      });
-    });
-    mo.observe(modal, { attributes: true, attributeFilter: ['class'] });
-  }
-
-  /* ── 安裝所有 patch ── */
-  function install(){
-    patchOpenEraseEditor();
-    patchRebuild();
-    patchApply();
-    bindModalObserver();
-  }
-
-  /* 等待所有其他 patch 先跑完（它們都在 DOMContentLoaded 或立即執行），
-     我們最後跑，確保能攔截到最新版的函式 */
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){
-      setTimeout(install, 0);
-    });
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){ setTimeout(patchRebuild,0); });
   } else {
-    setTimeout(install, 0);
+    setTimeout(patchRebuild,0);
   }
 })();
 </script>
