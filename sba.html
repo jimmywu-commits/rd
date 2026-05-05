@@ -384,10 +384,10 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   z-index:12;
   pointer-events:none;
 }
-.guide-line.y34{ top:34px; }
-.guide-line.y318{ top:318px; }
-.guide-line.x546{ left:546px; top:0; width:1px; height:100%; }
-#square .guide-line.x546{ left:611px; }
+.guide-line.y34{ display:none !important; }
+.guide-line.y318{ display:none !important; }
+.guide-line.x546{ left:600px; top:0; width:1px; height:100%; }
+#square .guide-line.x546{ left:600px; }
 .guide-warning{
   position:absolute;
   top:10px;
@@ -473,14 +473,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 }
 
 .guide-doc-overlay{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  z-index:11;
-  pointer-events:none;
-  user-select:none;
+  display:none !important;
 }
 .is-exporting .guide-line,
 .is-exporting .guide-warning,
@@ -1395,11 +1388,7 @@ label:has(#editZoom){
 .bg[src=""]{display:none !important;}
 </style>
 
-<style id="hide-mall-tag-feature">
-.mall-tag,
-.toggle-tag{
-  display:none !important;
-}
+<style id="hide-mall-tag-feature">/* mall-tag 顯示已啟用 */
 </style>
 
 
@@ -1538,7 +1527,7 @@ label:has(#editZoom){
       <img class="guide-doc-overlay ui-only" src="程式檔案/doc.png" alt="編輯參考圖" aria-hidden="true">
       <div class="guide-warning ui-only" aria-hidden="true">商品請勿放置在範圍線外</div>
 
-      <img class="mall-tag" id="tagH" src="程式檔案/紅商城.PNG" alt="商城掛標">
+      <img class="mall-tag" id="tagH" src="程式檔案/R.PNG" alt="商城掛標">
       <button class="toggle-tag" data-target="tagH" title="換色">🎨</button>
 
       <div class="brand" id="brandH"></div>
@@ -1599,7 +1588,7 @@ label:has(#editZoom){
       <img class="guide-doc-overlay ui-only" src="程式檔案/doc.png" alt="編輯參考圖" aria-hidden="true">
       <div class="guide-warning ui-only" aria-hidden="true">商品請勿放置在範圍線外</div>
 
-      <img class="mall-tag" id="tagS" src="程式檔案/紅商城.PNG" alt="商城掛標">
+      <img class="mall-tag" id="tagS" src="程式檔案/R.PNG" alt="商城掛標">
       <button class="toggle-tag"  data-target="tagS" title="換色">🎨</button>
 
       <div class="brand"><div class="logo-box"><img id="brandImgS" /></div></div>
@@ -4447,14 +4436,14 @@ backBtn.addEventListener('click', ()=>{
     tagS:  ['tagS','tagPS'],
     tagPS: ['tagS','tagPS']
   };
-  const STATE_LABEL = { blank:'空白', red:'紅', white:'白' };
+  const STATE_LABEL = { blank:'無掛標', red:'R.PNG', white:'W.PNG' };
 
   function getSrcForState(img, state){
     const cur = img.getAttribute('src') || '';
     const isPc = cur.includes('掛標pc版') || img.id === 'tagPH' || img.id === 'tagPS';
-    if(state === 'red') return isPc ? '程式檔案/紅商城掛標pc版.png' : '程式檔案/紅商城.PNG';
-    if(state === 'white') return isPc ? '程式檔案/白商城掛標pc版.png' : '程式檔案/白商城.PNG';
-    return cur || (isPc ? '程式檔案/紅商城掛標pc版.png' : '程式檔案/紅商城.PNG');
+    if(state === 'red') return '程式檔案/R.PNG';
+    if(state === 'white') return '程式檔案/W.PNG';
+    return '程式檔案/R.PNG';
   }
 
   function applyState(img, state){
@@ -4487,14 +4476,14 @@ backBtn.addEventListener('click', ()=>{
   }
 
   document.querySelectorAll('.toggle-tag').forEach(btn=>{
-    btn.style.display = 'none';
+    btn.style.removeProperty('display');
     btn.addEventListener('click', ()=>toggleTag(btn));
-    btn.title = '切換掛標（空白／紅／白，同步 APP 與 PC）';
+    btn.title = '切換掛標（R / W / 無）';
   });
 
-  ['tagH','tagPH','tagS','tagPS'].forEach(id=>{
+  ['tagH','tagS'].forEach(id=>{
     const img = document.getElementById(id);
-    if(img) applyState(img, 'blank');
+    if(img) applyState(img, 'red');
   });
 })();
 
@@ -6768,12 +6757,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('modal') ||
                el.classList.contains('nudge') ||
                el.classList.contains('ui-only') ||
-               el.classList.contains('ctrl');
+               el.classList.contains('ctrl') ||
+               el.classList.contains('mall-tag');
       },
       onclone: function(doc){
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode) clonedNode.style.overflow = 'hidden';
+        /* 掛標：把原始 img 的 dataURL 直接設給 clone 的 mall-tag */
+        const srcTag = node.querySelector('.mall-tag');
+        const cloneTag = clonedNode && clonedNode.querySelector('.mall-tag');
+        if(srcTag && cloneTag && srcTag.dataset && srcTag.dataset.tagState !== 'blank'){
+          try{
+            const offC = document.createElement('canvas');
+            offC.width = srcTag.naturalWidth || srcTag.width || 1200;
+            offC.height = srcTag.naturalHeight || srcTag.height || 400;
+            const offCtx = offC.getContext('2d');
+            offCtx.drawImage(srcTag, 0, 0, offC.width, offC.height);
+            cloneTag.src = offC.toDataURL('image/png');
+            cloneTag.style.display = 'block';
+            cloneTag.style.visibility = 'visible';
+            cloneTag.style.opacity = '1';
+          }catch(_){ cloneTag.style.display = 'none'; }
+        } else if(cloneTag){
+          cloneTag.style.display = 'none';
+        }
         if(options && typeof options.onclone === 'function'){
           options.onclone(doc, clonedNode);
         }
@@ -7162,7 +7170,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('modal') ||
                el.classList.contains('nudge') ||
                el.classList.contains('ui-only') ||
-               el.classList.contains('ctrl');
+               el.classList.contains('ctrl') ||
+               el.classList.contains('mall-tag');
       },
       onclone: function(doc){
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
@@ -7319,7 +7328,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
              el.classList.contains('json-toolbar') ||
              el.classList.contains('manual-icon') ||
              el.classList.contains('brush-cursor') ||
-             el.classList.contains('ui-only');
+             el.classList.contains('ui-only') ||
+             el.classList.contains('mall-tag');
     }
 
     function toBlobAsync(canvas, type, quality){
@@ -9309,7 +9319,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
            el.classList.contains('json-toolbar') ||
            el.classList.contains('manual-icon') ||
            el.classList.contains('brush-cursor') ||
-           el.classList.contains('ui-only');
+           el.classList.contains('ui-only') ||
+           el.classList.contains('mall-tag');
   }
 
   function hexToRgb(hex){
@@ -9563,7 +9574,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
            el.classList.contains('json-toolbar') ||
            el.classList.contains('manual-icon') ||
            el.classList.contains('brush-cursor') ||
-           el.classList.contains('ui-only');
+           el.classList.contains('ui-only') ||
+           el.classList.contains('mall-tag');
   }
 
   function hexToRgb(hex){
@@ -9646,6 +9658,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
           if(!clonedNode) return;
           clonedNode.style.overflow = 'hidden';
           if(isDd) clonedNode.classList.add('hide-dd-icons');
+
+          /* 掛標：先排除 ignoreElements，再在 clone 裡轉成 dataURL */
+          const srcTag = node.querySelector('.mall-tag');
+          const cloneTag = clonedNode.querySelector('.mall-tag');
+          if(cloneTag){
+            if(srcTag && srcTag.dataset.tagState !== 'blank' && srcTag.complete && srcTag.naturalWidth > 0){
+              try{
+                const tc = document.createElement('canvas');
+                tc.width = srcTag.naturalWidth; tc.height = srcTag.naturalHeight;
+                tc.getContext('2d').drawImage(srcTag, 0, 0);
+                cloneTag.src = tc.toDataURL('image/png');
+                cloneTag.style.visibility = 'visible';
+                cloneTag.style.opacity = '1';
+                cloneTag.style.display = '';
+              } catch(_){ cloneTag.remove(); }
+            } else {
+              cloneTag.remove();
+            }
+          }
 
           if(isHbn){
             clonedNode.querySelectorAll('.cta').forEach(function(cta){
@@ -9794,33 +9825,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 
-<script id="force-hide-mall-tags">
-(function(){
-  function hideAllMallTags(){
-    ['tagH','tagPH','tagS','tagPS','ddHorizTag','ddSquareTag'].forEach(function(id){
-      var el = document.getElementById(id);
-      if(el){
-        el.style.display = 'none';
-        el.style.visibility = 'hidden';
-        el.style.opacity = '0';
-        el.dataset.tagState = 'blank';
-      }
-    });
-    document.querySelectorAll('.toggle-tag').forEach(function(btn){
-      btn.style.display = 'none';
-      btn.setAttribute('hidden', 'hidden');
-    });
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', hideAllMallTags);
-  }else{
-    hideAllMallTags();
-  }
-  setTimeout(hideAllMallTags, 100);
-  setTimeout(hideAllMallTags, 500);
-})();
-</script>
+<script id="force-hide-mall-tags">/* force-hide 已移除 */</script>
 
 
 
