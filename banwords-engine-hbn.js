@@ -271,6 +271,16 @@
 
     const protectedMap = [];
 
+    // 保護「數字+折」「數字+件」：個位數或雙位數後接「折」或「件」，不強加 $ 符號
+    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件])/g, function(match, prefix, digits){
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: prefix + digits
+      });
+      return key;
+    });
+
     out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
