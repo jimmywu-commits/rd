@@ -99,7 +99,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   /* 文字（固定 px、不允許換行） */
   .h1, .h2, .date{
     position:relative; z-index:5;
-    white-space:nowrap; overflow:visible; text-overflow:ellipsis;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     outline-offset:0;
     transform: none;
     padding-bottom:0;
@@ -108,9 +108,9 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   /* 防止 PC 預覽的 h2 被 flex 影響 */
   #pcH .h2, #pcS .h2 { display:block; align-items:normal; }
 
-  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:1;letter-spacing:0px;color:#2176ff;text-align:left;overflow:visible; }
-  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:1;letter-spacing:0px;color:#3f49cf;text-align:left;height:auto;display:block;overflow:visible; }
-  .date{ font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial;font-weight:400;font-size:27px;line-height:1;letter-spacing:0px;color:#3f49cf;text-align:left;overflow:visible; }
+  .h1{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:53px;letter-spacing:0px;color:#2176ff;text-align:left;overflow:hidden; }
+  .h2{ font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:41px;letter-spacing:0px;color:#3f49cf;text-align:left;height:62px;display:flex;align-items:center;overflow:hidden; }
+  .date{ font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:27px;line-height:49px;letter-spacing:0px;color:#3f49cf;text-align:left;overflow:hidden; }
 
   /* CTA（APP / SQUARE 預設） */
   .cta{
@@ -134,17 +134,17 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   }
 
   /* 文案區（兩版皆固定） */
-  #horiz .stack{position:absolute;left:87px;top:179px;display:block;max-width:64%;}
-  #square .stack{position:absolute;left:170.7px;top:139px;display:block;max-width:64%;}
+  #horiz .stack{position:absolute;left:88px;top:170px;display:block;max-width:64%;}
+  #square .stack{position:absolute;left:172px;top:146px;display:block;max-width:64%;}
 
   /* 鎖死：主/副/日期的座標（兩版各自固定數值） */
   #horiz #h1-h{position:absolute;left:0;top:0;}
-  #horiz #h2-h{position:absolute;left:0;top:48.2px;}
-  #horiz #date-h{position:absolute;left:0;top:120px;}
+  #horiz #h2-h{position:absolute;left:0;top:53.2px;}
+  #horiz #date-h{position:absolute;left:0;top:117px;}
 
-  #square #h1-s{position:absolute;left:0;top:0;}
-  #square #h2-s{position:absolute;left:0;top:48.3px;}
-  #square #date-s{position:absolute;left:0;top:119.7px;}
+  #square #h1-s{position:absolute;left:0;top:-16.5px;}
+  #square #h2-s{position:absolute;left:0;top:37.3px;}
+  #square #date-s{position:absolute;left:0;top:100px;}
 
   [contenteditable="true"]{
     outline:2px dashed rgba(255,255,255,.0);
@@ -2298,9 +2298,9 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
 
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     const role = el.dataset.role;
-    if(role==='h1') el.style.lineHeight='44px';
-    if(role==='h2') el.style.lineHeight='66px';
-    if(role==='date') el.style.lineHeight='30px';
+    if(role==='h1') el.style.lineHeight='53px';
+    if(role==='h2') el.style.lineHeight='40px';
+    if(role==='date') el.style.lineHeight='49px';
 
     el.addEventListener('beforeinput', (e)=>{
       if(e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak'){ e.preventDefault(); return; }
@@ -2366,9 +2366,9 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     el.addEventListener('blur', ()=>{
       processBanwordElement(el);
 
-      if(role==='h1') el.style.lineHeight='44px';
-      if(role==='h2') el.style.lineHeight='66px';
-      if(role==='date') el.style.lineHeight='30px';
+      if(role==='h1') el.style.lineHeight='53px';
+      if(role==='h2') el.style.lineHeight='40px';
+      if(role==='date') el.style.lineHeight='49px';
 
       updateCounter(el);
       syncPcText();
@@ -14288,8 +14288,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* Stack：x=87 y=179，作為 h1/h2/date 的定位容器 */
 #horiz .stack {
   position: absolute !important;
-  left: 87px  !important;
-  top:  179px !important;
+  left: 88px  !important;
+  top:  170px !important;
   display: block !important;
   max-width: 64% !important;
 }
@@ -14303,13 +14303,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
 #horiz #h2-h {
   position: absolute !important;
   left: 0 !important;
-  top:  48.2px !important;
+  top:  53.2px !important;
 }
-/* date：相對 stack top=120px（abs y=299） */
+/* date：相對 stack top=117px（abs y=299） */
 #horiz #date-h {
   position: absolute !important;
   left: 0 !important;
-  top:  120px !important;
+  top:  117px !important;
 }
 
 /* CTA：x=1034 y=347.3 */
@@ -14367,8 +14367,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* Stack：x=170.7 y=139 */
 #square .stack {
   position: absolute !important;
-  left: 170.7px !important;
-  top:  139px !important;
+  left: 172px !important;
+  top:  146px !important;
   display: block !important;
   max-width: 64% !important;
 }
@@ -14376,19 +14376,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
 #square #h1-s {
   position: absolute !important;
   left: 0 !important;
-  top:  0px !important;
+  top:  -16.5px !important;
 }
-/* h2：相對 stack top=48.3px（abs y=187.3） */
+/* h2：相對 stack top=36.5px（abs y=187.3） */
 #square #h2-s {
   position: absolute !important;
   left: 0 !important;
-  top:  48.3px !important;
+  top:  37.3px !important;
 }
-/* date：相對 stack top=119.7px（abs y=258.7） */
+/* date：相對 stack top=100px（abs y=258.7） */
 #square #date-s {
   position: absolute !important;
   left: 0 !important;
-  top:  119.7px !important;
+  top:  100px !important;
 }
 
 /* CTA：x=1034 y=347.3 */
@@ -14466,7 +14466,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   display: inline-block !important;
   letter-spacing: 0 !important;
 }
-.h2 { height: auto !important; }
+.h2 { height: 62px !important; display:flex !important; align-items:center !important; overflow:hidden !important; }
 
 /* 時間 (date): Regular 27px */
 .date {
