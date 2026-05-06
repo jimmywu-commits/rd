@@ -271,8 +271,18 @@
 
     const protectedMap = [];
 
-    // 保護「數字+折」「數字+件」：個位數或雙位數後接「折」或「件」，不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件])/g, function(match, prefix, digits){
+    // 保護「數字+折」：僅個位數，不強加 $ 符號（2位數以上視為金額，加 $）
+    out = out.replace(/(^|[^\d$,])(\d{1}(?!\d))(?=折)/g, function(match, prefix, digits){
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: prefix + digits
+      });
+      return key;
+    });
+
+    // 保護「數字+件」：不限位數，一律不強加 $ 符號
+    out = out.replace(/(^|[^\d$,])(\d+)(?=件)/g, function(match, prefix, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
         token: key,
