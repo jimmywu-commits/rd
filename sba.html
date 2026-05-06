@@ -324,7 +324,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcH .brand img{ width:100%; height:100%; object-fit:contain; }
+  #pcH .brand img{ object-fit:contain; }
   #pcH .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcH #ph1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -382,7 +382,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcS .brand img{width:100%;height:100%;object-fit:contain}
+  #pcS .brand img{object-fit:contain}
   #pcS .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcS #ps1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -920,16 +920,8 @@ label:has(#editZoom){
 
   /* White-base logo display fix: canvas result should match editor preview */
   #horiz .brand img[data-logo-white-base-enabled="1"],
-  #pcH .brand img[data-logo-white-base-enabled="1"]{
-    height:50px !important;
-    max-height:50px !important;
-    width:auto !important;
-    max-width:none !important;
-    vertical-align:middle !important;
-    display:block !important;
-  }
-  #square .brand img[data-logo-white-base-enabled="1"],
-  #pcS .brand img[data-logo-white-base-enabled="1"]{
+  /* #pcH .brand img white-base → 由 sba-pc-canvas-override 統一處理 */
+  #square .brand img[data-logo-white-base-enabled="1"]{
     height:auto !important;
     max-height:106px !important;
     width:auto !important;
@@ -937,6 +929,7 @@ label:has(#editZoom){
     vertical-align:middle !important;
     display:block !important;
   }
+  /* PC logo white-base 由 sba-pc-canvas-override 統一處理 */
   /* (merged below, original block removed) */
 
 
@@ -961,8 +954,7 @@ label:has(#editZoom){
   /* Lower square-logo canvas only: stable 105px display */
   #square .brand img:not([data-logo-white-base-enabled="1"]),
   #square .logo-box img:not([data-logo-white-base-enabled="1"]),
-  #brandImgS:not([data-logo-white-base-enabled="1"]),
-  #brandPSImg:not([data-logo-white-base-enabled="1"]){
+  #brandImgS:not([data-logo-white-base-enabled="1"]){
     width:auto !important;
     height:auto !important;
     max-width:106px !important;
@@ -970,6 +962,8 @@ label:has(#editZoom){
     object-fit:contain !important;
     display:block !important;
   }
+  /* PC 方式 logo 尺寸跟橫式一致，不受 106px 限制 */
+  /* #pcS #brandPSImg non-white → 由 sba-pc-canvas-override 統一處理 */
 
 
 </style>
@@ -979,8 +973,7 @@ label:has(#editZoom){
   /* Lower square-logo canvas only: white-base outer frame is also 105px */
   #square .brand img[data-logo-white-base-enabled="1"],
   #square .logo-box img[data-logo-white-base-enabled="1"],
-  #brandImgS[data-logo-white-base-enabled="1"],
-  #brandPSImg[data-logo-white-base-enabled="1"]{
+  #brandImgS[data-logo-white-base-enabled="1"]{
     height:auto !important;
     max-height:106px !important;
     width:auto !important;
@@ -989,6 +982,8 @@ label:has(#editZoom){
     display:block !important;
     vertical-align:middle !important;
   }
+  /* PC 方式 logo 白底模式也跟橫式一致 */
+  /* #pcS #brandPSImg white-base → 由 sba-pc-canvas-override 統一處理 */
 
 
 </style>
@@ -3221,7 +3216,25 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     if(!imgEl) return;
     const enabled = imgEl.dataset.logoWhiteBaseEnabled === '1';
     const ratio = Math.max(0.1, parseFloat(imgEl.dataset.logoWhiteBaseRatio || '') || (imgEl.naturalWidth && imgEl.naturalHeight ? (imgEl.naturalWidth / imgEl.naturalHeight) : 1));
-    const isSquare = imgEl.id === 'brandImgS' || imgEl.id === 'brandPSImg' || !!imgEl.closest('#square, #pcS');
+
+    // PC logo（brandPHImg / brandPSImg）：尺寸完全由 CSS 控制，JS 只清殘留 inline style
+    const isPcLogo = imgEl.id === 'brandPHImg' || imgEl.id === 'brandPSImg';
+    if(isPcLogo){
+      // 清掉可能被其他地方設上的 inline style，讓 sba-pc-canvas-override 的 CSS 生效
+      ['width','height','maxWidth','maxHeight','objectFit','display',
+       'flex','verticalAlign','overflow','alignItems','justifyContent'].forEach(p => {
+        imgEl.style.removeProperty(p.replace(/[A-Z]/g, m => '-'+m.toLowerCase()));
+      });
+      const wrap = imgEl.closest('.brand');
+      if(wrap){
+        ['width','height','display','align-items','justify-content','overflow'].forEach(p => {
+          wrap.style.removeProperty(p);
+        });
+      }
+      return;
+    }
+
+    const isSquare = imgEl.id === 'brandImgS' || !!imgEl.closest('#square');
     const baseH = isSquare ? 106 : 50;  // SBA: square=106px, horiz logo=50px
     const outerW = Math.round(baseH * ratio);
     const wrap = imgEl.closest('.logo-item, .logo-box, .brand');
@@ -5009,6 +5022,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!editor) return [];
     return Array.from(editor.querySelectorAll('.editor-item')).map(box => {
       const img = box.querySelector('img');
+
+      // 確保 left/top/width/height/zIndex 都在 style 字串裡
+      // 補上可能缺少的 computed 值（避免匯入後位置不正確）
+      const cs = getComputedStyle(box);
+      if(!box.style.left   || box.style.left   === 'auto') { const v=cs.left;   if(v&&v!=='auto') box.style.left   = v; }
+      if(!box.style.top    || box.style.top    === 'auto') { const v=cs.top;    if(v&&v!=='auto') box.style.top    = v; }
+      if(!box.style.width  || box.style.width  === 'auto') { const v=cs.width;  if(v&&v!=='auto') box.style.width  = v; }
+      if(!box.style.height || box.style.height === 'auto') { const v=cs.height; if(v&&v!=='auto') box.style.height = v; }
+      if(!box.style.zIndex || box.style.zIndex === 'auto') { const v=cs.zIndex; if(v&&v!=='auto') box.style.zIndex = v; }
+
       return {
         className: box.className,
         style: box.getAttribute('style') || '',
@@ -5020,6 +5043,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function captureState(){
+    function getVal(id){ const el=document.getElementById(id); return el?el.value||'':''; }
     return {
       version: 1,
       savedAt: new Date().toISOString(),
@@ -5031,9 +5055,23 @@ document.addEventListener('DOMContentLoaded', () => {
         'h2-s': { text: plainTextOf(document.getElementById('h2-s')), style: document.getElementById('h2-s')?.getAttribute('style') || '' },
         'date-s': { text: plainTextOf(document.getElementById('date-s')), style: document.getElementById('date-s')?.getAttribute('style') || '' }
       },
+      colors: {
+        'h1-color-horiz':   getVal('h1-color-horiz'),
+        'h2-color-horiz':   getVal('h2-color-horiz'),
+        'date-color-horiz': getVal('date-color-horiz'),
+        'cta-bg-h':         getVal('cta-bg-h'),
+        'cta-fg-h':         getVal('cta-fg-h'),
+        'h1-color-square':  getVal('h1-color-square'),
+        'h2-color-square':  getVal('h2-color-square'),
+        'date-color-square':getVal('date-color-square'),
+        'cta-bg-s':         getVal('cta-bg-s'),
+        'cta-fg-s':         getVal('cta-fg-s'),
+      },
       cta: {
         'cta-h': plainTextOf(document.querySelector('#cta-h .text')),
-        'cta-s': plainTextOf(document.querySelector('#cta-s .text'))
+        'cta-s': plainTextOf(document.querySelector('#cta-s .text')),
+        styleH: document.getElementById('cta-h')?.getAttribute('style')||'',
+        styleS: document.getElementById('cta-s')?.getAttribute('style')||'',
       },
       bg: {
         solidH: document.getElementById('solidH')?.getAttribute('style') || '',
@@ -5048,30 +5086,18 @@ document.addEventListener('DOMContentLoaded', () => {
         bgS: document.getElementById('bgS')?.getAttribute('src') || '',
         bgPH: document.getElementById('bgPH')?.getAttribute('src') || '',
         bgPS: document.getElementById('bgPS')?.getAttribute('src') || '',
-        bgColorH: document.getElementById('bg-color-h')?.value || '',
-        bgColorS: document.getElementById('bg-color-s')?.value || '',
+        bgColorH: getVal('bg-color-h'),
+        bgColorS: getVal('bg-color-s'),
+        canvasBgH: document.getElementById('horiz')?.style.backgroundColor||'',
+        canvasBgS: document.getElementById('square')?.style.backgroundColor||'',
+        canvasBgPH: document.getElementById('pcH')?.style.backgroundColor||'',
+        canvasBgPS: document.getElementById('pcS')?.style.backgroundColor||'',
       },
       tags: {
-        tagH: {
-          src: document.getElementById('tagH')?.getAttribute('src') || '',
-          style: document.getElementById('tagH')?.getAttribute('style') || '',
-          state: document.getElementById('tagH')?.dataset?.tagState || 'blank'
-        },
-        tagS: {
-          src: document.getElementById('tagS')?.getAttribute('src') || '',
-          style: document.getElementById('tagS')?.getAttribute('style') || '',
-          state: document.getElementById('tagS')?.dataset?.tagState || 'blank'
-        },
-        tagPH: {
-          src: document.getElementById('tagPH')?.getAttribute('src') || '',
-          style: document.getElementById('tagPH')?.getAttribute('style') || '',
-          state: document.getElementById('tagPH')?.dataset?.tagState || 'blank'
-        },
-        tagPS: {
-          src: document.getElementById('tagPS')?.getAttribute('src') || '',
-          style: document.getElementById('tagPS')?.getAttribute('style') || '',
-          state: document.getElementById('tagPS')?.dataset?.tagState || 'blank'
-        }
+        tagH:  { src: document.getElementById('tagH')?.getAttribute('src')||'',  style: document.getElementById('tagH')?.getAttribute('style')||'',  state: document.getElementById('tagH')?.dataset?.tagState||'blank' },
+        tagS:  { src: document.getElementById('tagS')?.getAttribute('src')||'',  style: document.getElementById('tagS')?.getAttribute('style')||'',  state: document.getElementById('tagS')?.dataset?.tagState||'blank' },
+        tagPH: { src: document.getElementById('tagPH')?.getAttribute('src')||'', style: document.getElementById('tagPH')?.getAttribute('style')||'', state: document.getElementById('tagPH')?.dataset?.tagState||'blank' },
+        tagPS: { src: document.getElementById('tagPS')?.getAttribute('src')||'', style: document.getElementById('tagPS')?.getAttribute('style')||'', state: document.getElementById('tagPS')?.dataset?.tagState||'blank' }
       },
       underlay: {
         toggleH: !!document.getElementById('toggleUnderlayH')?.checked,
@@ -5094,7 +5120,9 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       editorItems: {
         editorH: getEditorItems('editorH'),
-        editorS: getEditorItems('editorS')
+        editorS: getEditorItems('editorS'),
+        editorPH: getEditorItems('editorPH'),
+        editorPS: getEditorItems('editorPS'),
       },
       // Preserve DDCard independent edit progress (background/product position and size).
       ddEditState: (()=>{
@@ -5264,6 +5292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     box.className = itemData.className || 'editor-item';
     if(itemData.style) box.setAttribute('style', itemData.style);
     objectToDataset(box, itemData.dataset || {});
+    box.dataset.restoredFromJson = '1'; // 告知 applyAfterImageLoad 不要移動位置
 
     const img = document.createElement('img');
     if(itemData.imgSrc) img.src = itemData.imgSrc;
@@ -5276,9 +5305,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(!box.classList.contains('editor-bg')){
       createProductControls(box, img);
-    }
-    bindBoxDrag(box);
 
+      // 滾輪縮放（比照 makeItem，匯入後也能使用）
+      box.addEventListener('wheel', (e)=>{
+        if(e.target.classList.contains('ctrl') || e.target.closest('.ctrl')) return;
+        e.preventDefault();
+        const curW = box.clientWidth || parseFloat(box.style.width) || 0;
+        const curH = box.clientHeight || parseFloat(box.style.height) || 0;
+        if(!curW || !curH) return;
+        const factor = e.deltaY < 0 ? 1.06 : 0.94;
+        const nw = Math.max(20, curW * factor);
+        const nh = Math.max(20, curH * factor);
+        box.style.width  = nw + 'px';
+        box.style.height = nh + 'px';
+        box.dataset.fixedW = String(Math.round(nw));
+        box.dataset.fixedH = String(Math.round(nh));
+      }, { passive: false });
+    }
+
+    // 確保位置完全使用存檔值；若 style 裡沒有 left/top，在 onload 後補算
+    img.onload = ()=>{
+      const hasLeft = /(?:^|;)\s*left\s*:/.test(itemData.style || '');
+      const hasTop  = /(?:^|;)\s*top\s*:/.test(itemData.style || '');
+      if((!hasLeft || !hasTop) && !box.classList.contains('editor-bg')){
+        const canvas = editor.closest('.canvas');
+        const cW = canvas ? canvas.clientWidth : 1200;
+        const cH = canvas ? canvas.clientHeight : 400;
+        // 如果有 fixedW/fixedH，用存檔的尺寸置中；否則按比例計算
+        const fw = parseFloat(box.dataset.fixedW) || 0;
+        const fh = parseFloat(box.dataset.fixedH) || 0;
+        if(fw && fh){
+          if(!hasLeft) box.style.left = Math.round((cW - fw) / 2) + 'px';
+          if(!hasTop)  box.style.top  = Math.round(cH * 0.15) + 'px';
+        } else {
+          const ratio = img.naturalWidth / Math.max(1, img.naturalHeight);
+          const targetH = cH * 0.7;
+          const targetW = targetH * ratio;
+          if(!hasLeft) box.style.left = Math.round((cW - targetW) / 2) + 'px';
+          if(!hasTop)  box.style.top  = Math.round(cH * 0.15) + 'px';
+        }
+      }
+    };
+
+    bindBoxDrag(box);
     img.addEventListener('dragstart', (e)=> e.preventDefault());
   }
 
@@ -5373,6 +5442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!state) return;
     __jsonRestoring = true;
 
+    // 文字內容 + inline style
     Object.entries(state.texts || {}).forEach(([id, val])=>{
       const el = document.getElementById(id);
       if(!el) return;
@@ -5380,11 +5450,29 @@ document.addEventListener('DOMContentLoaded', () => {
       if(val?.style) el.setAttribute('style', val.style);
     });
 
+    // Color picker 值（含文字色、CTA色）
+    Object.entries(state.colors || {}).forEach(([id, val])=>{
+      const el = document.getElementById(id);
+      if(el && val) el.value = val;
+    });
+    // 觸發 bindColor 讓顏色套用到文字元素
+    if(state.colors){
+      const colorIds = ['h1-color-horiz','h2-color-horiz','date-color-horiz','cta-bg-h','cta-fg-h',
+                        'h1-color-square','h2-color-square','date-color-square','cta-bg-s','cta-fg-s'];
+      colorIds.forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.dispatchEvent(new Event('input', {bubbles:true}));
+      });
+    }
+
+    // CTA 文字 + style
     if(state.cta){
       const ctaH = document.querySelector('#cta-h .text');
       const ctaS = document.querySelector('#cta-s .text');
       if(ctaH) ctaH.textContent = state.cta['cta-h'] || ctaH.textContent;
       if(ctaS) ctaS.textContent = state.cta['cta-s'] || ctaS.textContent;
+      if(state.cta.styleH){ const el=document.getElementById('cta-h'); if(el) el.setAttribute('style', state.cta.styleH); }
+      if(state.cta.styleS){ const el=document.getElementById('cta-s'); if(el) el.setAttribute('style', state.cta.styleS); }
     }
 
     if(state.bg){
@@ -5394,6 +5482,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if(document.getElementById('bgPS') && state.bg.bgPS) document.getElementById('bgPS').src = state.bg.bgPS;
       if(document.getElementById('bg-color-h') && state.bg.bgColorH) document.getElementById('bg-color-h').value = state.bg.bgColorH;
       if(document.getElementById('bg-color-s') && state.bg.bgColorS) document.getElementById('bg-color-s').value = state.bg.bgColorS;
+      // 還原畫布 backgroundColor
+      if(state.bg.canvasBgH){ const el=document.getElementById('horiz');  if(el) el.style.backgroundColor=state.bg.canvasBgH; }
+      if(state.bg.canvasBgS){ const el=document.getElementById('square'); if(el) el.style.backgroundColor=state.bg.canvasBgS; }
+      if(state.bg.canvasBgPH){ const el=document.getElementById('pcH'); if(el) el.style.backgroundColor=state.bg.canvasBgPH; }
+      if(state.bg.canvasBgPS){ const el=document.getElementById('pcS'); if(el) el.style.backgroundColor=state.bg.canvasBgPS; }
 
       const restoreBgLayers = ()=>{
         if(document.getElementById('solidH') && state.bg.solidH) document.getElementById('solidH').setAttribute('style', state.bg.solidH);
@@ -5420,16 +5513,26 @@ document.addEventListener('DOMContentLoaded', () => {
       __jsonRestoring = false;
     }
 
+    // 掛標：用 applyState 確保 visibility/opacity 正確
     if(state.tags){
       ['tagH','tagS','tagPH','tagPS'].forEach(id => {
         const el = document.getElementById(id);
         const data = state.tags[id];
         if(!el || !data) return;
-        if(data.src) el.src = data.src;
-        if(data.style) el.setAttribute('style', data.style);
-        if(data.state){
-          el.dataset.tagState = data.state;
+        const tagState = data.state || 'blank';
+        // 直接呼叫 applyState 確保顯示邏輯正確
+        if(typeof applyState === 'function'){
+          applyState(el, tagState);
+        } else {
+          el.dataset.tagState = tagState;
+          if(tagState === 'blank'){
+            el.style.visibility = 'hidden'; el.style.opacity = '0';
+          } else {
+            if(data.src) el.src = data.src;
+            el.style.visibility = 'visible'; el.style.opacity = '1';
+          }
         }
+        if(data.style) el.setAttribute('style', data.style);
       });
     }
 
@@ -5455,10 +5558,17 @@ document.addEventListener('DOMContentLoaded', () => {
     requestAnimationFrame(restoreUnderlayState);
     setTimeout(restoreUnderlayState, 120);
 
+    // APP editor items
     clearEditorItems('editorH');
     clearEditorItems('editorS');
     (state.editorItems?.editorH || []).forEach(item => buildEditorItem('editorH', item));
     (state.editorItems?.editorS || []).forEach(item => buildEditorItem('editorS', item));
+
+    // PC editor items（背景圖層）
+    clearEditorItems('editorPH');
+    clearEditorItems('editorPS');
+    (state.editorItems?.editorPH || []).forEach(item => buildEditorItem('editorPH', item));
+    (state.editorItems?.editorPS || []).forEach(item => buildEditorItem('editorPS', item));
 
     rebuildHorizontalLogos(state.logos?.horiz || []);
     rebuildSquareLogo(state.logos?.square || {}, state.logos?.pc || {});
@@ -13152,6 +13262,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
     var box = img.closest('.editor-item:not(.editor-bg)');
     if(!isProductBox(box)) return;
 
+    // 匯入還原的商品圖已有精確位置，跳過避免閃跳
+    if(window.__jsonRestoring || window.__importingJsonBgRestore) return;
+    if(box.dataset.restoredFromJson === '1') return;
+
     function run(){
       var ratio = ratioFromImg(img);
       if(ratio > 0) applyBoxRatio(box, ratio, reason || 'img-load');
@@ -14885,9 +14999,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 #pcS #ps1, #pcS #ps2, #pcS #psdate {
   z-index: 6 !important;
 }
-#pcH .brand, #pcS .brand {
-  z-index: 6 !important;
-}
+/* brand z-index merged below */
 /* 各文字元素：直接相對畫布定位，覆蓋 .h1/.h2/.date 的全域規則 */
 #pcH #ph1, #pcS #ps1 {
   position: absolute !important;
@@ -14943,6 +15055,32 @@ document.addEventListener('DOMContentLoaded', ()=>{
   border-left: 4px solid currentColor !important;
   border-top: 3.5px solid transparent !important;
   border-bottom: 3.5px solid transparent !important;
+}
+/* ── PC logo 容器：固定 80×80，flex 置中 ── */
+#pcH .brand, #pcS .brand {
+  position: absolute !important;
+  width:  80px !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  z-index: 6 !important;
+}
+/* PC logo img：寬最多 80px，高等比自動，不超出容器 */
+#pcH .brand img,
+#pcS .brand img,
+#pcH #brandPHImg,
+#pcS #brandPSImg,
+#pcH .brand img[data-logo-white-base-enabled="1"],
+#pcS .brand img[data-logo-white-base-enabled="1"] {
+  width: auto !important;
+  height: auto !important;
+  max-width: 80px !important;
+  max-height: 80px !important;
+  object-fit: contain !important;
+  display: block !important;
+  flex: 0 0 auto !important;
 }
 </style>
 
@@ -15009,4 +15147,7 @@ window.addEventListener('load', function(){
   setTimeout(forceSyncPc, 1200);
 });
 </script>
+
+
+
 </body>
