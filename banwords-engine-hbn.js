@@ -281,8 +281,8 @@
       return key;
     });
 
-    // 保護「買/送」前後的數字：如「買3送1」「買2件送1件」，不強加 $ 符號
-    out = out.replace(/([買送])(\d+)/g, function(match, keyword, digits){
+    // 保護「買/送」後接單個位數數字：如「買3送1」，不強加 $ 符號（2位數以上視為金額，加 $）
+    out = out.replace(/([買送])(\d{1}(?!\d))/g, function(match, keyword, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
         token: key,
