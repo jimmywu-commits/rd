@@ -322,7 +322,7 @@
       return key;
     });
 
-    out = out.replace(/\$(\d[\d,]*)\b/g, function(match, digits){
+    out = out.replace(/\$(\d[\d,]*)(?![\d,])/g, function(match, digits){
       return '$' + formatNumericToken(digits, false);
     });
 
