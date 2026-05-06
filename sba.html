@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>v3 SBA製圖、審圖工具</title>
+<title>v2 SBA編輯器</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <!-- underlay restore fix: preserve no-underlay/pending-underlay state on JSON import -->
 <!-- json restore guard: prevent bg onload sync from overwriting saved solid/gradient -->
@@ -12062,10 +12062,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     // 橫式 stage card：APP 畫布 + ddHoriz + PC 橫式標題 + PC 畫布
     var horizNodes = [horizCanvas, ddHoriz, pcHTitle, pcHCanvas].filter(Boolean);
-    main.appendChild(buildStageCard('橫 LOGO 編輯區','主畫布與 DDCard 預覽放在一起，方便一邊調整一邊比對。', horizNodes));
+    main.appendChild(buildStageCard('橫 LOGO 編輯區','編輯APP版可同步連動PC版本。', horizNodes));
     // 方式 stage card：APP 畫布 + ddSquare + PC 方式標題 + PC 畫布
     var squareNodes = [squareCanvas, ddSquare, pcSTitle, pcSCanvas].filter(Boolean);
-    main.appendChild(buildStageCard('方 LOGO 編輯區','工具維持左側，畫布操作與下載功能維持 hbn 原邏輯。', squareNodes));
+    main.appendChild(buildStageCard('方 LOGO 編輯區','編輯APP版可同步連動PC版本。', squareNodes));
 
     shell.appendChild(sidebar);
     shell.appendChild(main);
