@@ -290,14 +290,7 @@
       });
       return key;
     });
-    out = out.replace(/(\d+)([買送])/g, function(match, digits, keyword){
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: digits + keyword
-      });
-      return key;
-    });
+
 
     out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
