@@ -1669,7 +1669,7 @@ label:has(#editZoom){
       <div class="cta" id="cta-h"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <div class="bg-scale-panel" id="bgScaleH">
-
+        <button type="button" id="deleteBgH" class="delete-bg-btn" style="display:none;background:#c0392b;color:#fff;border:0;border-radius:6px;cursor:pointer;padding:4px 8px;font-size:12px;" title="刪除背景圖">🗑 刪除背景圖</button>
         <span class="tag">&nbsp; &nbsp;HBN橫LOGO 背景圖尺寸 放大縮小鈕&gt;</span>
 
         <button type="button" data-step="-0.05">–</button>
@@ -1782,6 +1782,7 @@ label:has(#editZoom){
       <div class="cta" id="cta-s"><span class="text">放心買 安心退</span><span class="triangle"></span></div>
 
       <div class="bg-scale-panel" id="bgScaleS">
+        <button type="button" id="deleteBgS" class="delete-bg-btn" style="display:none;background:#c0392b;color:#fff;border:0;border-radius:6px;cursor:pointer;padding:4px 8px;font-size:12px;" title="刪除背景圖">🗑 刪除背景圖</button>
         <span class="tag">&nbsp; &nbsp;HBN 方LOGO背景圖尺寸 放大縮小鈕&gt;</span>
         <button type="button" data-step="-0.05">–</button>
         <span id="bgScaleValS">100%</span>
@@ -2160,16 +2161,86 @@ label:has(#editZoom){
     // 確保圖片有來源才執行 (避免初始載入空圖報錯)
     if(this.src && this.src.startsWith('data:')) {
       autoSyncBackground(this, 'H');
+      const delBtn = document.getElementById('deleteBgH');
+      if(delBtn) delBtn.style.display = '';
     }
   };
+
+  // 刪除橫式背景圖
+  (function(){
+    const delBtn = document.getElementById('deleteBgH');
+    if(!delBtn) return;
+    delBtn.addEventListener('click', function(){
+      // 移除 APP 橫式 editor-bg box
+      const editorH = document.getElementById('editorH');
+      if(editorH){
+        const bgLayer = editorH.querySelector('.bg-layer') || editorH;
+        bgLayer.querySelectorAll('.editor-bg').forEach(function(n){ n.remove(); });
+      }
+      // 移除 PC 橫式 editor-bg box
+      const editorPH = document.getElementById('editorPH');
+      if(editorPH){
+        const bgLayerPc = editorPH.querySelector('.bg-layer') || editorPH;
+        bgLayerPc.querySelectorAll('.editor-bg').forEach(function(n){ n.remove(); });
+      }
+      // 清空 img src
+      const bgH = document.getElementById('bgH');
+      const bgPH = document.getElementById('bgPH');
+      if(bgH){ bgH.removeAttribute('src'); bgH.src = ''; bgH.style.visibility = ''; }
+      if(bgPH){ bgPH.removeAttribute('src'); bgPH.src = ''; bgPH.style.visibility = ''; }
+      // 重置上傳 input
+      const input = document.getElementById('bg-horiz');
+      if(input) input.value = '';
+      // 恢復 pending-underlay
+      const canvasH = document.getElementById('horiz');
+      if(canvasH) canvasH.classList.add('pending-underlay');
+      delBtn.style.display = 'none';
+      if(typeof showToast === 'function') showToast('已刪除橫式背景圖', 'ok', 1200);
+    });
+  })();
 
   // 綁定方形背景 (上傳 -> 載入 -> 觸發同步)
   bindUpload('bg-square', '#bgS');
   document.getElementById('bgS').onload = function() {
     if(this.src && this.src.startsWith('data:')) {
       autoSyncBackground(this, 'S');
+      const delBtn = document.getElementById('deleteBgS');
+      if(delBtn) delBtn.style.display = '';
     }
   };
+
+  // 刪除方形背景圖
+  (function(){
+    const delBtn = document.getElementById('deleteBgS');
+    if(!delBtn) return;
+    delBtn.addEventListener('click', function(){
+      // 移除 APP 方形 editor-bg box
+      const editorS = document.getElementById('editorS');
+      if(editorS){
+        const bgLayer = editorS.querySelector('.bg-layer') || editorS;
+        bgLayer.querySelectorAll('.editor-bg').forEach(function(n){ n.remove(); });
+      }
+      // 移除 PC 方形 editor-bg box
+      const editorPS = document.getElementById('editorPS');
+      if(editorPS){
+        const bgLayerPc = editorPS.querySelector('.bg-layer') || editorPS;
+        bgLayerPc.querySelectorAll('.editor-bg').forEach(function(n){ n.remove(); });
+      }
+      // 清空 img src
+      const bgS = document.getElementById('bgS');
+      const bgPS = document.getElementById('bgPS');
+      if(bgS){ bgS.removeAttribute('src'); bgS.src = ''; bgS.style.visibility = ''; }
+      if(bgPS){ bgPS.removeAttribute('src'); bgPS.src = ''; bgPS.style.visibility = ''; }
+      // 重置上傳 input
+      const input = document.getElementById('bg-square');
+      if(input) input.value = '';
+      // 恢復 pending-underlay
+      const canvasS = document.getElementById('square');
+      if(canvasS) canvasS.classList.add('pending-underlay');
+      delBtn.style.display = 'none';
+      if(typeof showToast === 'function') showToast('已刪除方形背景圖', 'ok', 1200);
+    });
+  })();
   /* =========================================================== */
 
   async function normalizeProductImageFile(file){
@@ -5314,8 +5385,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if(state.bg){
-      if(document.getElementById('bgH') && state.bg.bgH) document.getElementById('bgH').src = state.bg.bgH;
-      if(document.getElementById('bgS') && state.bg.bgS) document.getElementById('bgS').src = state.bg.bgS;
+      if(document.getElementById('bgH') && state.bg.bgH){ document.getElementById('bgH').src = state.bg.bgH; const d=document.getElementById('deleteBgH'); if(d) d.style.display=''; }
+      if(document.getElementById('bgS') && state.bg.bgS){ document.getElementById('bgS').src = state.bg.bgS; const d=document.getElementById('deleteBgS'); if(d) d.style.display=''; }
       if(document.getElementById('bgPH') && state.bg.bgPH) document.getElementById('bgPH').src = state.bg.bgPH;
       if(document.getElementById('bgPS') && state.bg.bgPS) document.getElementById('bgPS').src = state.bg.bgPS;
       if(document.getElementById('bg-color-h') && state.bg.bgColorH) document.getElementById('bg-color-h').value = state.bg.bgColorH;
@@ -14439,6 +14510,44 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.addEventListener('DOMContentLoaded',function(){ setTimeout(patchRebuild,0); });
   } else {
     setTimeout(patchRebuild,0);
+  }
+})();
+</script>
+
+<script>
+// 刪除背景圖按鈕：監聽 bgH / bgS 的 src 變化，有圖就顯示，無圖就隱藏
+(function(){
+  function syncDeleteBtn(imgId, btnId){
+    const img = document.getElementById(imgId);
+    const btn = document.getElementById(btnId);
+    if(!img || !btn) return;
+
+    function update(){
+      const hasBg = img.src && img.src !== '' && !img.src.endsWith('/') && img.naturalWidth > 0;
+      btn.style.display = hasBg ? '' : 'none';
+    }
+
+    // 監聽 src attribute 變化
+    new MutationObserver(update).observe(img, { attributes: true, attributeFilter: ['src'] });
+    // 監聽圖片載入完成
+    img.addEventListener('load', update);
+    img.addEventListener('error', function(){ btn.style.display = 'none'; });
+    // 初始執行一次（含頁面載入後延遲確認）
+    update();
+    setTimeout(update, 300);
+    setTimeout(update, 800);
+  }
+
+  function init(){
+    syncDeleteBtn('bgH', 'deleteBgH');
+    syncDeleteBtn('bgS', 'deleteBgS');
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+    setTimeout(init, 500);
   }
 })();
 </script>
