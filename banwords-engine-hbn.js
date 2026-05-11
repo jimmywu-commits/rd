@@ -281,7 +281,17 @@
       return key;
     });
 
-    out = out.replace(/(蝦幣回饋最高|蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
+    // 保護「數字+加+數字」：如 1加1、2加1，不強加 $ 符號
+    out = out.replace(/(^|[^\d$,])(\d+)(加)(\d+)/g, function(match, prefix, left, mid, right){
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: prefix + left + mid + right
+      });
+      return key;
+    });
+
+    out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
@@ -291,7 +301,7 @@
       return key;
     });
 
-    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋最高|蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
+    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
       const formatted = prefix + formatNumericToken(digits, false) + keyword;
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
