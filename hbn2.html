@@ -1904,19 +1904,26 @@ label:has(#editZoom){
   }
 
   /* ── 單張卡片的圖片載入（var 版本，無 closure 問題） ── */
+  /* 將路徑中的空格和特殊字元編碼，相容 GitHub Pages */
+  function encodeSrc(src){
+    // 只編碼檔名部分（保留路徑的 /），避免雙重編碼
+    return src.split('/').map(function(seg){ return encodeURIComponent(decodeURIComponent(seg)); }).join('/');
+  }
+
   function loadCardImage(card, src){
     var img = document.createElement('img');
     img.alt = card.dataset.name || '';
     img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .2s;';
 
-    // 嘗試原始 src，失敗再試大小寫互換的副檔名
-    var tried = [src];
+    // 嘗試原始 src（編碼後），失敗再試大小寫互換的副檔名
+    var encodedSrc = encodeSrc(src);
+    var tried = [encodedSrc];
     var ext = src.match(/\.([^.]+)$/);
     if(ext){
       var e = ext[1];
-      var alt = e === e.toUpperCase() ? src.replace(/\.([^.]+)$/, '.'+e.toLowerCase())
-                                      : src.replace(/\.([^.]+)$/, '.'+e.toUpperCase());
-      tried.push(alt);
+      var altSrc = e === e.toUpperCase() ? src.replace(/\.([^.]+)$/, '.'+e.toLowerCase())
+                                         : src.replace(/\.([^.]+)$/, '.'+e.toUpperCase());
+      tried.push(encodeSrc(altSrc));
     }
     var tryIdx = 0;
     function tryNext(){
@@ -1932,7 +1939,7 @@ label:has(#editZoom){
       }
       img.src = tried[tryIdx++];
     }
-    img.onload  = function(){ img.style.opacity = '1'; card.dataset.src = img.src; };
+    img.onload  = function(){ img.style.opacity = '1'; card.dataset.src = src; }; // dataset.src 保留原始路徑
     img.onerror = tryNext;
     card.insertBefore(img, card.firstChild);
     tryNext();
@@ -2058,7 +2065,7 @@ label:has(#editZoom){
 
     if(typeof showToast === 'function') showToast('套用中…', 'ok', 8000);
 
-    fetch(src)
+    fetch(encodeSrc(src))
       .then(function(r){
         if(!r.ok) throw new Error('HTTP '+r.status);
         return r.blob();
@@ -2111,7 +2118,7 @@ label:has(#editZoom){
   function _applyDdSrc(ddEl, ddSrc){
     var ddImgId = ddEl.id;
 
-    fetch(ddSrc)
+    fetch(encodeSrc(ddSrc))
       .then(function(r){
         if(!r.ok) throw new Error('HTTP ' + r.status);
         return r.blob();
