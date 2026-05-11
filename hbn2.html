@@ -1975,7 +1975,7 @@ label:has(#editZoom){
       for(var i = 0; i < hbnList.length; i++){
         var filename = hbnList[i];  // index.json 裡有什麼就顯示什麼，不做任何篩選
         var num      = extractNum(filename);
-        var src      = 'bgimg/' + catKey + '/hbn/' + filename;
+        var src      = 'bgimg/' + catKey + '/HBN/' + filename;
 
         var card = document.createElement('div');
         card.className    = 'bglib-card';
@@ -2047,7 +2047,7 @@ label:has(#editZoom){
     for(var i = 0; i < list.length; i++){
       var ddNum = extractNum(list[i]);
       if(ddNum === num){
-        var path = 'bgimg/' + catKey + '/ddcard/' + list[i];
+        var path = 'bgimg/' + catKey + '/DDCARD/' + list[i];
         console.log('[bglib] DDCARD 對應：編號', num, '→', path);
         return path;
       }
@@ -2290,8 +2290,8 @@ label:has(#editZoom){
           '卡片總數：' + total,
           '縮圖顯示：' + loaded,
           '',
-          'HBN 路徑範例：bgimg/' + currentCat + '/hbn/（檔名來自 index.json）',
-          'DDCARD 路徑範例：bgimg/' + currentCat + '/ddcard/（同編號自動對應）',
+          'HBN 路徑範例：bgimg/' + currentCat + '/HBN/（檔名來自 index.json）',
+          'DDCARD 路徑範例：bgimg/' + currentCat + '/DDCARD/（同編號自動對應）',
         ].join('\n'));
       });
     }
