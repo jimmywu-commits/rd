@@ -271,8 +271,8 @@
 
     const protectedMap = [];
 
-    // 保護「數字+折」：僅個位數，不強加 $ 符號（2位數以上視為金額，加 $）
-    out = out.replace(/(^|[^\d$,])(\d{1}(?!\d))(?=折)/g, function(match, prefix, digits){
+    // 保護「數字+折」「數字+件」：個位數或雙位數後接「折」或「件」，不強加 $ 符號
+    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件])/g, function(match, prefix, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
         token: key,
@@ -281,28 +281,7 @@
       return key;
     });
 
-    // 保護「數字+件」：不限位數，一律不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d+)(?=件)/g, function(match, prefix, digits){
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: prefix + digits
-      });
-      return key;
-    });
-
-    // 保護「買/送」後接單個位數數字：如「買3送1」，不強加 $ 符號（2位數以上視為金額，加 $）
-    out = out.replace(/([買送])(\d{1}(?!\d))/g, function(match, keyword, digits){
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: keyword + digits
-      });
-      return key;
-    });
-
-
-    out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
+    out = out.replace(/(蝦幣回饋最高|蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
@@ -312,7 +291,7 @@
       return key;
     });
 
-    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
+    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋最高|蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
       const formatted = prefix + formatNumericToken(digits, false) + keyword;
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
@@ -322,7 +301,7 @@
       return key;
     });
 
-    out = out.replace(/\$(\d[\d,]*)(?![\d,])/g, function(match, digits){
+    out = out.replace(/\$(\d[\d,]*)\b/g, function(match, digits){
       return '$' + formatNumericToken(digits, false);
     });
 
