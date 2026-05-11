@@ -2134,16 +2134,13 @@ label.upload-btn input{ display:none !important; }
       });
   }
 
-  /* ── 套用 DDCARD 背景（同時套入橫式和方式兩個 DDCard） ── */
+  /* ── 套用 DDCARD 背景（只套對應的那個畫布） ── */
   function applyDdcardBackground(ddSrc, side){
-    // 同時套兩個 DDCard 畫布（橫式和方式都要換）
-    var ddImgIds = ['ddHorizBg', 'ddSquareBg'];
-    ddImgIds.forEach(function(ddImgId){
-      var ddEl = document.getElementById(ddImgId);
-      if(!ddEl){ return; }
-      console.log('[bglib] 套用 DDCard:', ddSrc, '->', ddImgId);
-      _applyDdSrc(ddEl, ddSrc);
-    });
+    var ddImgId = side === 'H' ? 'ddHorizBg' : 'ddSquareBg';
+    var ddEl = document.getElementById(ddImgId);
+    if(!ddEl){ console.warn('[bglib] 找不到 DDCard img:', ddImgId); return; }
+    console.log('[bglib] 套用 DDCard:', ddSrc, '->', ddImgId);
+    _applyDdSrc(ddEl, ddSrc);
   }
   function _applyDdSrc(ddEl, ddSrc){
     var ddImgId = ddEl.id;
