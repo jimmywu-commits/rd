@@ -54,6 +54,17 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   font-size:13px; color:#444; display:flex; align-items:center; gap:6px;
   background:#fafafa; padding:6px 8px; border-radius:6px; border:1px solid #eee;
 }
+.toolbar label.upload-btn{
+  background:#6366f1; color:#fff;
+  border:none; padding:7px 11px;
+  border-radius:6px; cursor:pointer;
+  font-size:13px; white-space:nowrap;
+  box-shadow:0 2px 4px rgba(99,102,241,.3);
+  display:inline-flex; align-items:center;
+  justify-content:center;
+}
+.toolbar label.upload-btn:hover{ background:#4f46e5; }
+.toolbar label.upload-btn input{ display:none; }
 
 .toolbar input[type="color"]{
   border:none; width:24px; height:24px; padding:0; background:none; cursor:pointer;
@@ -61,7 +72,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .toolbar input[type="file"]{ font-size:12px; }
 .toolbar button{
   background:#2176FF; color:#fff; border:none; padding:8px 12px;
-  border-radius:6px; cursor:pointer; font-size:13px;
+  border-radius:6px; cursor:pointer; font-size:13px; font-weight:400;
+  font-family:inherit;
   box-shadow:0 2px 4px rgba(33,118,255,0.2);
 }
 .toolbar button:hover{ background:#1b65db; }
@@ -1831,10 +1843,28 @@ label:has(#editZoom){
   background:#6366f1 !important; color:#fff !important;
   border:none !important; padding:7px 11px !important;
   border-radius:6px !important; cursor:pointer !important;
-  font-size:13px !important; white-space:nowrap;
+  font-size:13px !important; font-weight:400 !important;
+  font-family:inherit !important; white-space:nowrap;
   box-shadow:0 2px 4px rgba(99,102,241,.3) !important;
 }
 .bg-lib-btn:hover{ background:#4f46e5 !important; }
+
+/* 上傳按鈕：和背景圖庫按鈕相同風格 */
+label.upload-btn,
+label.upload-btn:visited{
+  background:#6366f1 !important; color:#fff !important;
+  border:none !important; padding:7px 11px !important;
+  border-radius:6px !important; cursor:pointer !important;
+  font-size:13px !important; white-space:nowrap !important;
+  box-shadow:0 2px 4px rgba(99,102,241,.3) !important;
+  display:inline-flex !important; align-items:center !important;
+  text-align:center !important;
+  line-height:normal !important;
+  width:auto !important; max-width:none !important;
+  margin:0 !important;
+}
+label.upload-btn:hover{ background:#4f46e5 !important; }
+label.upload-btn input{ display:none !important; }
 </style>
 
 
@@ -2323,9 +2353,9 @@ label:has(#editZoom){
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>上傳LOGO（最多3張）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <label class="upload-btn"><span>上傳 LOGO（最多3張）</span><input id="logo-horiz" type="file" accept="image/*" multiple></label>
       <button type="button" class="bg-lib-btn" data-target="H" title="從背景圖庫選擇">選擇背景圖庫</button>
-      <label>上傳商品圖（最多3張）：<input id="items-h" type="file" accept="image/*" multiple></label>
+      <label class="upload-btn"><span>上傳商品圖（最多3張）</span><input id="items-h" type="file" accept="image/*" multiple></label>
       <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
@@ -2437,10 +2467,10 @@ label:has(#editZoom){
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>上傳LOGO（正方或正圓型）：<input id="logo-square" type="file" accept="image/*"></label>
-      <button type="button" class="bg-lib-btn" data-target="S" title="從背景圖庫選擇">🖼 背景圖庫</button>
-      <label>上傳商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
- <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
+      <label class="upload-btn"><span>上傳 LOGO（正方或正圓型）</span><input id="logo-square" type="file" accept="image/*"></label>
+      <button type="button" class="bg-lib-btn" data-target="S" title="從背景圖庫選擇">選擇背景圖庫</button>
+      <label class="upload-btn"><span>上傳商品圖（最多3）</span><input id="items-s" type="file" accept="image/*" multiple></label>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
     <!-- APP 方形 -->
@@ -12359,6 +12389,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
     line-height:1.35 !important;
     margin:0 !important;
   }
+  .hbn-control-card-b .toolbar label.upload-btn{
+    display:flex !important;
+    grid-template-columns:unset !important;
+    width:100% !important;
+    min-height:44px !important;
+    padding:10px 16px !important;
+    background:#6366f1 !important;
+    color:#fff !important;
+    border:none !important;
+    border-radius:10px !important;
+    font-size:13px !important;
+    font-weight:400 !important;
+    justify-content:center !important;
+    align-items:center !important;
+    cursor:pointer !important;
+    box-shadow:0 2px 6px rgba(99,102,241,.35) !important;
+    line-height:normal !important;
+  }
+  .hbn-control-card-b .toolbar label.upload-btn:hover{
+    background:#4f46e5 !important;
+  }
+  .hbn-control-card-b .toolbar label.upload-btn input{
+    display:none !important;
+  }
   .hbn-control-card-b .toolbar label input[type="file"]{
     min-width:0 !important;
     max-width:100% !important;
@@ -12389,7 +12443,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     min-width:0 !important;
     height:44px !important;
     border-radius:14px !important;
-    font-weight:800 !important;
+    font-weight:400 !important;
     letter-spacing:.01em;
     margin-left:0 !important;
   }
