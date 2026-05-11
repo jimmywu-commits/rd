@@ -291,6 +291,16 @@
       return key;
     });
 
+    // 保護「買數字送數字」：如 買1送1、買2送1，不強加 $ 符號
+    out = out.replace(/(買)(\d+)(送)(\d+)/g, function(match, buy, left, give, right){
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: buy + left + give + right
+      });
+      return key;
+    });
+
     out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
