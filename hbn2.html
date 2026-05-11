@@ -1430,8 +1430,8 @@ label:has(#editZoom){
 .dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
 .dd-canvas:not(.square) .dd-h2{ top:220px !important; }
 .dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
-
-
+.dd-canvas:not(.square) .dd-solid-top{ height:270px !important; }
+.dd-canvas:not(.square) .dd-gradient-top{ top:268px !important; }
 </style>
 
 
@@ -2305,8 +2305,7 @@ label.upload-btn input{ display:none !important; }
         ownInput.value = '';
       });
     }
-    var ownLabel = document.querySelector('.bglib-upload-own');
-    if(ownLabel) ownLabel.addEventListener('click', function(){ ownInput && ownInput.click(); });
+    // label 本身點擊已會觸發 input，不需再手動 click()
 
     // 路徑偵錯
     var debugBtn = document.getElementById('bgLibDebug');
@@ -2889,30 +2888,24 @@ label.upload-btn input{ display:none !important; }
   // 輔助函式：吸取圖片左上角顏色並同步
   function autoSyncBackground(imgElement, type) {
     if(__jsonRestoring) return;
-    // 1. 建立 Canvas 吸色
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1; canvas.height = 1;
-    ctx.drawImage(imgElement, 0, 0, 1, 1, 0, 0, 1, 1);
-    
-    // 2. 轉換成 Hex 色碼
-    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-    const hex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-    
-    // 3. 呼叫原本寫好的 setBgFor 同步底色 (這會同時變更 APP 與 PC 的底色/漸層)
-    setBgFor(type, hex);
 
-    // 4. (額外修復) 同步將 PC 版的「背景圖」也換成這張圖
-    if (type === 'H') {
-      const pcImg = document.getElementById('bgPH');
-      if(pcImg) pcImg.src = imgElement.src;
-    } else {
-      const pcImg = document.getElementById('bgPS');
-      if(pcImg) pcImg.src = imgElement.src;
+    var setFn = window['__bgLibSetBg_' + type];
+    if(!setFn){
+      if(typeof showToast === 'function') showToast('❌ 背景套用失敗，請重新整理頁面');
+      return;
     }
 
-    // 5. 提示使用者
-    if(typeof showToast === 'function') showToast(`已同步 PC 底色與圖片：${hex}`);
+    // 同步 PC 版背景圖
+    var pcImgId = type === 'H' ? 'bgPH' : 'bgPS';
+    var pcImg = document.getElementById(pcImgId);
+    if(pcImg) pcImg.src = imgElement.src;
+
+    // 呼叫 setupEditor 內部的完整套背景流程
+    setFn(imgElement.src).then(function(){
+      if(typeof showToast === 'function') showToast('✅ 背景已套用');
+    }).catch(function(){
+      if(typeof showToast === 'function') showToast('❌ 背景套用失敗');
+    });
   }
 
   // 綁定橫式背景 (上傳 -> 載入 -> 觸發同步)
@@ -4926,6 +4919,24 @@ backBtn.addEventListener('click', ()=>{
         makeItem({url, asBackground:true});
       });
     }
+
+    // 暴露給 bglib 使用：直接用 dataURL 套背景，走完整的 makeItem 流程
+    var side = (canvasId === 'horiz') ? 'H' : 'S';
+    window['__bgLibSetBg_' + side] = async function(dataUrl){
+      const hex = await sampleTopLeftColor(dataUrl).catch(()=>null);
+      if(hex){
+        if(bgColorInput){ bgColorInput.value = hex; }
+        canvas.style.backgroundColor = hex;
+        updateSolid(editor, hex);
+        updateGradient(editor, hex);
+      } else {
+        const cur = (bgColorInput && bgColorInput.value) || '#c2dff3';
+        updateSolid(editor, cur); updateGradient(editor, cur);
+      }
+      const prev = (editor.querySelector('.bg-layer')||editor).querySelector('.editor-bg');
+      if(prev) prev.remove();
+      makeItem({url: dataUrl, asBackground: true});
+    };
 
     const initBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
     updateSolid(editor, initBg);
