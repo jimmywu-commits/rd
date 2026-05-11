@@ -54,6 +54,17 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   font-size:13px; color:#444; display:flex; align-items:center; gap:6px;
   background:#fafafa; padding:6px 8px; border-radius:6px; border:1px solid #eee;
 }
+.toolbar label.upload-btn{
+  background:#6366f1; color:#fff;
+  border:none; padding:7px 11px;
+  border-radius:6px; cursor:pointer;
+  font-size:13px; white-space:nowrap;
+  box-shadow:0 2px 4px rgba(99,102,241,.3);
+  display:inline-flex; align-items:center;
+  justify-content:center;
+}
+.toolbar label.upload-btn:hover{ background:#4f46e5; }
+.toolbar label.upload-btn input{ display:none; }
 
 .toolbar input[type="color"]{
   border:none; width:24px; height:24px; padding:0; background:none; cursor:pointer;
@@ -61,7 +72,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 .toolbar input[type="file"]{ font-size:12px; }
 .toolbar button{
   background:#2176FF; color:#fff; border:none; padding:8px 12px;
-  border-radius:6px; cursor:pointer; font-size:13px;
+  border-radius:6px; cursor:pointer; font-size:13px; font-weight:400;
+  font-family:inherit;
   box-shadow:0 2px 4px rgba(33,118,255,0.2);
 }
 .toolbar button:hover{ background:#1b65db; }
@@ -1418,8 +1430,8 @@ label:has(#editZoom){
 .dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
 .dd-canvas:not(.square) .dd-h2{ top:220px !important; }
 .dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
-
-
+.dd-canvas:not(.square) .dd-solid-top{ height:270px !important; }
+.dd-canvas:not(.square) .dd-gradient-top{ top:268px !important; }
 </style>
 
 
@@ -1618,6 +1630,707 @@ label:has(#editZoom){
   .cropper-panel img{ max-width:100%; max-height:65vh; display:block; margin:0 auto; }
 </style>
 
+<style id="bglib-modal-style">
+/* ===== 背景圖庫 Modal ===== */
+.bglib-overlay{
+  position:fixed; inset:0;
+  background:rgba(10,10,15,.72);
+  backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center;
+  z-index:10050;
+}
+.bglib-overlay.open{ display:flex; }
+
+.bglib-panel{
+  width:min(96vw,1160px);
+  max-height:90vh;
+  background:#18181b;
+  border-radius:16px;
+  display:flex; flex-direction:column;
+  box-shadow:0 24px 60px rgba(0,0,0,.55);
+  overflow:hidden;
+  color:#fff;
+}
+
+/* Header */
+.bglib-header{
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+.bglib-title{
+  font-size:17px; font-weight:700;
+  white-space:nowrap;
+}
+.bglib-search-wrap{
+  flex:1;
+}
+.bglib-search-wrap input{
+  width:100%; max-width:320px;
+  height:34px; padding:0 12px;
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.07);
+  color:#fff; font-size:13px;
+  outline:none;
+  transition:border-color .15s;
+}
+.bglib-search-wrap input::placeholder{ color:rgba(255,255,255,.38); }
+.bglib-search-wrap input:focus{ border-color:rgba(255,255,255,.4); }
+
+.bglib-close{
+  width:32px; height:32px; border-radius:8px;
+  border:0; background:rgba(255,255,255,.08);
+  color:#fff; font-size:16px;
+  cursor:pointer; flex-shrink:0;
+  display:grid; place-items:center;
+  transition:background .15s;
+}
+.bglib-close:hover{ background:rgba(255,255,255,.18); }
+
+/* Tabs */
+.bglib-tabs{
+  display:flex; gap:4px; padding:10px 16px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  flex-shrink:0;
+}
+.bglib-tab{
+  padding:7px 18px; border-radius:8px 8px 0 0;
+  border:1px solid transparent; border-bottom:0;
+  background:transparent; color:rgba(255,255,255,.55);
+  font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .15s;
+  position:relative; bottom:-1px;
+}
+.bglib-tab:hover{ color:#fff; background:rgba(255,255,255,.07); }
+.bglib-tab.active{
+  background:#18181b; color:#fff;
+  border-color:rgba(255,255,255,.12);
+  border-bottom-color:#18181b;
+}
+
+/* Grid area */
+.bglib-grid-wrap{
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  padding:14px 16px;
+  position:relative;
+  min-height:200px;
+}
+.bglib-grid-wrap::-webkit-scrollbar{ width:6px; }
+.bglib-grid-wrap::-webkit-scrollbar-track{ background:transparent; }
+.bglib-grid-wrap::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.2); border-radius:4px; }
+
+.bglib-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:10px;
+}
+
+/* Image card */
+.bglib-card{
+  border-radius:10px;
+  overflow:hidden;
+  background:rgba(255,255,255,.07);
+  border:2px solid transparent;
+  cursor:pointer;
+  transition:border-color .15s, transform .15s, box-shadow .15s;
+  position:relative;
+  aspect-ratio:10/3;
+}
+.bglib-card:hover{
+  border-color:rgba(255,255,255,.3);
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(0,0,0,.4);
+}
+.bglib-card.selected{
+  border-color:#3b82f6;
+  box-shadow:0 0 0 3px rgba(59,130,246,.35);
+}
+.bglib-card img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  opacity:0;
+  transition:opacity .25s;
+}
+.bglib-card img.img-loaded{ opacity:1; }
+.bglib-card .bglib-card-name{
+  position:absolute; bottom:0; left:0; right:0;
+  background:linear-gradient(transparent, rgba(0,0,0,.7));
+  color:#fff; font-size:10px;
+  padding:10px 6px 4px;
+  opacity:0; transition:opacity .15s;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bglib-card:hover .bglib-card-name,
+.bglib-card.selected .bglib-card-name{ opacity:1; }
+.bglib-card .bglib-check{
+  position:absolute; top:5px; right:5px;
+  width:20px; height:20px; border-radius:50%;
+  background:#3b82f6; color:#fff;
+  font-size:12px; display:none; place-items:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.bglib-card.selected .bglib-check{ display:grid; }
+
+/* 圖片載入失敗時的佔位文字 */
+.bglib-ph{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  font-size:11px; color:rgba(255,255,255,.3);
+  padding:4px; text-align:center;
+  word-break:break-all;
+}
+
+/* Hover 放大預覽浮動框 */
+#bgLibHoverPreview{
+  position:fixed;
+  z-index:10100;
+  pointer-events:none;
+  display:none;
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+  border:2px solid rgba(255,255,255,.2);
+  width:400px;
+  background:#111;
+}
+#bgLibHoverPreview img{
+  width:100%; display:block;
+}
+
+/* Empty / Loading */
+.bglib-empty,.bglib-loading{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+  color:rgba(255,255,255,.38); font-size:14px;
+}
+.bglib-loading{ pointer-events:none; }
+
+/* Footer */
+.bglib-footer{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px;
+  border-top:1px solid rgba(255,255,255,.08);
+  flex-shrink:0; gap:12px;
+}
+.bglib-upload-own{
+  display:flex; align-items:center; gap:8px;
+  cursor:pointer; padding:7px 14px;
+  border-radius:8px; border:1px solid rgba(255,255,255,.18);
+  font-size:13px; color:rgba(255,255,255,.8);
+  transition:background .15s;
+  white-space:nowrap;
+}
+.bglib-upload-own:hover{ background:rgba(255,255,255,.08); }
+.bglib-footer-right{ display:flex; align-items:center; gap:10px; }
+.bglib-sel-name{
+  font-size:12px; color:rgba(255,255,255,.5);
+  max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.bglib-apply-btn{
+  padding:8px 20px; border-radius:8px; border:0;
+  background:#3b82f6; color:#fff; font-size:14px; font-weight:600;
+  cursor:pointer; transition:background .15s, opacity .15s;
+}
+.bglib-apply-btn:disabled{ opacity:.4; cursor:not-allowed; }
+.bglib-apply-btn:not(:disabled):hover{ background:#2563eb; }
+
+/* lib btn in toolbar */
+.bg-lib-btn{
+  background:#6366f1 !important; color:#fff !important;
+  border:none !important; padding:7px 11px !important;
+  border-radius:6px !important; cursor:pointer !important;
+  font-size:13px !important; font-weight:400 !important;
+  font-family:inherit !important; white-space:nowrap;
+  box-shadow:0 2px 4px rgba(99,102,241,.3) !important;
+}
+.bg-lib-btn:hover{ background:#4f46e5 !important; }
+
+/* 上傳按鈕：和背景圖庫按鈕相同風格 */
+label.upload-btn,
+label.upload-btn:visited{
+  background:#6366f1 !important; color:#fff !important;
+  border:none !important; padding:7px 11px !important;
+  border-radius:6px !important; cursor:pointer !important;
+  font-size:13px !important; white-space:nowrap !important;
+  box-shadow:0 2px 4px rgba(99,102,241,.3) !important;
+  display:inline-flex !important; align-items:center !important;
+  text-align:center !important;
+  line-height:normal !important;
+  width:auto !important; max-width:none !important;
+  margin:0 !important;
+}
+label.upload-btn:hover{ background:#4f46e5 !important; }
+label.upload-btn input{ display:none !important; }
+</style>
+
+
+<script id="bglib-script">
+(function(){
+  if(window.__bglibReady) return;
+  window.__bglibReady = true;
+  console.log('[bglib] script 開始執行');
+
+  var INDEX_URL = 'bgimg/index.json';
+  var CATEGORIES = ['EL','Fashion','FMCG','Lifestyle'];
+
+  var indexData    = null;   // 載入後的 JSON
+  var currentCat   = CATEGORIES[0];
+  var currentTarget= 'H';
+  var selectedSrc  = null;
+  var selectedName = null;
+  var searchQuery  = '';
+
+  /* ── 從檔名抽編號 ──
+     - 先移除品牌字樣 HBN / HBN360（避免當成編號）
+     - 找「- 或 _ 後面接的數字」，取最後一組
+     - 如果最後是 _1 且前面有其他數字，忽略 _1（排除 _BG_1 流水號）
+     - fallback：英文字母後直接接數字（如 Mockup15）
+  */
+  function extractNum(filename){
+    var base = filename.replace(/\.[^.]+$/, '');
+    // 移除品牌字樣 HBN、HBN360
+    base = base.replace(/\bHBN\d*\b/gi, '');
+
+    // 找「_ 或 - 後面接數字」
+    var matches = base.match(/(?<=[_-])(\d+)/g);
+    if(matches){
+      var nums = matches.map(function(n){ return parseInt(n, 10); })
+                        .filter(function(n){ return n < 1000; });
+      if(nums.length){
+        if(nums.length > 1 && nums[nums.length-1] === 1) return nums[nums.length-2];
+        return nums[nums.length-1];
+      }
+    }
+    // fallback：英文字母後直接接數字（如 Mockup15）
+    var matches2 = base.match(/[a-zA-Z](\d+)/g);
+    if(matches2){
+      var nums2 = matches2.map(function(m){ return parseInt(m.slice(1), 10); })
+                          .filter(function(n){ return n < 1000; });
+      if(nums2.length) return nums2[nums2.length-1];
+    }
+    return null;
+  }
+
+  /* ── 載入 index.json ── */
+  function loadIndex(callback){
+    if(indexData){ callback(indexData); return; }
+    fetch(INDEX_URL)
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.json();
+      })
+      .then(function(data){
+        indexData = data;
+        callback(data);
+      })
+      .catch(function(err){
+        console.error('bglib: 無法載入 index.json', err);
+        showToast && showToast('❌ 無法載入背景圖庫清單（index.json）', 'err', 4000);
+      });
+  }
+
+  /* ── 單張卡片的圖片載入（var 版本，無 closure 問題） ── */
+  /* 將路徑中的空格和特殊字元編碼，相容 GitHub Pages */
+  function encodeSrc(src){
+    // 只編碼檔名部分（保留路徑的 /），避免雙重編碼
+    return src.split('/').map(function(seg){ return encodeURIComponent(decodeURIComponent(seg)); }).join('/');
+  }
+
+  function loadCardImage(card, src){
+    var img = document.createElement('img');
+    img.alt = card.dataset.name || '';
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .2s;';
+
+    // 嘗試原始 src（編碼後），失敗再試大小寫互換的副檔名
+    var encodedSrc = encodeSrc(src);
+    var tried = [encodedSrc];
+    var ext = src.match(/\.([^.]+)$/);
+    if(ext){
+      var e = ext[1];
+      var altSrc = e === e.toUpperCase() ? src.replace(/\.([^.]+)$/, '.'+e.toLowerCase())
+                                         : src.replace(/\.([^.]+)$/, '.'+e.toUpperCase());
+      tried.push(encodeSrc(altSrc));
+    }
+    var tryIdx = 0;
+    function tryNext(){
+      if(tryIdx >= tried.length){
+        img.remove();
+        if(!card.querySelector('.bglib-ph')){
+          var ph = document.createElement('div');
+          ph.className = 'bglib-ph';
+          ph.textContent = card.dataset.name || '';
+          card.insertBefore(ph, card.firstChild);
+        }
+        return;
+      }
+      img.src = tried[tryIdx++];
+    }
+    img.onload  = function(){ img.style.opacity = '1'; card.dataset.src = src; }; // dataset.src 保留原始路徑
+    img.onerror = tryNext;
+    card.insertBefore(img, card.firstChild);
+    tryNext();
+  }
+
+  /* ── 渲染分類 ── */
+  function renderCategory(catKey){
+    var grid    = document.getElementById('bgLibGrid');
+    var emptyEl = document.getElementById('bgLibEmpty');
+    var loading = document.getElementById('bgLibLoading');
+    if(!grid) return;
+
+    grid.innerHTML = '';
+    selectedSrc = selectedName = null;
+    var applyBtn = document.getElementById('bgLibApply');
+    if(applyBtn) applyBtn.disabled = true;
+    var selName = document.getElementById('bgLibSelectedName');
+    if(selName) selName.textContent = '';
+    if(emptyEl) emptyEl.style.display = 'none';
+    if(loading) loading.style.display = 'grid';
+
+    loadIndex(function(data){
+      if(loading) loading.style.display = 'none';
+
+      var catData = data[catKey];
+      var hbnList = (catData && catData.hbn) ? catData.hbn : [];
+
+      if(hbnList.length === 0){
+        if(emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+
+      for(var i = 0; i < hbnList.length; i++){
+        var filename = hbnList[i];  // index.json 裡有什麼就顯示什麼，不做任何篩選
+        var num      = extractNum(filename);
+        var src      = 'bgimg/' + catKey + '/HBN/' + filename;
+
+        var card = document.createElement('div');
+        card.className    = 'bglib-card';
+        card.dataset.name = filename;
+        card.dataset.num  = num !== null ? String(num) : '';
+        card.dataset.src  = src;
+        card.dataset.cat  = catKey;
+
+        var nameEl = document.createElement('div');
+        nameEl.className   = 'bglib-card-name';
+        nameEl.textContent = filename.replace(/\.[^.]+$/, ''); // 去副檔名顯示
+
+        var check = document.createElement('div');
+        check.className   = 'bglib-check';
+        check.textContent = '✓';
+
+        card.appendChild(nameEl);
+        card.appendChild(check);
+        grid.appendChild(card);
+
+        // 卡片已在 DOM，現在設圖片
+        loadCardImage(card, src);
+
+        (function(c, imgSrc){
+          c.addEventListener('click',      function(){ selectCard(c); });
+          c.addEventListener('dblclick',   function(){ applyNow(); });
+          c.addEventListener('mouseenter', function(e){ showHoverPreview(e, imgSrc); });
+          c.addEventListener('mousemove',  function(e){ moveHoverPreview(e); });
+          c.addEventListener('mouseleave', function(){ hideHoverPreview(); });
+        })(card, src);
+      }
+
+      applyFilter();
+    });
+  }
+
+  /* ── 選取卡片 ── */
+  function selectCard(card){
+    document.querySelectorAll('#bgLibGrid .bglib-card.selected')
+      .forEach(function(c){ c.classList.remove('selected'); });
+    card.classList.add('selected');
+    selectedSrc  = card.dataset.src;
+    selectedName = card.dataset.name;
+    var nameEl = document.getElementById('bgLibSelectedName');
+    if(nameEl) nameEl.textContent = selectedName.replace(/\.[^.]+$/,'');
+    var applyBtn = document.getElementById('bgLibApply');
+    if(applyBtn) applyBtn.disabled = false;
+  }
+
+  /* ── 搜尋篩選 ── */
+  function applyFilter(){
+    var q = searchQuery.trim().toLowerCase();
+    var anyVisible = false;
+    document.querySelectorAll('#bgLibGrid .bglib-card').forEach(function(card){
+      var match = !q || card.dataset.name.toLowerCase().includes(q) || card.dataset.num.includes(q);
+      card.style.display = match ? '' : 'none';
+      if(match) anyVisible = true;
+    });
+    var emptyEl = document.getElementById('bgLibEmpty');
+    if(emptyEl) emptyEl.style.display = anyVisible ? 'none' : 'block';
+  }
+
+  /* ── 找同編號的 DDCARD 圖片 ── */
+  function findDdcardSrc(catKey, num){
+    if(!indexData || num === null) return null;
+    var catData = indexData[catKey];
+    if(!catData || !catData.ddcard) return null;
+    var list = catData.ddcard;
+    for(var i = 0; i < list.length; i++){
+      var ddNum = extractNum(list[i]);
+      if(ddNum === num){
+        var path = 'bgimg/' + catKey + '/DDCARD/' + list[i];
+        console.log('[bglib] DDCARD 對應：編號', num, '→', path);
+        return path;
+      }
+    }
+    console.warn('[bglib] 找不到 DDCARD 對應編號：', num, '分類：', catKey);
+    return null;
+  }
+
+  /* ── 套用背景（fetch → blob → FileReader → dataURL） ── */
+  function applyBackground(src, name, catKey, num){
+    if(!src) return;
+    var targetId = currentTarget === 'H' ? 'bgH' : 'bgS';
+    var el = document.getElementById(targetId);
+    if(!el) return;
+
+    if(typeof showToast === 'function') showToast('套用中…', 'ok', 8000);
+
+    fetch(encodeSrc(src))
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.blob();
+      })
+      .then(function(blob){
+        return new Promise(function(resolve, reject){
+          var fr = new FileReader();
+          fr.onload  = function(){ resolve(fr.result); };
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      })
+      .then(function(dataUrl){
+        el.src = dataUrl;
+        el.onload = function(){
+          if(typeof autoSyncBackground === 'function') autoSyncBackground(el, currentTarget);
+        };
+
+        // 同時套用 DDCARD 同編號背景
+        var ddSrc = findDdcardSrc(catKey, num);
+        if(ddSrc) applyDdcardBackground(ddSrc, currentTarget);
+
+        closeModal();
+        if(typeof showToast === 'function') showToast('✅ 已套用：' + name.replace(/\.[^.]+$/,'') + (ddSrc ? '（DDCard 同步）' : ''));
+      })
+      .catch(function(err){
+        // fetch 失敗 fallback
+        el.src = src;
+        el.onload = function(){
+          if(typeof autoSyncBackground === 'function') autoSyncBackground(el, currentTarget);
+        };
+        var ddSrc = findDdcardSrc(catKey, num);
+        if(ddSrc) applyDdcardBackground(ddSrc, currentTarget);
+        closeModal();
+        if(typeof showToast === 'function') showToast('✅ 已套用：' + name.replace(/\.[^.]+$/,''));
+      });
+  }
+
+  /* ── 套用 DDCARD 背景（只套對應的那個畫布） ── */
+  function applyDdcardBackground(ddSrc, side){
+    var ddImgId = side === 'H' ? 'ddHorizBg' : 'ddSquareBg';
+    var ddEl = document.getElementById(ddImgId);
+    if(!ddEl){ console.warn('[bglib] 找不到 DDCard img:', ddImgId); return; }
+    console.log('[bglib] 套用 DDCard:', ddSrc, '->', ddImgId);
+    _applyDdSrc(ddEl, ddSrc);
+  }
+  function _applyDdSrc(ddEl, ddSrc){
+    var ddImgId = ddEl.id;
+
+    fetch(encodeSrc(ddSrc))
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.blob();
+      })
+      .then(function(blob){
+        return new Promise(function(resolve, reject){
+          var fr = new FileReader();
+          fr.onload  = function(){ resolve(fr.result); };
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+      })
+      .then(function(dataUrl){
+        ddEl.src = dataUrl;
+        ddEl.removeAttribute('data-dd-hidden');
+        console.log('[bglib] DDCard 套用成功');
+      })
+      .catch(function(err){
+        console.error('[bglib] DDCard fetch 失敗:', err.message);
+        ddEl.src = ddSrc;
+        ddEl.removeAttribute('data-dd-hidden');
+      });
+  }
+
+  function applyNow(){
+    if(!selectedSrc) return;
+    var card = document.querySelector('#bgLibGrid .bglib-card.selected');
+    var catKey = card ? card.dataset.cat : currentCat;
+    var num    = card ? (parseInt(card.dataset.num,10)||null) : null;
+    applyBackground(selectedSrc, selectedName || '', catKey, num);
+  }
+
+  /* ── Modal 開 / 關 ── */
+  function openModal(target){
+    currentTarget = target || 'H';
+    var modal = document.getElementById('bgLibModal');
+    if(!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden','false');
+    renderCategory(currentCat);
+    var wrap = modal.querySelector('.bglib-grid-wrap');
+    if(wrap) wrap.scrollTop = 0;
+  }
+
+  function closeModal(){
+    var modal = document.getElementById('bgLibModal');
+    if(!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden','true');
+    hideHoverPreview();
+  }
+
+  /* ── Hover 放大預覽 ── */
+  var hoverTimer = null;
+  function showHoverPreview(e, src){
+    if(!src) return;
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(function(){
+      var preview = document.getElementById('bgLibHoverPreview');
+      var previewImg = document.getElementById('bgLibHoverImg');
+      if(!preview || !previewImg) return;
+      previewImg.src = src;
+      preview.style.display = 'block';
+      positionHoverPreview(e);
+    }, 120);
+  }
+  function moveHoverPreview(e){
+    var preview = document.getElementById('bgLibHoverPreview');
+    if(preview && preview.style.display !== 'none') positionHoverPreview(e);
+  }
+  function positionHoverPreview(e){
+    var preview = document.getElementById('bgLibHoverPreview');
+    if(!preview) return;
+    var pw = 400, ph = preview.offsetHeight || 130;
+    var x = e.clientX + 16;
+    var y = e.clientY - ph / 2;
+    if(x + pw > window.innerWidth)  x = e.clientX - pw - 16;
+    if(y < 8) y = 8;
+    if(y + ph > window.innerHeight - 8) y = window.innerHeight - ph - 8;
+    preview.style.left = x + 'px';
+    preview.style.top  = y + 'px';
+  }
+  function hideHoverPreview(){
+    clearTimeout(hoverTimer);
+    var preview = document.getElementById('bgLibHoverPreview');
+    if(preview) preview.style.display = 'none';
+  }
+
+  /* ── 事件繫結 ── */
+  function bindEvents(){
+    console.log('[bglib] bindEvents 執行，找到按鈕數：', document.querySelectorAll('.bg-lib-btn').length);
+    document.querySelectorAll('.bg-lib-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        console.log('[bglib] 背景圖庫按鈕點擊，target:', btn.dataset.target);
+        openModal(btn.dataset.target);
+      });
+    });
+
+    var closeBtn = document.getElementById('bgLibClose');
+    if(closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    var modal = document.getElementById('bgLibModal');
+    if(modal) modal.addEventListener('click', function(e){
+      if(e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape' && modal && modal.classList.contains('open')) closeModal();
+    });
+
+    document.querySelectorAll('.bglib-tab').forEach(function(tab){
+      tab.addEventListener('click', function(){
+        document.querySelectorAll('.bglib-tab').forEach(function(t){ t.classList.remove('active'); });
+        tab.classList.add('active');
+        currentCat   = tab.dataset.cat;
+        searchQuery  = '';
+        var si = document.getElementById('bgLibSearch');
+        if(si) si.value = '';
+        renderCategory(currentCat);
+      });
+    });
+
+    var searchInput = document.getElementById('bgLibSearch');
+    if(searchInput){
+      searchInput.addEventListener('input', function(){
+        searchQuery = searchInput.value;
+        applyFilter();
+      });
+    }
+
+    var applyBtn = document.getElementById('bgLibApply');
+    if(applyBtn) applyBtn.addEventListener('click', applyNow);
+
+    // 自行上傳
+    var ownInput = document.getElementById('bgLibOwnUpload');
+    if(ownInput){
+      ownInput.addEventListener('change', function(e){
+        var file = e.target.files && e.target.files[0];
+        if(!file) return;
+        var fr = new FileReader();
+        fr.onload = function(){
+          var targetId = currentTarget === 'H' ? 'bgH' : 'bgS';
+          var el = document.getElementById(targetId);
+          if(el){
+            el.src = fr.result;
+            el.onload = function(){
+              if(typeof autoSyncBackground === 'function') autoSyncBackground(el, currentTarget);
+            };
+          }
+          closeModal();
+          if(typeof showToast === 'function') showToast('✅ 已套用自訂背景：' + file.name);
+        };
+        fr.readAsDataURL(file);
+        ownInput.value = '';
+      });
+    }
+    // label 本身點擊已會觸發 input，不需再手動 click()
+
+    // 路徑偵錯
+    var debugBtn = document.getElementById('bgLibDebug');
+    if(debugBtn){
+      debugBtn.addEventListener('click', function(){
+        var loaded = document.querySelectorAll('#bgLibGrid .bglib-card img[style*="opacity: 1"]').length;
+        var total  = document.querySelectorAll('#bgLibGrid .bglib-card').length;
+        alert([
+          '分類：' + currentCat,
+          'index.json 狀態：' + (indexData ? '✅ 已載入' : '❌ 未載入'),
+          '卡片總數：' + total,
+          '縮圖顯示：' + loaded,
+          '',
+          'HBN 路徑範例：bgimg/' + currentCat + '/HBN/（檔名來自 index.json）',
+          'DDCARD 路徑範例：bgimg/' + currentCat + '/DDCARD/（同編號自動對應）',
+        ].join('\n'));
+      });
+    }
+  }
+
+  // 永遠用 DOMContentLoaded，確保 DOM 完全就緒
+  document.addEventListener('DOMContentLoaded', function(){
+    bindEvents();
+    console.log('[bglib] DOMContentLoaded 後 bindEvents 完成');
+  });
+
+})();
+</script>
 </head>
 <body>
   <div class="wrap">
@@ -1636,9 +2349,9 @@ label:has(#editZoom){
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>上傳LOGO（最多3張）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
-      <label>上傳底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
-      <label>上傳商品圖（最多3張）：<input id="items-h" type="file" accept="image/*" multiple></label>
+      <label class="upload-btn"><span>上傳 LOGO（最多3張）</span><input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <button type="button" class="bg-lib-btn" data-target="H" title="從背景圖庫選擇">選擇背景圖庫</button>
+      <label class="upload-btn"><span>上傳商品圖（最多3張）</span><input id="items-h" type="file" accept="image/*" multiple></label>
       <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
@@ -1750,10 +2463,10 @@ label:has(#editZoom){
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>上傳LOGO（正方或正圓型）：<input id="logo-square" type="file" accept="image/*"></label>
-      <label>上傳底圖：<input id="bg-square" type="file" accept="image/*"></label>
-      <label>上傳商品圖（最多3）：<input id="items-s" type="file" accept="image/*" multiple></label>
- <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
+      <label class="upload-btn"><span>上傳 LOGO（正方或正圓型）</span><input id="logo-square" type="file" accept="image/*"></label>
+      <button type="button" class="bg-lib-btn" data-target="S" title="從背景圖庫選擇">選擇背景圖庫</button>
+      <label class="upload-btn"><span>上傳商品圖（最多3）</span><input id="items-s" type="file" accept="image/*" multiple></label>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
     <!-- APP 方形 -->
@@ -1845,6 +2558,50 @@ label:has(#editZoom){
  
 
 
+
+  <!-- ===== 背景圖庫 Modal ===== -->
+  <div id="bgLibModal" class="bglib-overlay" aria-hidden="true" role="dialog" aria-label="背景圖庫">
+    <div class="bglib-panel">
+      <div class="bglib-header">
+        <div class="bglib-title">🖼 背景圖庫</div>
+        <div class="bglib-search-wrap">
+          <input id="bgLibSearch" type="text" placeholder="搜尋圖片編號…" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="bglib-close" id="bgLibClose" type="button" title="關閉">✕</button>
+      </div>
+
+      <!-- 分類 Tabs -->
+      <div class="bglib-tabs" role="tablist">
+        <button class="bglib-tab active" data-cat="EL" role="tab">EL</button>
+        <button class="bglib-tab" data-cat="Fashion" role="tab">Fashion</button>
+        <button class="bglib-tab" data-cat="FMCG" role="tab">FMCG</button>
+        <button class="bglib-tab" data-cat="Lifestyle" role="tab">Lifestyle</button>
+      </div>
+
+      <!-- 圖片格 -->
+      <div class="bglib-grid-wrap">
+        <div id="bgLibGrid" class="bglib-grid"></div>
+        <div id="bgLibEmpty" class="bglib-empty" style="display:none">找不到符合的圖片</div>
+        <div id="bgLibLoading" class="bglib-loading">載入中…</div>
+      </div>
+
+      <!-- 底部操作 -->
+      <div class="bglib-footer">
+        <label class="bglib-upload-own">
+          <span>📤 上傳自己的圖片</span>
+          <input id="bgLibOwnUpload" type="file" accept="image/*" style="display:none">
+        </label>
+        <button type="button" id="bgLibDebug" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;" title="顯示圖片路徑資訊">🔍 路徑偵錯</button>
+        <div class="bglib-footer-right">
+          <span id="bgLibSelectedName" class="bglib-sel-name"></span>
+          <button id="bgLibApply" class="bglib-apply-btn" type="button" disabled>套用選取的背景</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hover 放大預覽 -->
+  <div id="bgLibHoverPreview"><img id="bgLibHoverImg" src="" alt="預覽"></div>
 
   <!-- 去背/裁切 Modal（保留） -->
   <div class="modal" id="eraseModal" aria-hidden="true">
@@ -2128,30 +2885,24 @@ label:has(#editZoom){
   // 輔助函式：吸取圖片左上角顏色並同步
   function autoSyncBackground(imgElement, type) {
     if(__jsonRestoring) return;
-    // 1. 建立 Canvas 吸色
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1; canvas.height = 1;
-    ctx.drawImage(imgElement, 0, 0, 1, 1, 0, 0, 1, 1);
-    
-    // 2. 轉換成 Hex 色碼
-    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-    const hex = "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
-    
-    // 3. 呼叫原本寫好的 setBgFor 同步底色 (這會同時變更 APP 與 PC 的底色/漸層)
-    setBgFor(type, hex);
 
-    // 4. (額外修復) 同步將 PC 版的「背景圖」也換成這張圖
-    if (type === 'H') {
-      const pcImg = document.getElementById('bgPH');
-      if(pcImg) pcImg.src = imgElement.src;
-    } else {
-      const pcImg = document.getElementById('bgPS');
-      if(pcImg) pcImg.src = imgElement.src;
+    var setFn = window['__bgLibSetBg_' + type];
+    if(!setFn){
+      if(typeof showToast === 'function') showToast('❌ 背景套用失敗，請重新整理頁面');
+      return;
     }
 
-    // 5. 提示使用者
-    if(typeof showToast === 'function') showToast(`已同步 PC 底色與圖片：${hex}`);
+    // 同步 PC 版背景圖
+    var pcImgId = type === 'H' ? 'bgPH' : 'bgPS';
+    var pcImg = document.getElementById(pcImgId);
+    if(pcImg) pcImg.src = imgElement.src;
+
+    // 呼叫 setupEditor 內部的完整套背景流程
+    setFn(imgElement.src).then(function(){
+      if(typeof showToast === 'function') showToast('✅ 背景已套用');
+    }).catch(function(){
+      if(typeof showToast === 'function') showToast('❌ 背景套用失敗');
+    });
   }
 
   // 綁定橫式背景 (上傳 -> 載入 -> 觸發同步)
@@ -4165,6 +4916,24 @@ backBtn.addEventListener('click', ()=>{
         makeItem({url, asBackground:true});
       });
     }
+
+    // 暴露給 bglib 使用：直接用 dataURL 套背景，走完整的 makeItem 流程
+    var side = (canvasId === 'horiz') ? 'H' : 'S';
+    window['__bgLibSetBg_' + side] = async function(dataUrl){
+      const hex = await sampleTopLeftColor(dataUrl).catch(()=>null);
+      if(hex){
+        if(bgColorInput){ bgColorInput.value = hex; }
+        canvas.style.backgroundColor = hex;
+        updateSolid(editor, hex);
+        updateGradient(editor, hex);
+      } else {
+        const cur = (bgColorInput && bgColorInput.value) || '#c2dff3';
+        updateSolid(editor, cur); updateGradient(editor, cur);
+      }
+      const prev = (editor.querySelector('.bg-layer')||editor).querySelector('.editor-bg');
+      if(prev) prev.remove();
+      makeItem({url: dataUrl, asBackground: true});
+    };
 
     const initBg = (bgColorInput && bgColorInput.value) || getComputedStyle(canvas).backgroundColor || '#c2dff3';
     updateSolid(editor, initBg);
@@ -11628,6 +12397,30 @@ document.addEventListener('DOMContentLoaded', ()=>{
     line-height:1.35 !important;
     margin:0 !important;
   }
+  .hbn-control-card-b .toolbar label.upload-btn{
+    display:flex !important;
+    grid-template-columns:unset !important;
+    width:100% !important;
+    min-height:44px !important;
+    padding:10px 16px !important;
+    background:#6366f1 !important;
+    color:#fff !important;
+    border:none !important;
+    border-radius:10px !important;
+    font-size:13px !important;
+    font-weight:400 !important;
+    justify-content:center !important;
+    align-items:center !important;
+    cursor:pointer !important;
+    box-shadow:0 2px 6px rgba(99,102,241,.35) !important;
+    line-height:normal !important;
+  }
+  .hbn-control-card-b .toolbar label.upload-btn:hover{
+    background:#4f46e5 !important;
+  }
+  .hbn-control-card-b .toolbar label.upload-btn input{
+    display:none !important;
+  }
   .hbn-control-card-b .toolbar label input[type="file"]{
     min-width:0 !important;
     max-width:100% !important;
@@ -11658,7 +12451,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     min-width:0 !important;
     height:44px !important;
     border-radius:14px !important;
-    font-weight:800 !important;
+    font-weight:400 !important;
     letter-spacing:.01em;
     margin-left:0 !important;
   }
@@ -14472,5 +15265,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 })();
 </script>
+
+<!-- ===== 背景圖庫 Script ===== -->
+
 </body>
 </html>
