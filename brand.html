@@ -46,14 +46,59 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .stage-card{background:#fff;border:1px solid #dbe6f3;box-shadow:0 10px 28px rgba(27,39,61,.08);border-radius:22px;padding:16px;margin-bottom:18px;overflow:visible;}
 .stage-card h2{margin:0 0 4px;font-size:22px;line-height:1.3;color:#0f172a;}
 .stage-card p{margin:0 0 14px;font-size:13px;line-height:1.5;color:#64748b;}
-.dd-preview-wrap{position:relative;padding:12px;overflow:visible;margin-top:14px;background:#f8fbff;border:1px solid #dbe6f3;border-radius:18px;}
+.dd-preview-wrap{position:relative;padding:12px;overflow:visible;margin-top:14px;background:#f8fbff;border:1px solid #dbe6f3;border-radius:18px;display:flex;flex-direction:column;align-items:center;}
 .dd-canvas{position:relative;width:531px;height:792px;overflow:hidden;border-radius:0;background:#c2dff3;}
 .dd-canvas .bg{position:absolute;object-fit:contain !important;width:auto;height:auto;max-width:none;max-height:none;z-index:0;cursor:move;user-select:none;}
 #ddHorizBg[data-dd-hidden="1"],#ddSquareBg[data-dd-hidden="1"]{display:none !important;}
 .bg[src=""]{display:none !important;}
-.dd-canvas .dd-brand{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:15px;z-index:5;padding:0 20px;}
+.dd-canvas .dd-brand{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:15px;z-index:5;padding:0 20px;overflow:visible;}
 .dd-canvas .dd-brand img{max-height:48px;width:auto;max-width:420px;object-fit:contain;display:block;}
 .dd-canvas.square .dd-brand img{max-height:105px;max-width:220px;}
+/* logo-item: overflow visible so trigger shows above canvas */
+.dd-canvas .logo-item{position:relative;display:inline-flex;align-items:center;justify-content:center;overflow:visible !important;}
+/* hide old-style buttons */
+.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.logo-main-pen-btn,.logo-action-menu{display:none !important;}
+/* v14 trigger */
+.logo-v14-trigger{
+  position:absolute !important;top:-24px !important;right:-2px !important;
+  width:20px !important;height:20px !important;border-radius:50% !important;
+  background:rgba(0,0,0,.45) !important;color:#fff !important;
+  display:flex !important;align-items:center !important;justify-content:center !important;
+  cursor:pointer !important;z-index:200 !important;
+  font-size:12px !important;line-height:1 !important;user-select:none !important;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+  transition:background .15s;
+}
+.logo-v14-trigger:hover{background:rgba(0,0,0,.82) !important;}
+.logo-item:hover .logo-v14-trigger{background:rgba(0,0,0,.82) !important;}
+/* fixed dropdown menu */
+#ddLogoMenu{
+  position:fixed !important;min-width:118px !important;
+  background:#111 !important;color:#fff !important;
+  border-radius:10px !important;box-shadow:0 8px 24px rgba(0,0,0,.36) !important;
+  padding:6px 0 !important;display:none !important;z-index:2147483647 !important;
+}
+#ddLogoMenu.show{display:block !important;}
+#ddLogoMenu button{
+  width:100% !important;border:0 !important;background:transparent !important;
+  color:#fff !important;text-align:left !important;padding:7px 12px !important;
+  font-size:12px !important;line-height:1.35 !important;cursor:pointer !important;font-family:inherit !important;
+}
+#ddLogoMenu button:hover{background:#2b2b2b !important;}
+/* cropper modal */
+.logo-crop-modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:2147483646;}
+.logo-crop-modal-wrap.open{display:flex;}
+.logo-crop-panel{width:min(90vw,900px);background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.logo-crop-panel header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #eee;}
+.logo-crop-panel header strong{font-size:15px;}
+.logo-crop-panel .body{padding:10px;}
+.logo-crop-panel .body img{max-width:100%;max-height:65vh;display:block;margin:0 auto;}
+.logo-crop-panel .actions{display:flex;gap:8px;padding:10px;justify-content:flex-end;align-items:center;}
+.logo-crop-panel .actions .hint{font-size:12px;color:#888;margin-right:auto;}
+.logo-crop-btn{padding:7px 18px;border-radius:8px;border:0;font-size:13px;cursor:pointer;font-family:inherit;}
+.logo-crop-btn.primary{background:#2176FF;color:#fff;}
+.logo-crop-btn.secondary{background:#f1f5f9;color:#333;}
+.is-exporting .logo-v14-trigger,.is-exporting #ddLogoMenu{display:none !important;}
 .dd-canvas:not(.square) .dd-brand{top:102.5px !important;}
 .dd-canvas.square .dd-brand{top:82.5px !important;}
 .mall-tag,.toggle-tag{display:none !important;}
@@ -91,7 +136,7 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-guide-warning.show{opacity:1;transform:translateY(0);}
 .dd-guide-top-h{top:330px;}.dd-guide-bottom-h{top:674px;}.dd-guide-top-s{top:370px;}.dd-guide-bottom-s{top:674px;}
 .is-exporting .dd-guide-line,.is-exporting .dd-guide-warning{display:none !important;}
-.dd-bg-scale-panel{display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px;margin-bottom:6px;}
+.dd-bg-scale-panel{display:flex;gap:6px;align-items:center;background:rgba(17,17,17,.72);color:#fff;border-radius:10px;padding:6px 8px;font-size:12px;margin-bottom:6px;width:531px;}
 .dd-bg-scale-panel button{border:0;border-radius:6px;background:#fff;color:#111;cursor:pointer;padding:4px 8px;}
 .dd-bg-scale-panel .tag{background:#222;color:#fff;border-radius:6px;padding:0 6px;font-weight:700;}
 .undo-float{position:fixed;top:18px;right:18px;z-index:9000;display:flex;gap:6px;background:rgba(15,23,42,.82);backdrop-filter:blur(6px);padding:6px 8px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);}
@@ -135,6 +180,7 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 @media(max-width:1280px){.hbn-shell{grid-template-columns:320px minmax(0,1fr);gap:14px;padding:14px;}}
 @media(max-width:980px){.hbn-shell{grid-template-columns:1fr;}.hbn-sidebar{position:static;max-height:none;}}
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 </head>
 <body>
 
@@ -286,6 +332,29 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
   </div>
 </div>
 
+<!-- Logo crop modal (CropperJS) -->
+<div id="ddLogoCropModal" class="logo-crop-modal-wrap">
+  <div class="logo-crop-panel">
+    <header>
+      <strong>Logo 裁切</strong>
+      <button id="ddLogoCropClose" class="logo-crop-btn secondary" type="button">關閉</button>
+    </header>
+    <div class="body"><img id="ddLogoCropImg" alt="Logo 裁切"></div>
+    <div class="actions">
+      <span class="hint">同等比裁切：按住 Shift 再拖框線</span>
+      <button id="ddLogoCropApply" class="logo-crop-btn primary" type="button">套用</button>
+    </div>
+  </div>
+</div>
+<!-- Logo dropdown menu (fixed, shared) -->
+<div id="ddLogoMenu">
+  <button type="button" data-action="edit">編輯</button>
+  <button type="button" data-action="swap">往右移</button>
+  <button type="button" data-action="delete">刪除</button>
+  <button type="button" data-action="white">加圓角</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script src="./editor-plugin.js"></script>
 <script>
 window.syncDdLinkedCanvases = function(){};
@@ -400,18 +469,6 @@ function bindBgInteraction(prefix){
   bg.addEventListener('mousedown',function(e){dragging=true;sx=e.clientX;sy=e.clientY;sl=parseFloat(bg.style.left)||0;st=parseFloat(bg.style.top)||0;e.preventDefault();});
   window.addEventListener('mousemove',function(e){if(!dragging)return;bg.style.left=(sl+e.clientX-sx)+'px';bg.style.top=(st+e.clientY-sy)+'px';});
   window.addEventListener('mouseup',function(){dragging=false;});
-  canvas.addEventListener('wheel',function(e){
-    if(e.target.closest&&e.target.closest('.dd-product'))return;
-    e.preventDefault();
-    var w=parseFloat(bg.style.width)||bg.naturalWidth||531,h=parseFloat(bg.style.height)||bg.naturalHeight||792;
-    if(!w||!h)return;
-    var delta=e.deltaY<0?1.06:1/1.06,nw=Math.max(80,w*delta),nh=h*(nw/w);
-    var cr=canvas.getBoundingClientRect(),mx=e.clientX-cr.left,my=e.clientY-cr.top;
-    var ox=parseFloat(bg.style.left)||0,oy=parseFloat(bg.style.top)||0;
-    bg.style.width=nw+'px';bg.style.height=nh+'px';
-    bg.style.left=(mx-(mx-ox)/w*nw)+'px';bg.style.top=(my-(my-oy)/h*nh)+'px';
-    updateBgVal(prefix);
-  },{passive:false});
 }
 function bindBgScalePanel(prefix){
   var panelId=prefix==='ddHoriz'?'ddBgScaleHoriz':'ddBgScaleSquare',panel=$(panelId);
@@ -475,14 +532,240 @@ function bindTextEl(el){
 }
 
 /* ---- logo upload ---- */
-function bindLogoUpload(inputId,brandId,multi){
-  var input=$(inputId);if(!input)return;
+/* ---- logo menu & cropper ---- */
+var ddLogoCtx = null;
+var ddLogoCropper = null;
+var ddLogoCropTarget = null;
+
+function ddLogoCloseMenu(){
+  var m = $('ddLogoMenu'); if(m) m.classList.remove('show');
+}
+function ddLogoUpdateMenu(){
+  var m = $('ddLogoMenu'); if(!m) return;
+  var swapBtn = m.querySelector('[data-action="swap"]');
+  var whiteBtn = m.querySelector('[data-action="white"]');
+  if(swapBtn) swapBtn.hidden = !(ddLogoCtx && ddLogoCtx.kind === 'horiz');
+  if(whiteBtn){
+    whiteBtn.textContent = (ddLogoCtx && ddLogoCtx.img && ddLogoCtx.img.dataset.logoWhiteBaseEnabled === '1')
+      ? '取消白底' : '加圓角';
+  }
+}
+function ddLogoOpenMenu(wrap, img, trigger, kind){
+  if(!wrap||!img||!trigger) return;
+  ddLogoCtx = {wrap:wrap, img:img, kind:kind};
+  var m = $('ddLogoMenu'); if(!m) return;
+  ddLogoUpdateMenu();
+  var rect = trigger.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.round(rect.right - 118)) + 'px';
+  m.style.top  = Math.max(8, Math.round(rect.bottom + 6)) + 'px';
+  m.classList.add('show');
+}
+function ddLogoDestroyCtop(){
+  try{ ddLogoCropper && ddLogoCropper.destroy && ddLogoCropper.destroy(); }catch(_){}
+  ddLogoCropper = null;
+}
+function ddLogoOpenCropper(img){
+  if(!img||!img.getAttribute('src')) return;
+  var modal=$('ddLogoCropModal'), cropImg=$('ddLogoCropImg'); if(!modal||!cropImg) return;
+  ddLogoCropTarget = img;
+  cropImg.src = img.getAttribute('src')||'';
+  modal.classList.add('open');
+  ddLogoDestroyCtop();
+  if(window.Cropper){
+    ddLogoCropper = new Cropper(cropImg,{viewMode:1,autoCropArea:1,movable:true,zoomable:true,scalable:true,background:false});
+  }
+}
+function ddLogoRunAction(action){
+  if(!ddLogoCtx||!ddLogoCtx.wrap||!ddLogoCtx.img) return;
+  var wrap=ddLogoCtx.wrap, img=ddLogoCtx.img;
+  if(action==='edit'){ ddLogoOpenCropper(img); return; }
+  if(action==='swap'){
+    var container=wrap.parentElement; if(!container) return;
+    var items=Array.from(container.querySelectorAll('.logo-item')), idx=items.indexOf(wrap);
+    if(idx>=0){ if(idx<items.length-1) container.insertBefore(items[idx+1],wrap); else if(items.length>1) container.insertBefore(wrap,items[0]); }
+    return;
+  }
+  if(action==='delete'){ wrap.remove(); return; }
+  if(action==='white'){
+    // 比照 hbn.html 的 addWhiteBaseToLogoCanvas 完整實作
+    if(img.dataset.logoWhiteBaseEnabled==='1'){
+      // 還原
+      var original=img.dataset.logoOriginalSrc||'';
+      if(original){ img.src=original; }
+      img.dataset.logoWhiteBaseEnabled=''; img.dataset.logoWhiteBaseRatio=''; img.dataset.logoOriginalSrc='';
+    } else {
+      ddLogoApplyWhiteBase(img);
+    }
+    ddLogoUpdateMenu();
+  }
+}
+function ddLogoAttachTrigger(wrap, img, kind){
+  if(!wrap||!img) return;
+  wrap.style.overflow='visible';
+  var trigger=wrap.querySelector('.logo-v14-trigger');
+  if(!trigger){
+    trigger=document.createElement('div');
+    trigger.className='logo-v14-trigger'; trigger.textContent='✎'; trigger.title='Logo 功能';
+    wrap.appendChild(trigger);
+  }
+  trigger.style.display='flex';
+  if(trigger.dataset.v14bound==='1') return;
+  trigger.dataset.v14bound='1';
+  trigger.addEventListener('click',function(e){
+    var liveImg=wrap.querySelector('img');
+    if(!liveImg||!liveImg.getAttribute('src')) return;
+    e.preventDefault(); e.stopPropagation();
+    ddLogoOpenMenu(wrap,liveImg,trigger,kind);
+  },true);
+}
+/* ---- logo white-base (比照 hbn.html) ---- */
+function ddGetAlphaBounds(srcCanvas, alphaThreshold){
+  var w=srcCanvas.width, h=srcCanvas.height;
+  var ctx=srcCanvas.getContext('2d');
+  var data=ctx.getImageData(0,0,w,h).data;
+  var minX=w,minY=h,maxX=-1,maxY=-1;
+  for(var y=0;y<h;y++){for(var x=0;x<w;x++){var a=data[(y*w+x)*4+3];if(a>alphaThreshold){if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;}}}
+  if(maxX<minX||maxY<minY) return null;
+  return{minX:minX,minY:minY,maxX:maxX,maxY:maxY};
+}
+function ddColorDistSq(a,b){var dr=(a[0]||0)-(b[0]||0),dg=(a[1]||0)-(b[1]||0),db=(a[2]||0)-(b[2]||0);return dr*dr+dg*dg+db*db;}
+function ddExtractSmartLogoBounds(srcCanvas){
+  var alphaBounds=ddGetAlphaBounds(srcCanvas,1);if(!alphaBounds) return null;
+  var w=srcCanvas.width,h=srcCanvas.height,ctx=srcCanvas.getContext('2d');
+  var data=ctx.getImageData(0,0,w,h).data;
+  function at(x,y){var i=(y*w+x)*4;return[data[i],data[i+1],data[i+2],data[i+3]];}
+  var corners=[at(0,0),at(Math.max(0,w-1),0),at(0,Math.max(0,h-1)),at(Math.max(0,w-1),Math.max(0,h-1))];
+  var opaqueCorners=corners.filter(function(c){return(c[3]||0)>245;});
+  if(!opaqueCorners.length) return alphaBounds;
+  var avg=[0,0,0,255];
+  opaqueCorners.forEach(function(c){avg[0]+=c[0];avg[1]+=c[1];avg[2]+=c[2];});
+  avg[0]/=opaqueCorners.length;avg[1]/=opaqueCorners.length;avg[2]/=opaqueCorners.length;
+  var similarCount=corners.filter(function(c){return(c[3]||0)>245&&ddColorDistSq(c,avg)<=(28*28*3);}).length;
+  if(similarCount<3) return alphaBounds;
+  var visited=new Uint8Array(w*h),q=[];
+  function enqueue(x,y){
+    if(x<0||y<0||x>=w||y>=h) return;
+    var idx=y*w+x;if(visited[idx]) return;
+    var i=idx*4;if(data[i+3]<245) return;
+    if(ddColorDistSq([data[i],data[i+1],data[i+2]],avg)>(42*42*3)) return;
+    visited[idx]=1;q.push(idx);
+  }
+  for(var xx=0;xx<w;xx++){enqueue(xx,0);enqueue(xx,h-1);}
+  for(var yy=0;yy<h;yy++){enqueue(0,yy);enqueue(w-1,yy);}
+  while(q.length){var idx=q.pop(),qx=idx%w,qy=idx/w|0;enqueue(qx-1,qy);enqueue(qx+1,qy);enqueue(qx,qy-1);enqueue(qx,qy+1);}
+  var minX=w,minY=h,maxX=-1,maxY=-1;
+  for(var yyy=0;yyy<h;yyy++){for(var xxx=0;xxx<w;xxx++){var iii=yyy*w+xxx;if(data[iii*4+3]<=1||visited[iii]) continue;if(xxx<minX)minX=xxx;if(yyy<minY)minY=yyy;if(xxx>maxX)maxX=xxx;if(yyy>maxY)maxY=yyy;}}
+  if(maxX<minX||maxY<minY) return alphaBounds;
+  return{minX:minX,minY:minY,maxX:maxX,maxY:maxY};
+}
+function ddAddWhiteBaseToLogoCanvas(srcCanvas){
+  var bounds=ddExtractSmartLogoBounds(srcCanvas)||ddGetAlphaBounds(srcCanvas,1);
+  if(!bounds) return srcCanvas;
+  var cropX=Math.max(0,bounds.minX),cropY=Math.max(0,bounds.minY);
+  var cropW=Math.max(1,bounds.maxX-bounds.minX+1),cropH=Math.max(1,bounds.maxY-bounds.minY+1);
+  // 取左上角平均色
+  var sample=document.createElement('canvas');sample.width=3;sample.height=3;
+  var sctx=sample.getContext('2d');sctx.drawImage(srcCanvas,0,0,3,3,0,0,3,3);
+  var sd=sctx.getImageData(0,0,3,3).data,sr=0,sg=0,sb=0,sa=0,sc=0;
+  for(var i=0;i<sd.length;i+=4){sr+=sd[i];sg+=sd[i+1];sb+=sd[i+2];sa+=sd[i+3];sc++;}
+  var avgA=sa/Math.max(1,sc);
+  var bgColor=avgA<10?'#ffffff':('rgba('+Math.round(sr/sc)+','+Math.round(sg/sc)+','+Math.round(sb/sc)+','+(avgA/255).toFixed(3)+')');
+  // specRadius = 20（與 hbn.html 一致）
+  var specOuterH=50,insetRatio=0.15,specPad=specOuterH*insetRatio;
+  var specDrawableH=Math.max(1,specOuterH-specPad*2);
+  var densityScale=Math.max(1,cropH/specDrawableH);
+  var pad=Math.max(1,Math.round(specPad*densityScale));
+  var outW=Math.max(1,Math.round(cropW+pad*2)),outH=Math.max(1,Math.round(cropH+pad*2));
+  var drawX=Math.round((outW-cropW)/2),drawY=Math.round((outH-cropH)/2);
+  var out=document.createElement('canvas');out.width=outW;out.height=outH;
+  var ctx=out.getContext('2d');
+  var specRadius=20,rr=Math.min(Math.round(specRadius*densityScale),outH/2,outW/2);
+  ctx.beginPath();
+  ctx.moveTo(rr,0);ctx.lineTo(outW-rr,0);ctx.arcTo(outW,0,outW,rr,rr);
+  ctx.lineTo(outW,outH-rr);ctx.arcTo(outW,outH,outW-rr,outH,rr);
+  ctx.lineTo(rr,outH);ctx.arcTo(0,outH,0,outH-rr,rr);
+  ctx.lineTo(0,rr);ctx.arcTo(0,0,rr,0,rr);
+  ctx.closePath();ctx.fillStyle=bgColor;ctx.fill();
+  ctx.drawImage(srcCanvas,cropX,cropY,cropW,cropH,drawX,drawY,cropW,cropH);
+  return out;
+}
+function ddLogoApplyWhiteBase(img){
+  if(!img) return;
+  var source=img.dataset.logoOriginalSrc||img.getAttribute('src')||'';
+  if(!source) return;
+  var base=new Image();
+  base.crossOrigin='anonymous';
+  base.onload=function(){
+    var tmp=document.createElement('canvas');
+    tmp.width=Math.max(1,base.naturalWidth||base.width);
+    tmp.height=Math.max(1,base.naturalHeight||base.height);
+    var tctx=tmp.getContext('2d');tctx.drawImage(base,0,0);
+    var out=ddAddWhiteBaseToLogoCanvas(tmp);
+    var url=out.toDataURL('image/png');
+    img.dataset.logoOriginalSrc=source;
+    img.dataset.logoWhiteBaseEnabled='1';
+    img.dataset.logoWhiteBaseRatio=String(out.width/out.height);
+    img.src=url;
+    ddLogoUpdateMenu();
+  };
+  base.src=source;
+}
+
+function initLogoMenu(){
+  // bind menu clicks
+  var menu=$('ddLogoMenu');
+  if(menu && !menu.dataset.bound){
+    menu.dataset.bound='1';
+    menu.addEventListener('mousedown',function(e){e.stopPropagation();},true);
+    menu.addEventListener('click',function(e){
+      var btn=e.target&&e.target.closest?e.target.closest('button[data-action]'):null;
+      if(!btn) return; e.preventDefault(); e.stopPropagation();
+      ddLogoRunAction(btn.dataset.action); ddLogoCloseMenu();
+    },true);
+  }
+  // bind cropper modal
+  var apply=$('ddLogoCropApply'), close=$('ddLogoCropClose'), modal=$('ddLogoCropModal');
+  if(apply&&!apply.dataset.bound){
+    apply.dataset.bound='1';
+    apply.addEventListener('click',function(){
+      if(!ddLogoCropTarget||!ddLogoCropper) return;
+      var out=ddLogoCropper.getCroppedCanvas(); if(!out) return;
+      ddLogoCropTarget.src=out.toDataURL('image/png');
+      ddLogoDestroyCtop(); if(modal) modal.classList.remove('open'); ddLogoCropTarget=null;
+    });
+  }
+  if(close&&!close.dataset.bound){
+    close.dataset.bound='1';
+    close.addEventListener('click',function(){ddLogoDestroyCtop();if(modal)modal.classList.remove('open');ddLogoCropTarget=null;});
+  }
+  // close menu on outside click
+  document.addEventListener('click',function(e){
+    if(e.target&&e.target.closest&&(e.target.closest('#ddLogoMenu')||e.target.closest('.logo-v14-trigger'))) return;
+    ddLogoCloseMenu();
+  },true);
+}
+
+function makeLogo(url, root, kind){
+  var wrap=document.createElement('div'); wrap.className='logo-item';
+  var img=document.createElement('img'); img.src=url; img.alt='logo'; img.draggable=false;
+  wrap.appendChild(img);
+  ddLogoAttachTrigger(wrap, img, kind||'horiz');
+  return wrap;
+}
+
+function bindLogoUpload(inputId, brandId, multi, kind){
+  var input=$(inputId); if(!input) return;
   input.addEventListener('change',async function(e){
-    var files=Array.from(e.target.files||[]);if(!files.length)return;
-    var root=$(brandId);if(!root)return;
-    while(root.firstChild)root.removeChild(root.firstChild);
-    var toLoad=files.slice(0,multi?3:1);
-    for(var i=0;i<toLoad.length;i++){var url=await readFile(toLoad[i]);var img=document.createElement('img');img.src=url;img.alt='logo';root.appendChild(img);}
+    var files=Array.from(e.target.files||[]); if(!files.length) return;
+    var root=$(brandId); if(!root) return;
+    var existing=root.querySelectorAll('.logo-item').length;
+    var max=multi?3:1, remain=Math.max(0,max-existing);
+    if(remain<=0){showToast('Logo 最多只能上傳 '+max+' 張','err',1600);e.target.value='';return;}
+    var toLoad=files.slice(0,remain);
+    for(var i=0;i<toLoad.length;i++){
+      var url=await readFile(toLoad[i]);
+      root.appendChild(makeLogo(url,root,kind||'horiz'));
+    }
     e.target.value='';
   });
 }
@@ -497,9 +780,9 @@ function getSlots(n){
 }
 function showGuideWarn(prefix){var tip=$(prefix+'GuideWarning');if(!tip)return;clearTimeout(tip._t);tip.classList.add('show');tip._t=setTimeout(function(){tip.classList.remove('show');},1400);}
 function applyProdPos(prefix,box,s){
-  var canvas=$(prefix+'Canvas'),maxW=canvas?(canvas.clientWidth||531):531,maxH=canvas?(canvas.clientHeight||792):792;
-  s.left=Math.max(0,Math.min(s.left,maxW-s.width));s.top=Math.max(0,Math.min(s.top,maxH-s.height));
-  box.style.left=s.left+'px';box.style.top=s.top+'px';box.style.width=s.width+'px';box.style.height=s.height+'px';
+  // 直接套用位置，不限制在畫布範圍內
+  box.style.left=s.left+'px';box.style.top=s.top+'px';
+  box.style.width=s.width+'px';box.style.height=s.height+'px';
   box.dataset.fixedW=String(Math.round(s.width));box.dataset.fixedH=String(Math.round(s.height));
   var ys=prefix==='ddSquare'?[370,674]:[330,674];
   if(ys.some(function(y){return s.top<y+2&&(s.top+s.height)>y-2;}))showGuideWarn(prefix);
@@ -524,8 +807,12 @@ function bindProd(prefix,box,key){
   window.addEventListener('mousemove',function(e){
     if(!dragging&&!resizing)return;
     var dx=e.clientX-sx,dy=e.clientY-sy,s=ddState[prefix].products[key]||{};
-    if(dragging){s.left=sl+dx;s.top=st+dy;s.width=sw;s.height=sh;}
-    else if(resizing){var ratio=sw/Math.max(1,sh),delta=Math.abs(dx)>Math.abs(dy)?dx:dy,nw=Math.max(40,sw+delta);s.left=sl;s.top=st;s.width=nw;s.height=nw/ratio;}
+    if(dragging){
+      s.left=sl+dx; s.top=st+dy; s.width=sw; s.height=sh;
+    } else if(resizing){
+      var ratio=sw/Math.max(1,sh),delta=Math.abs(dx)>Math.abs(dy)?dx:dy,nw=Math.max(40,sw+delta);
+      s.left=sl;s.top=st;s.width=nw;s.height=nw/ratio;
+    }
     ddState[prefix].products[key]=s;applyProdPos(prefix,box,s);
   });
   window.addEventListener('mouseup',function(){if(dragging||resizing){dragging=false;resizing=false;box.classList.remove('active');}});
@@ -693,10 +980,11 @@ function renderBgGrid(cat,search){
 
 /* ---- INIT ---- */
 function init(){
+  initLogoMenu();
   initColors();
   document.querySelectorAll('.dd-canvas [contenteditable="true"]').forEach(bindTextEl);
-  bindLogoUpload('logo-horiz','ddHorizBrand',true);
-  bindLogoUpload('logo-square','ddSquareBrand',false);
+  bindLogoUpload('logo-horiz','ddHorizBrand',true,'horiz');
+  bindLogoUpload('logo-square','ddSquareBrand',false,'square');
   bindItemUpload('items-h','ddHoriz');
   bindItemUpload('items-s','ddSquare');
   bindBgInteraction('ddHoriz');bindBgInteraction('ddSquare');
