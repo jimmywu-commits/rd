@@ -301,6 +301,16 @@
       return key;
     });
 
+    // 保護「第數字代」：如 第1代、第2代，不強加 $ 符號
+    out = out.replace(/(第)(\d+)(代)/g, function(match, prefix, num, suffix){
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({
+        token: key,
+        value: prefix + num + suffix
+      });
+      return key;
+    });
+
     out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
