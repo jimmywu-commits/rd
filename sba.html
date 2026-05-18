@@ -8,7 +8,7 @@
 <!-- underlay restore fix: preserve no-underlay/pending-underlay state on JSON import -->
 <!-- json restore guard: prevent bg onload sync from overwriting saved solid/gradient -->
 <!-- JSON 1:1 patch: preserve app/pc background image, solid layer, gradient layer, tags, logos -->
-<!-- Logo 編輯：不顯示 LOGO 字樣；橫式 logo 改為交換位置；每顆 logo 右上角皆有獨立編輯 icon；logo 編輯隱藏加影子 -->
+<!-- Logo 編輯：不顯示 LOGO 字樣；橫式 logo 限制只能上傳 1 張；logo 編輯隱藏加影子 -->
 <!-- 本版增加：左側文字可直接貼上；Logo 上傳後可拖曳、滑鼠滾輪縮放 -->
 <!-- 背景圖編輯功能比照原始 hbn.html：上傳後可自由拖曳、自由縮放，不受紅線/CTA/禁區限制 -->
 
@@ -87,7 +87,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   .pc-canvas{position:relative;width:992px;height:165px;overflow:visible;border-radius:0;background:#c2dff3;margin:10px 0 4px}
   .pc-canvas .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 
-  /* 橫式 Logo：最多 3 個，限高 50px、間距 15px、寬不限（.brand margin:0） */
+  /* 橫式 Logo：只能 1 個，限高 50px、寬不限（.brand margin:0） */
   #horiz .brand{position:absolute;left:88px;top:122px;display:flex;align-items:center;gap:15px;max-width:490px;overflow:visible;z-index:5;margin:0}
   #horiz .brand img{height:50px;max-height:50px;width:auto;max-width:none;object-fit:contain;display:block}
 
@@ -1550,10 +1550,10 @@ label:has(#editZoom){
 
     <!-- 第二排：上傳 -->
     <div class="toolbar">
-      <label>上傳LOGO（最多3張）：<input id="logo-horiz" type="file" accept="image/*" multiple></label>
+      <label>上傳LOGO（限1張）：<input id="logo-horiz" type="file" accept="image/*"></label>
       <label>上傳底圖：<input id="bg-horiz" type="file" accept="image/*"></label>
       <label>上傳商品圖（最多3張）：<input id="items-h" type="file" accept="image/*" multiple></label>
-      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
+      <span class="note">主標限8字、副標限7字、日期限14字（英數算0.5字）｜Logo 限1張，可左右微調與編輯｜商品圖上傳會檢查尺寸與DPI；超過2000px會縮圖；進入編輯器若超過800x800會自動縮小視覺比例</span>
     </div>
 
     <!-- APP 橫式 -->
@@ -1905,6 +1905,35 @@ label:has(#editZoom){
 
     input.addEventListener('change', async e=>{
       const incoming = Array.from(e.target.files || []);
+      if(!incoming.length){
+        input.value = '';
+        return;
+      }
+
+      // Logo 上傳改成「只能 1 張」。再次上傳時以新檔取代舊檔，
+      // 不再累加多顆 logo，也避免 PC 同步抓到舊的第一顆。
+      if(max === 1){
+        if(incoming.length > 1 && typeof showToast === 'function'){
+          showToast('Logo 只能上傳 1 張，已使用第一張', 'warn', 1800);
+        }
+        container.querySelectorAll('.logo-item').forEach(node=>node.remove());
+        Array.from(container.children).forEach(node=>{
+          if(node.tagName && node.tagName.toLowerCase() === 'img') node.remove();
+        });
+
+        const url = await readAsDataURL(incoming[0]);
+        const wrap = document.createElement('div');
+        wrap.className = 'logo-item';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Logo';
+        wrap.appendChild(img);
+        container.appendChild(wrap);
+        applyLogoOrderEditing();
+        input.value = '';
+        return;
+      }
+
       const existingCount = container.querySelectorAll('.logo-item').length;
       const remain = Math.max(0, max - existingCount);
 
@@ -2147,7 +2176,7 @@ label:has(#editZoom){
   }
 
 
-  bindUploadMultiple('logo-horiz','#brandH',3);
+  bindUploadMultiple('logo-horiz','#brandH',1);
 
   const syncAllLogoDisplaySizes = ()=>{
     document.querySelectorAll('#brandH img, #brandPHImg, #brandImgS, #brandPSImg').forEach(syncLogoDisplaySize);
@@ -5444,7 +5473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (state.editorItems?.editorH || []).forEach(item => buildEditorItem('editorH', item));
     (state.editorItems?.editorS || []).forEach(item => buildEditorItem('editorS', item));
 
-    rebuildHorizontalLogos(state.logos?.horiz || []);
+    rebuildHorizontalLogos((state.logos?.horiz || []).slice(0, 1));
     rebuildSquareLogo(state.logos?.square || {}, state.logos?.pc || {});
 
     const restoreDdEditState = ()=>{
