@@ -1,0 +1,1202 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>商品圖片上傳 Prompt 構圖工具 Pro+</title>
+<style>
+:root{
+  --bg:#0f1117;--panel:#171a23;--line:#2b3040;--text:#f5f7fb;--muted:#9aa3b2;
+  --accent:#8dd3ff;--warn:#ffd166;--green:#7cf0bd;--soft:#242a38;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#0f1117,#181c28);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif}
+.app{display:grid;grid-template-columns:390px 1fr 470px;gap:16px;padding:16px;min-height:100vh}
+.panel{background:rgba(23,26,35,.94);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+
+.helpFloating{
+  position:fixed;
+  top:18px;
+  right:18px;
+  height:42px;
+  min-width:132px;
+  padding:0 12px 0 10px;
+  border-radius:999px;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.18);
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  cursor:pointer;
+  z-index:9999;
+  transition:.18s ease;
+  box-shadow:0 14px 34px rgba(0,0,0,.22);
+}
+.helpFloating:hover{
+  transform:translateY(-2px);
+  background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.08));
+  border-color:rgba(255,255,255,.28);
+}
+.helpIconCircle{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+.helpFloating svg{
+  width:17px;
+  height:17px;
+  stroke:white;
+  stroke-width:1.9;
+  fill:none;
+  opacity:.96;
+}
+.helpTooltip{
+  position:static;
+  white-space:nowrap;
+  background:transparent;
+  border:0;
+  color:#f4f7ff;
+  padding:0;
+  border-radius:0;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+  opacity:.96;
+  pointer-events:none;
+  backdrop-filter:none;
+}
+.helpTooltip:after{
+  content:"";
+  display:inline-block;
+  width:5px;
+  height:5px;
+  margin-left:7px;
+  border-top:1.5px solid rgba(255,255,255,.9);
+  border-right:1.5px solid rgba(255,255,255,.9);
+  transform:rotate(45deg) translateY(-1px);
+}
+.manualOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.74);
+  backdrop-filter:blur(8px);
+  z-index:10000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:34px;
+}
+.manualOverlay.show{
+  display:flex;
+}
+.manualCard{
+  position:relative;
+  max-width:min(92vw,1200px);
+  max-height:90vh;
+  border-radius:24px;
+  overflow:hidden;
+  background:#0f1117;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+}
+.manualCard img{
+  display:block;
+  max-width:100%;
+  max-height:90vh;
+  object-fit:contain;
+  background:#0f1117;
+}
+.manualClose{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(15,17,23,.74);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:22px;
+  font-weight:700;
+  backdrop-filter:blur(8px);
+  transition:.18s ease;
+}
+.manualClose:hover{
+  transform:scale(1.05);
+  background:rgba(255,255,255,.10);
+}
+
+.brandMark{font-size:12px;font-weight:900;letter-spacing:.12em;color:#ff8a00;margin:0 0 4px;text-transform:uppercase}
+h1{font-size:21px;margin:0 0 8px}
+h2{font-size:15px;margin:18px 0 10px}
+p,label{color:var(--muted);line-height:1.5}
+label{display:block;font-size:12px;margin:10px 0 6px}
+input,select,textarea,button{
+  width:100%;border-radius:12px;border:1px solid var(--line);background:#11141c;color:var(--text);padding:10px;font-size:14px
+}
+textarea{resize:vertical}
+button{cursor:pointer;background:linear-gradient(135deg,#6ac6ff,#9b8cff);border:0;color:#06101a;font-weight:800}
+.secondary{background:#252b39;color:var(--text);border:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stageShell{
+  width:min(100%, calc(100vh - 190px));
+  max-width:760px;
+  min-width:360px;
+  aspect-ratio:1/1;
+  margin:0 auto;
+}
+.stage{
+  position:relative;
+  width:100%;
+  height:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  border-radius:22px;
+  border:1px solid var(--line);
+  background:
+    linear-gradient(180deg,#f7f9fc 0%,#ffffff 56%,#eef2f7 100%);
+}
+.stage:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:22px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.74),rgba(255,255,255,.08) 46%,rgba(210,220,232,.18)),
+    linear-gradient(180deg,transparent 0 72%,rgba(210,220,232,.24) 72%,rgba(245,247,250,.72) 100%);
+  pointer-events:none;
+}
+.stage.showGrid{
+  background:
+    linear-gradient(rgba(20,25,36,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,25,36,.07) 1px, transparent 1px),
+    linear-gradient(180deg,#f7f9fc 0%,#ffffff 56%,#eef2f7 100%);
+  background-size:10% 10%,10% 10%,auto;
+}
+.baseline{position:absolute;left:6%;right:6%;top:76%;border-top:2px dashed rgba(255,209,102,.8);z-index:2;pointer-events:none}
+.baseline:after{content:"商品底線 / same floor line";position:absolute;right:0;top:5px;color:#9a6b00;background:rgba(255,255,255,.72);padding:3px 7px;border-radius:999px;font-size:11px}
+.product{
+  position:absolute;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);border-radius:14px;
+  background:rgba(15,17,23,.35);box-shadow:0 16px 28px rgba(0,0,0,.24);cursor:grab;user-select:none;overflow:visible;touch-action:none
+}
+.product img{width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 14px 12px rgba(0,0,0,.28))}.product.trimmed{background:rgba(124,240,189,.06)}
+.product img{
+  opacity:.32;
+  transition:opacity .18s ease, filter .18s ease, transform .18s ease;
+}
+.product.active img,
+.product:hover img{
+  opacity:.92;
+}
+.product::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 22%),
+    radial-gradient(circle at 50% 50%,rgba(141,211,255,.04),transparent 70%);
+  pointer-events:none;
+}
+.product.active{
+  backdrop-filter:blur(1.5px);
+}
+.product:not(.active) .label{
+  opacity:.72;
+}
+.canvasGuide{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+}
+.canvasGuide:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  border-left:1px dashed rgba(255,255,255,.08);
+}
+.canvasGuide:after{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:0;
+  right:0;
+  border-top:1px dashed rgba(255,255,255,.08);
+}
+.centerFocus{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:42%;
+  height:42%;
+  transform:translate(-50%,-50%);
+  border:1px dashed rgba(141,211,255,.14);
+  border-radius:22px;
+  pointer-events:none;
+  z-index:1;
+}
+
+.product .label{
+  position:absolute;left:0;top:-25px;background:#11141c;border:1px solid var(--line);border-radius:999px;padding:4px 8px;
+  font-size:12px;color:#dce7ff;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis
+}
+.product:after{content:"";position:absolute;left:14%;right:14%;bottom:-12px;height:14px;background:rgba(0,0,0,.18);filter:blur(8px);border-radius:50%;z-index:-1}
+.product.active{outline:3px solid var(--warn)}
+.product.hero{border-color:var(--green);box-shadow:0 0 0 1px rgba(124,240,189,.2),0 16px 28px rgba(0,0,0,.24)}
+.product.hero .label:after{content:" HERO";color:#06101a;background:var(--green);border-radius:999px;padding:2px 5px;margin-left:5px;font-weight:900}
+.handle{position:absolute;width:17px;height:17px;border-radius:50%;background:var(--accent);border:2px solid #06101a;z-index:5}
+.handle.nw{left:-8px;top:-8px;cursor:nwse-resize}.handle.ne{right:-8px;top:-8px;cursor:nesw-resize}
+.handle.sw{left:-8px;bottom:-8px;cursor:nesw-resize}.handle.se{right:-8px;bottom:-8px;cursor:nwse-resize}
+.output{height:560px;white-space:pre-wrap;line-height:1.55;transition:box-shadow .25s,border-color .25s}
+.output.updated{animation:pulseGreen 1.15s ease-out 1}
+@keyframes pulseGreen{0%{border-color:var(--line);box-shadow:0 0 0 rgba(124,240,189,0)}22%{border-color:var(--green);box-shadow:0 0 22px rgba(124,240,189,.55)}100%{border-color:var(--line);box-shadow:0 0 0 rgba(124,240,189,0)}}
+.hint{padding:10px;border-radius:14px;background:rgba(141,211,255,.08);border:1px solid rgba(141,211,255,.25);color:#dce7ff}
+.hidden{display:none}
+.fileDrop{border:1px dashed #4a5266;border-radius:14px;padding:12px;background:#11141c;color:#cfd7e7;text-align:center}
+.fileDrop input{margin-top:8px}
+.productList{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:8px;background:#11141c}
+.productItem{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;border-bottom:1px solid #252b39;padding:7px 0;font-size:12px;color:#cfd7e7}
+.productItem:last-child{border-bottom:0}.miniBtn{width:auto;background:#252b39;color:#dce7ff;border:1px solid #384050;padding:6px 8px}.remove{width:auto;background:#2b1f28;color:#ffd5df;border:1px solid #513040;padding:6px 8px}
+.floatTip{position:absolute;right:18px;top:18px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:999px;background:rgba(17,20,28,.58);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:white;font-size:13px;pointer-events:none;animation:floatFade 2.4s ease-in-out infinite}
+.wheelIcon{width:34px;height:34px;border-radius:16px;border:2px solid rgba(255,255,255,.86);position:relative}
+.wheelIcon:before{content:"";position:absolute;left:50%;top:6px;width:4px;height:9px;border-radius:4px;background:white;transform:translateX(-50%);animation:wheelMove 1.15s ease-in-out infinite}
+.wheelIcon:after{content:"↕";position:absolute;left:50%;top:29px;transform:translateX(-50%);font-size:16px;color:white}
+@keyframes wheelMove{0%,100%{top:6px;opacity:.9}50%{top:14px;opacity:.5}}@keyframes floatFade{0%,100%{opacity:.55;transform:translateY(0)}50%{opacity:.95;transform:translateY(-4px)}}
+.copyBtn{margin-top:10px}
+.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.optionCard{border:1px solid var(--line);background:#11141c;border-radius:14px;padding:8px;cursor:pointer;transition:.15s;min-height:86px}
+.optionCard:hover{border-color:#536078;transform:translateY(-1px)}
+.optionCard.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(141,211,255,.18)}
+.thumb{height:44px;border-radius:10px;margin-bottom:7px;border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.optionTitle{font-size:12px;font-weight:800;color:#eef4ff}.optionDesc{font-size:11px;color:#97a1b2;margin-top:2px;line-height:1.25}
+.lightGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lightChip{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;border:1px solid var(--line);background:#11141c;border-radius:14px;padding:7px;cursor:pointer}
+.lightChip.on{border-color:var(--accent);background:rgba(141,211,255,.13)}
+.lightIcon{height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.08)}
+.lightTxt{font-size:12px;color:#dce7ff;font-weight:700}
+.thumb.white{background:radial-gradient(ellipse at 50% 25%,white 0 18%,transparent 19%),linear-gradient(135deg,#eef4fb,#cfd8e4)}
+.thumb.beige{background:radial-gradient(circle at 80% 20%,#fff3d9,transparent 30%),linear-gradient(135deg,#b98b61,#f2dac0)}
+.thumb.clean{background:linear-gradient(90deg,#f8fafc 0 70%,#e8eef6),radial-gradient(circle,#fff,transparent)}
+.thumb.window{background:linear-gradient(135deg,#3b2f2f,#d4b483 45%,#fff2d5)}
+.thumb.gradient{background:linear-gradient(135deg,#76d7ff,#ffc0e8 50%,#fff0a8)}
+.thumb.season{background:radial-gradient(circle at 80% 15%,#ffd166,transparent 22%),linear-gradient(135deg,#fff1f1,#c91f37)}
+.thumb.tech{background:linear-gradient(135deg,#dfe7ef,#8ab6d6),linear-gradient(90deg,#222,#555)}
+.thumb.dark{background:radial-gradient(circle at 50% 35%,#eee,transparent 18%),linear-gradient(135deg,#050505,#30303a)}
+.thumb.custom{background:linear-gradient(135deg,#2a3040,#11141c);position:relative}
+.thumb.custom:after{content:"＋";position:absolute;inset:0;display:grid;place-items:center;color:#8dd3ff;font-size:24px}
+.lightIcon.shadow{background:radial-gradient(ellipse at 50% 80%,rgba(0,0,0,.55),transparent 35%),linear-gradient(#f4f4f4,#d8d8d8)}
+.lightIcon.reflect{background:linear-gradient(#f5f5f5 0 55%,#b7d7e8 56% 100%)}
+.lightIcon.dof{background:radial-gradient(circle at 50% 50%,#fff 0 20%,#8dd3ff 21% 30%,#222 75%)}
+.lightIcon.physical{background:radial-gradient(circle at 25% 25%,#fff,transparent 20%),linear-gradient(135deg,#ffe6a8,#7fb7ff)}
+.lightIcon.rim{background:radial-gradient(circle,#222 0 35%,#8dd3ff 38% 43%,#050505 44%)}
+.lightIcon.space{background:linear-gradient(90deg,#fff 0 66%,#dce7ff 67% 100%)}
+
+.optionCard{
+  overflow:hidden;
+  position:relative;
+}
+.thumb{
+  position:relative;
+  height:76px;
+  border-radius:12px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.thumb:before,.thumb:after{
+  content:"";
+  position:absolute;
+  border-radius:10px;
+}
+.thumb.white:before{
+  width:46%;height:54%;
+  left:27%;top:22%;
+  background:white;
+  box-shadow:0 14px 30px rgba(0,0,0,.12);
+}
+.thumb.white:after{
+  width:74%;height:10%;
+  left:13%;bottom:12%;
+  background:rgba(0,0,0,.08);
+  filter:blur(8px);
+}
+.thumb.beige:before{
+  width:34%;height:62%;
+  left:18%;top:16%;
+  background:linear-gradient(#fff6ea,#f0d2b8);
+  box-shadow:0 12px 22px rgba(0,0,0,.15);
+}
+.thumb.beige:after{
+  width:28%;height:46%;
+  right:18%;top:24%;
+  background:#a36e45;
+  box-shadow:0 12px 22px rgba(0,0,0,.12);
+}
+.thumb.clean:before{
+  width:52%;height:42%;
+  left:24%;top:28%;
+  background:white;
+  box-shadow:0 10px 20px rgba(0,0,0,.10);
+}
+.thumb.clean:after{
+  width:22%;height:100%;
+  right:0;top:0;
+  background:rgba(141,211,255,.22);
+}
+.thumb.window:before{
+  width:58%;height:54%;
+  left:21%;top:20%;
+  background:rgba(255,255,255,.92);
+  border:2px solid rgba(255,255,255,.5);
+}
+.thumb.window:after{
+  width:100%;height:100%;
+  inset:0;
+  background:
+    linear-gradient(90deg,transparent 0 24%,rgba(255,255,255,.18) 24% 26%,transparent 26% 49%,rgba(255,255,255,.18) 49% 51%,transparent 51% 74%,rgba(255,255,255,.18) 74% 76%,transparent 76%);
+}
+.thumb.gradient:before{
+  width:38%;height:52%;
+  left:12%;top:22%;
+  background:white;
+  box-shadow:0 12px 24px rgba(0,0,0,.12);
+}
+.thumb.gradient:after{
+  width:30%;height:38%;
+  right:16%;top:30%;
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(4px);
+}
+.thumb.season:before{
+  width:44%;height:54%;
+  left:28%;top:22%;
+  background:white;
+  box-shadow:0 12px 24px rgba(0,0,0,.14);
+}
+.thumb.season:after{
+  width:14px;height:14px;
+  right:18px;top:14px;
+  border-radius:50%;
+  background:#ffd166;
+  box-shadow:-18px 8px 0 #ff6b6b,-6px 22px 0 #7cf0bd;
+}
+.thumb.tech:before{
+  width:56%;height:34%;
+  left:22%;top:28%;
+  background:linear-gradient(#28313e,#0e131b);
+  border:2px solid #8dd3ff;
+  box-shadow:0 10px 20px rgba(0,0,0,.18);
+}
+.thumb.tech:after{
+  width:42%;height:6%;
+  left:29%;bottom:18%;
+  background:#9bb7ca;
+}
+.thumb.dark:before{
+  width:46%;height:56%;
+  left:27%;top:20%;
+  background:linear-gradient(#2f3640,#0b0c10);
+  box-shadow:0 0 30px rgba(255,255,255,.08);
+}
+.thumb.dark:after{
+  width:72%;height:12%;
+  left:14%;bottom:10%;
+  background:rgba(255,255,255,.10);
+  filter:blur(10px);
+}
+.thumb.custom{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.thumb.custom:before{
+  width:52px;height:52px;
+  border-radius:18px;
+  background:rgba(141,211,255,.12);
+  border:2px dashed rgba(141,211,255,.5);
+}
+.thumb.custom:after{
+  content:"+";
+  position:absolute;
+  color:#8dd3ff;
+  font-size:34px;
+  font-weight:900;
+}
+.optionCard.active .thumb{
+  box-shadow:0 0 0 2px rgba(141,211,255,.25);
+}
+
+.toggleRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+
+.refBadge{
+  position:absolute;
+  right:0;
+  top:-25px;
+  background:rgba(124,240,189,.95);
+  color:#06101a;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.exportRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+.formatHint{
+  margin-top:8px;
+  font-size:12px;
+  color:#9aa3b2;
+  line-height:1.45;
+}
+.uploadWarn{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:12px;
+  background:rgba(255,209,102,.1);
+  border:1px solid rgba(255,209,102,.28);
+  color:#ffe2a0;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.downloadNote{
+  margin-top:8px;
+  font-size:12px;
+  color:#9aa3b2;
+  line-height:1.45;
+}
+
+
+html,body{height:100%;overflow:hidden}
+.app{height:100vh;overflow:hidden}
+.panel{min-height:0;overflow:auto}
+.stagePanel{overflow:hidden;display:flex;flex-direction:column}
+.stageScroll{flex:1;min-height:0;overflow:auto;padding-right:4px}
+.promptPanel{display:flex;flex-direction:column;overflow:hidden}
+.promptPanel .output{flex:1;min-height:240px}
+.promptPanel .promptActions{flex:0 0 auto}
+.exportRow.single{grid-template-columns:1fr}
+
+
+.stage:after{
+  content:"";
+  position:absolute;
+  left:7%;
+  right:7%;
+  top:72%;
+  border-top:1px solid rgba(60,70,88,.10);
+  pointer-events:none;
+}
+.canvasSizeTag{
+  position:absolute;
+  left:14px;
+  top:14px;
+  z-index:3;
+  background:rgba(255,255,255,.72);
+  color:#344054;
+  border:1px solid rgba(52,64,84,.12);
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:800;
+  pointer-events:none;
+}
+
+.layoutStateRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stateFileInput{display:none}
+.thumb.sceneImg{background-size:cover;background-position:center;background-repeat:no-repeat}
+.thumb.sceneImg:before,.thumb.sceneImg:after{display:none !important}
+
+@media(max-width:1180px){
+  .stageShell{width:min(100%, 760px);min-width:0}
+}
+
+
+.layoutStateRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stateFileInput{display:none}
+.thumb.sceneImg{background-size:cover;background-position:center;background-repeat:no-repeat}
+.thumb.sceneImg:before,.thumb.sceneImg:after{display:none !important}
+
+@media(max-width:1180px){.app{grid-template-columns:1fr}.output{height:360px}.optionGrid,.lightGrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="panel leftPanel">
+<div class="brandMark">S.FREELY</div>
+<h1>商品圖片上傳 Prompt 構圖工具 Pro+</h1>
+<p>支援多圖上傳、檔名命名、自動裁掉白底/透明邊界預覽、四角等比例縮放、滾輪等比例縮放、Hero 鎖定、底線對齊、商品角度鎖定與更精準的比例 Prompt。</p>
+
+<h2>商品上傳</h2>
+<div class="fileDrop">可一次選多張圖片<input id="multiUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/avif,image/gif,image/bmp,image/svg+xml,image/*" multiple><div class="formatHint">支援 PNG / JPG / JPEG / WEBP / AVIF / BMP / GIF 靜態預覽 / SVG。建議使用透明 PNG 或 WEBP。</div></div>
+<div id="uploadWarn" class="uploadWarn hidden"></div>
+<label>已上傳商品</label>
+<div class="productList" id="productList"></div>
+
+<h2>場景風格</h2>
+<div class="optionGrid" id="sceneGrid"></div>
+<textarea id="customScene" class="hidden" placeholder="請輸入自訂場景，中文也可以。建議只寫顏色、材質、光影、氛圍，不要寫留白/遠景/重構圖。例如：夏日清爽藍白色棚拍，有水波光影"></textarea>
+
+<h2>用途 / 廣告目的</h2>
+<div class="optionGrid" id="purposeGrid"></div>
+<textarea id="customPurpose" class="hidden" placeholder="請輸入自訂用途，中文也可以。系統會鎖定商品比例與構圖，文案空間只會在背景周圍調整。例如：618 大促首頁 Banner，高級感促銷氛圍"></textarea>
+
+<div class="row">
+<div><label>鏡頭</label><select id="lens"><option>85mm lens</option><option>70mm lens</option><option>50mm lens</option><option>100mm macro lens</option></select></div>
+<div><label>視角</label><select id="angle"><option>front-facing eye-level composition</option><option>slightly low angle hero composition</option><option>slightly top-down product composition</option></select></div>
+</div>
+
+<h2>光影</h2>
+<div class="lightGrid" id="lightGrid"></div>
+
+<label>商品鎖定限制</label>
+<textarea id="lock">ABSOLUTE PRODUCT PRESERVATION RULES — HIGHEST PRIORITY
+
+Treat all uploaded products as final locked image assets and flat locked PNG/image-plane layers.
+
+Never modify the uploaded products:
+- Do not change product angle
+- Do not change product viewing direction
+- Do not change product perspective
+- Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform products
+- Do not convert products into new 3D objects
+- Do not infer hidden sides, backs, thickness, or new perspective planes
+- Do not redesign packaging
+- Do not alter logo placement, label placement, typography, printed graphics, colors, materials, texture, pattern, shape, silhouette, outline, geometry, or proportions
+- Do not beautify, stylize, relight, repaint, retouch, sharpen, upscale, or enhance the product itself
+- Do not generate a similar-looking replacement product
+- Do not hallucinate missing product parts or extend hidden surfaces
+
+Preserve exactly:
+- original uploaded image-plane angle
+- original product outline and visible shape
+- original front-facing / side-facing orientation
+- original product proportions and printed details
+
+Only generate or adjust:
+- background
+- platform / podium
+- lighting around products, not on the product design itself
+- contact shadows
+- environmental reflections
+- atmosphere
+- depth of field</textarea>
+</section>
+
+<section class="panel stagePanel">
+<div class="stageScroll">
+<div class="hint">拖曳商品調整位置；四角可縮放；滑鼠移到商品上可用滾輪縮放。建議把最大主商品設為 HERO，並用底線對齊提升比例準確度。商品預設為半透明預覽模式，避免產生前後景大小錯覺；滑鼠移入或選取時會恢復清晰。</div><br>
+<div class="stageShell"><div class="stage showGrid" id="stage"><div class="canvasSizeTag">1:1 Canvas</div>
+  <div class="canvasGuide"></div><div class="centerFocus"></div><div class="baseline"></div>
+  <div class="floatTip"><span class="wheelIcon"></span><span>滑鼠滾輪<br>放大 / 縮小</span></div>
+</div>
+
+<div class="row" style="margin-top:10px">
+<div>
+<label>商品預覽透明度</label>
+<input id="opacitySlider" type="range" min="10" max="100" value="32">
+</div>
+<div>
+<label>選取時透明度</label>
+<input id="activeOpacitySlider" type="range" min="40" max="100" value="92">
+</div>
+</div>
+<div class="toggleRow">
+<button class="secondary" id="snapBase">吸附到底線</button>
+<button class="secondary" id="toggleGrid">顯示 / 隱藏格線</button>
+</div><br>
+<div class="layoutStateRow">
+<button class="secondary" id="downloadLayoutState">下載構圖暫存</button>
+<button class="secondary" id="uploadLayoutStateBtn">上傳構圖暫存</button>
+<input class="stateFileInput" id="uploadLayoutState" type="file" accept="application/json,.json">
+</div>
+<button class="secondary" id="clearAll">清除全部商品</button>
+</div>
+</section>
+
+<section class="panel promptPanel">
+<h2>生成 Prompt</h2>
+<textarea id="out" class="output"></textarea>
+<div class="promptActions"><button id="copy" class="copyBtn">複製 Prompt</button>
+<div class="exportRow single"><button id="exportLayout">下載 Layout PNG</button></div>
+<div class="downloadNote">建議：把 Layout PNG 與所有商品原圖一起上傳到生成工具，並貼上完整 Prompt。Layout PNG 用來鎖定比例、位置與構圖。</div></div>
+</section>
+</div>
+
+<script>
+const stage=document.getElementById('stage'), out=document.getElementById('out'), productList=document.getElementById('productList'), multiUpload=document.getElementById('multiUpload');
+let active=null, drag=null, idSeq=0, selectedScene=0, selectedPurpose=0;
+
+const scenes=[
+ ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機'],
+ ['white','未來感白色棚','product-centric futuristic luxury white studio atmosphere, smooth curved architecture, circular podium, glowing ceiling ring light, background adapts around locked products','乾淨精品感'],
+ ['beige','暖米色棚拍','product-centric warm beige premium studio atmosphere, soft fabric backdrop, stone podium, natural luxury lighting, background adapts around locked products','美妝/保養適合'],
+ ['clean','電商乾淨 Banner','product-centric clean premium e-commerce banner environment, bright clean background, controlled whitespace around locked products, products remain large and dominant, background adapts around product layout','轉換導向'],
+ ['window','百貨精品櫥窗','product-centric premium department store window display atmosphere, reflective surfaces, elegant shopping mood, background adapts around locked products','高級櫥窗感'],
+ ['gradient','漸層數位 Banner','product-centric soft gradient color background, subtle modern digital commerce accents, controlled decorative shapes behind locked products, products remain dominant','年輕活動感'],
+ ['season','節慶促銷場景','product-centric seasonal campaign atmosphere, elegant festive accents behind products, premium online promotion mood, products remain dominant and unchanged','大促/節日'],
+ ['tech','科技生活棚拍','product-centric tech lifestyle studio atmosphere, clean desk platform, soft daylight, modern consumer electronics mood, background adapts around locked products','3C/家電'],
+ ['dark','黑色高級展示間','product-centric dark luxury showroom atmosphere, glossy black platform, dramatic spotlight around products, premium reflections, products remain dominant','精品/高單價'],
+ ['custom','自訂場景','custom','中文輸入可用']
+];
+const purposes=[
+ ['clean','精品商業廣告','product-centric high-end luxury commercial advertisement, photorealistic product photography, locked product layout remains the main visual priority','高級形象'],
+ ['gradient','首頁 Hero Banner','product-centric e-commerce hero banner, premium clean commercial look, controlled copy space around locked products, do not shrink or move products for text space','首頁主視覺'],
+ ['season','Marketplace 活動','product-centric marketplace campaign banner, strong product focus, clean promotional atmosphere suitable for e-commerce platforms, product layout remains locked','平台活動'],
+ ['white','新品上市','product-centric new product launch campaign, hero product hierarchy, premium reveal atmosphere, product scale and placement remain locked','新品主推'],
+ ['window','季節促銷','product-centric seasonal sale campaign banner, attractive premium promotion mood, controlled whitespace around products, do not shrink products for promotional space','檔期促銷'],
+ ['beige','美妝保養','product-centric beauty and skincare advertising atmosphere, soft lighting, elegant premium texture, product layout remains locked','柔光質感'],
+ ['tech','3C 電子產品','product-centric consumer electronics advertising atmosphere, sleek modern design, sharp premium lighting, product layout remains locked','俐落科技'],
+ ['dark','時尚生活','product-centric fashion and lifestyle campaign mood, aspirational premium atmosphere, no editorial reframing, product layout remains locked','雜誌形象'],
+ ['custom','自訂用途','custom','中文輸入可用']
+];
+const lights=[
+ ['shadow','接地陰影','realistic contact shadows under every product',true],
+ ['reflect','環境反光','subtle ambient reflections on the podium',true],
+ ['dof','景深','soft cinematic depth of field',true],
+ ['physical','真實光線互動','physically accurate lighting interaction with products',true],
+ ['rim','輪廓光','premium rim light around product edges',false],
+ ['space','保留文字空間','large clean negative space reserved for banner copywriting',false]
+];
+
+function renderCards(){
+  sceneGrid.innerHTML=scenes.map((s,i)=>{
+    const imgPath = `./場景縮圖/${s[1]}.png`;
+    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="background-image:url('${imgPath}')"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">SCENE PREVIEW</div></div>`;
+  }).join('');
+  purposeGrid.innerHTML=purposes.map((s,i)=>`<div class="optionCard ${i===selectedPurpose?'active':''}" data-type="purpose" data-i="${i}"><div class="thumb ${s[0]}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">VISUAL STYLE PREVIEW</div></div>`).join('');
+  lightGrid.innerHTML=lights.map((l,i)=>`<div class="lightChip ${l[3]?'on':''}" data-i="${i}"><div class="lightIcon ${l[0]}"></div><div class="lightTxt">${l[1]}</div></div>`).join('');
+  document.querySelectorAll('.optionCard').forEach(c=>c.onclick=()=>{ if(c.dataset.type==='scene') selectedScene=+c.dataset.i; else selectedPurpose=+c.dataset.i; renderCards(); updateCustomVisibility(); leftChanged(); });
+  document.querySelectorAll('.lightChip').forEach(c=>c.onclick=()=>{ lights[+c.dataset.i][3]=!lights[+c.dataset.i][3]; renderCards(); leftChanged(); });
+}
+function fileBaseName(fileName){return fileName.replace(/\.[^/.]+$/,'').replace(/[_-]+/g,' ').trim();}
+function pct(n){return Math.round(n*10)/10}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+const dangerousCompositionTerms=[
+  'negative space','large negative space','wide composition','wide shot','wide angle',
+  'cinematic framing','editorial framing','editorial composition','minimal composition',
+  'dynamic perspective','dramatic perspective','reframe','re-framing','zoom out',
+  'pull back camera','move products','resize products','shrink products','small products',
+  'text-first layout','copy-first layout','asymmetric wide layout'
+];
+function sanitizeCustomPromptText(text){
+  let cleaned=text || '';
+  dangerousCompositionTerms.forEach(term=>{
+    const re=new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig');
+    cleaned=cleaned.replace(re,'controlled product-centric styling');
+  });
+  return cleaned.trim();
+}
+
+
+const luckyMaterials=['brushed metal','translucent acrylic','frosted glass','soft velvet','matte ceramic','polished marble','liquid chrome','warm paper texture','silky fabric','micro cement','clear resin','pearlescent plastic','crystal glass','gradient acrylic'];
+const luckyColors=['icy blue and silver','warm ivory and champagne gold','lavender and pearl white','deep navy and electric cyan','soft peach and cream','emerald and graphite','sunset orange and rose gold','monochrome white with subtle gray','mint green and transparent glass','black titanium and amber'];
+const luckyMoods=['quiet luxury','futuristic premium','fresh summer commerce','high-conversion product launch','playful but premium','minimal boutique','dramatic luxury retail','soft editorial beauty','clean tech commercial','festive limited edition'];
+const luckyProps=['subtle floating geometric accents','soft halo light','curved pedestal layers','thin transparent panels','gentle fabric folds','abstract light streaks','minimal premium props','clean reflective floor','soft bokeh particles','floating color blocks'];
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function buildLuckyPrompt(){
+  return `product-centric surprise creative direction: ${pick(luckyMoods)} atmosphere, ${pick(luckyColors)} palette, ${pick(luckyMaterials)} material feeling, ${pick(luckyProps)} behind and around the locked products. Make it visually fresh and suitable for e-commerce advertising, but keep all product layout, size, position, hierarchy, and composition fully locked. Background adapts around the products.`;
+}
+
+function getSceneText(){
+  if(scenes[selectedScene][2]==='LUCKY_RANDOM_STYLE'){
+    return buildLuckyPrompt();
+  }
+  if(scenes[selectedScene][2]==='custom'){
+    const v=sanitizeCustomPromptText(customScene.value.trim());
+    return v?`STYLE-ONLY CUSTOM SCENE: ${v}. Use this only for background color, materials, atmosphere, lighting mood, architecture, and set decoration. Do not use it to change composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing. Translate Chinese creative direction into fluent English prompt language while preserving the meaning.`:'custom user-defined product-centric scene styling';
+  }
+  return scenes[selectedScene][2];
+}
+function getPurposeText(){
+  if(purposes[selectedPurpose][2]==='custom'){
+    const v=sanitizeCustomPromptText(customPurpose.value.trim());
+    return v?`STYLE-ONLY CUSTOM COMMERCIAL PURPOSE: ${v}. Use this only for marketing mood and background atmosphere. Do not use it to change composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing. Translate Chinese commercial purpose into fluent English prompt language while preserving the meaning.`:'custom user-defined product-centric commercial purpose';
+  }
+  return purposes[selectedPurpose][2];
+}
+function markUpdated(){out.classList.remove('updated');void out.offsetWidth;out.classList.add('updated')}
+function leftChanged(){gen();markUpdated()}
+function updateCustomVisibility(){customScene.classList.toggle('hidden', scenes[selectedScene][2]!=='custom');customPurpose.classList.toggle('hidden', purposes[selectedPurpose][2]!=='custom')}
+function productHandles(){return '<div class="handle nw" data-corner="nw"></div><div class="handle ne" data-corner="ne"></div><div class="handle sw" data-corner="sw"></div><div class="handle se" data-corner="se"></div>'}
+
+
+const supportedTypes=['image/png','image/jpeg','image/jpg','image/webp','image/avif','image/gif','image/bmp','image/svg+xml'];
+function showUploadWarn(msg){
+  const w=document.getElementById('uploadWarn');
+  if(!w)return;
+  w.textContent=msg;
+  w.classList.remove('hidden');
+  clearTimeout(window.__uploadWarnTimer);
+  window.__uploadWarnTimer=setTimeout(()=>w.classList.add('hidden'),5200);
+}
+function isLikelySupportedImage(file){
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  return file.type.startsWith('image/') || ['png','jpg','jpeg','webp','avif','gif','bmp','svg'].includes(ext);
+}
+async function normalizeToPngDataUrl(img){
+  const max=1400;
+  const scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+  const w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+  const h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+  return c.toDataURL('image/png');
+}
+
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=reject;
+    img.src=URL.createObjectURL(file);
+  });
+}
+function sampleCornerBrightness(data,w,h){
+  const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];
+  let r=0,g=0,b=0,a=0,n=0;
+  pts.forEach(([x,y])=>{
+    for(let yy=Math.max(0,y-4);yy<=Math.min(h-1,y+4);yy++){
+      for(let xx=Math.max(0,x-4);xx<=Math.min(w-1,x+4);xx++){
+        const i=(yy*w+xx)*4;r+=data[i];g+=data[i+1];b+=data[i+2];a+=data[i+3];n++;
+      }
+    }
+  });
+  return {r:r/n,g:g/n,b:b/n,a:a/n};
+}
+function autoTrimImage(img){
+  const max=900, scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*scale)), h=Math.max(1,Math.round(img.naturalHeight*scale));
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,w,h);
+  const image=ctx.getImageData(0,0,w,h), d=image.data;
+  const bg=sampleCornerBrightness(d,w,h);
+  let minX=w,minY=h,maxX=-1,maxY=-1;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4, a=d[i+3];
+      const alphaObject=a>18;
+      const colorDist=Math.abs(d[i]-bg.r)+Math.abs(d[i+1]-bg.g)+Math.abs(d[i+2]-bg.b);
+      const nonBg = alphaObject && (a<245 || colorDist>46);
+      const notAlmostWhite = alphaObject && !(d[i]>246 && d[i+1]>246 && d[i+2]>246);
+      if(nonBg && notAlmostWhite){
+        if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX<0 || maxY<0){ return {src:img.src, ratio:img.naturalWidth/img.naturalHeight, trimmed:false}; }
+  const pad=Math.round(Math.max(w,h)*0.015);
+  minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+  const tw=maxX-minX+1, th=maxY-minY+1;
+  const out=document.createElement('canvas'); out.width=tw; out.height=th;
+  out.getContext('2d').drawImage(c,minX,minY,tw,th,0,0,tw,th);
+  return {src:out.toDataURL('image/png'), ratio:tw/th, trimmed:true};
+}
+async function addProductFromFile(file){
+  if(!isLikelySupportedImage(file)){
+    showUploadWarn(`無法讀取「${file.name}」。目前建議使用 PNG / JPG / JPEG / WEBP / AVIF / BMP / SVG。`);
+    return;
+  }
+  const id='p'+(idSeq++), name=fileBaseName(file.name)||('Product '+idSeq), index=document.querySelectorAll('.product[data-id]').length;
+  let raw;
+  try{
+    raw=await loadImageFromFile(file);
+  }catch(err){
+    showUploadWarn(`瀏覽器無法解碼「${file.name}」。請先轉成 PNG / JPG / WEBP 再上傳。`);
+    return;
+  }
+  // Normalize every readable format to RGBA PNG canvas internally for more stable auto-trim and layout export.
+  const normalizedSrc=await normalizeToPngDataUrl(raw);
+  raw=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=normalizedSrc;});
+  const trim=autoTrimImage(raw);
+  const box=document.createElement('div');box.className='product'+(trim.trimmed?' trimmed':'');box.dataset.id=id;box.dataset.name=name;box.dataset.filename=file.name;box.dataset.ref='REF-'+String(index+1).padStart(2,'0');box.dataset.ratio=trim.ratio;
+  const baseW=24, baseH=baseW/trim.ratio;
+  box.style.cssText=`left:${15+(index%3)*23}%;top:${56+(index%2)*9}%;width:${baseW}%;height:${baseH}%`;
+  const img=new Image();img.src=trim.src;box.appendChild(img);
+  const lab=document.createElement('span');lab.className='label';lab.textContent=name;box.appendChild(lab);const ref=document.createElement('span');ref.className='refBadge';ref.textContent='REF-'+String(index+1).padStart(2,'0');box.appendChild(ref);
+  box.insertAdjacentHTML('beforeend',productHandles());stage.appendChild(box);
+  box.addEventListener('pointerdown',onPointerDown);box.addEventListener('wheel',onWheel,{passive:false});
+  if(index===0) box.classList.add('hero');
+  selectProduct(box);refreshList();gen();markUpdated();
+}
+
+function refreshRefs(){
+  [...document.querySelectorAll('.product[data-id]')].forEach((p,i)=>{
+    const ref='REF-'+String(i+1).padStart(2,'0');
+    p.dataset.ref=ref;
+    const badge=p.querySelector('.refBadge');
+    if(badge) badge.textContent=ref;
+  });
+}
+
+function refreshList(){
+  refreshRefs();
+  const ps=[...document.querySelectorAll('.product[data-id]')];productList.innerHTML='';
+  if(!ps.length){productList.innerHTML='<p style="margin:6px;color:#9aa3b2">尚未上傳商品</p>';return}
+  ps.forEach((p,i)=>{
+    const row=document.createElement('div');row.className='productItem';
+    row.innerHTML=`<span>${p.dataset.ref || ('REF-'+String(i+1).padStart(2,'0'))} · ${p.dataset.name}</span><button class="miniBtn" data-hero="${p.dataset.id}">Hero</button><button class="remove" data-id="${p.dataset.id}">移除</button>`;
+    productList.appendChild(row);
+  });
+  productList.querySelectorAll('.remove').forEach(btn=>btn.onclick=()=>{const el=document.querySelector(`.product[data-id="${btn.dataset.id}"]`);if(el)el.remove();refreshList();leftChanged()});
+  productList.querySelectorAll('.miniBtn').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.product[data-id]').forEach(p=>p.classList.remove('hero'));const el=document.querySelector(`.product[data-id="${btn.dataset.hero}"]`);if(el){el.classList.add('hero');selectProduct(el)}leftChanged()});
+}
+function selectProduct(el){document.querySelectorAll('.product[data-id]').forEach(p=>p.classList.remove('active'));active=el;if(el)el.classList.add('active')}
+function onPointerDown(e){
+  const box=e.currentTarget;selectProduct(box);
+  const r=box.getBoundingClientRect(),s=stage.getBoundingClientRect(),corner=e.target.dataset.corner||null;
+  drag={box,corner,sx:e.clientX,sy:e.clientY,l:r.left-s.left,t:r.top-s.top,w:r.width,h:r.height,sw:s.width,sh:s.height};
+  box.setPointerCapture(e.pointerId);
+}
+window.addEventListener('pointermove',e=>{
+  if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;let l=drag.l,t=drag.t,w=drag.w,h=drag.h;
+  if(drag.corner){
+    const ratio=parseFloat(drag.box.dataset.ratio)||drag.w/drag.h;
+    const signX=drag.corner.includes('w')?-1:1, signY=drag.corner.includes('n')?-1:1;
+    const delta=Math.abs(dx)>Math.abs(dy)?dx*signX:dy*signY*ratio;
+    w=Math.max(45,drag.w+delta);
+    h=w/ratio;
+    if(h<35){h=35;w=h*ratio}
+    if(drag.corner.includes('w')) l=drag.l+(drag.w-w);
+    if(drag.corner.includes('n')) t=drag.t+(drag.h-h);
+    l=clamp(l,0,drag.sw-w);t=clamp(t,0,drag.sh-h);
+  }
+  else{l=clamp(drag.l+dx,0,drag.sw-w);t=clamp(drag.t+dy,0,drag.sh-h)}
+  drag.box.style.left=pct(l/drag.sw*100)+'%';drag.box.style.top=pct(t/drag.sh*100)+'%';drag.box.style.width=pct(w/drag.sw*100)+'%';drag.box.style.height=pct(h/drag.sh*100)+'%';gen();
+});
+window.addEventListener('pointerup',()=>{if(drag)markUpdated();drag=null});
+function onWheel(e){
+  e.preventDefault();const box=e.currentTarget;selectProduct(box);const scale=e.deltaY<0?1.06:.94,s=stage.getBoundingClientRect(),r=box.getBoundingClientRect();
+  const cx=(r.left-s.left)+r.width/2,cy=(r.top-s.top)+r.height/2, ratio=parseFloat(box.dataset.ratio)||r.width/r.height;
+  let w=clamp(r.width*scale,45,s.width*.92),h=w/ratio;
+  if(h<35){h=35;w=h*ratio}
+  if(h>s.height*.92){h=s.height*.92;w=h*ratio}
+  let l=clamp(cx-w/2,0,s.width-w),t=clamp(cy-h/2,0,s.height-h);
+  box.style.left=pct(l/s.width*100)+'%';box.style.top=pct(t/s.height*100)+'%';box.style.width=pct(w/s.width*100)+'%';box.style.height=pct(h/s.height*100)+'%';gen();markUpdated();
+}
+function info(el){const s=stage.getBoundingClientRect(),r=el.getBoundingClientRect();let o={x:(r.left-s.left)/s.width*100,y:(r.top-s.top)/s.height*100,w:r.width/s.width*100,h:r.height/s.height*100};o.cx=o.x+o.w/2;o.cy=o.y+o.h/2;o.bottom=o.y+o.h;for(let k in o)o[k]=pct(o[k]);return o}
+function zone(o){return `${o.cx<38?'left side':o.cx>62?'right side':'center'}, ${o.cy>66?'foreground':o.cy<46?'background':'middle ground'}`}
+function lightPrompt(){return lights.filter(l=>l[3]).map(l=>'- '+l[2]).join('\n')}
+function gen(){
+  const ps=[...document.querySelectorAll('.product[data-id]')], infos=ps.map(info);
+  refreshRefs();
+  const heroEl=document.querySelector('.product.hero')||ps[0], heroIdx=ps.indexOf(heroEl), hero=heroIdx>=0?infos[heroIdx]:{h:1,w:1,bottom:76};
+  const refMap=ps.length?ps.map((p,idx)=>`${p.dataset.ref}: "${p.dataset.filename || p.dataset.name}"
+- Product name from file: "${p.dataset.name}"
+- This exact uploaded image is the source asset for ${p.dataset.ref}.
+- Match this uploaded reference image exactly.
+- Do not replace, redraw, reinterpret, rotate, tilt, reshape, or reconstruct this asset.`).join('\n\n'):'No reference assets uploaded yet.';
+  const lines=ps.length?ps.map((p,idx)=>{
+    const o=infos[idx], scaleH=Math.round(o.h/(hero.h||1)*100), scaleW=Math.round(o.w/(hero.w||1)*100), bottomDiff=pct(o.bottom-hero.bottom);
+    return `${p.dataset.ref} / Product ${idx+1}: ${p.dataset.name}${p.classList.contains('hero')?'  [FIXED HERO PRODUCT]':''}
+- Reference asset ID: ${p.dataset.ref}\n- Original uploaded filename: "${p.dataset.filename || p.dataset.name}"\n- Use ${p.dataset.ref} as the exact product source
+- Use uploaded image as a fixed locked asset; preserve exact original image-plane angle, viewing direction, perspective, outline, orientation, silhouette, geometry, printed details, and proportions
+- Placement: ${zone(o)}
+- Bounding box lock: left ${o.x}%, top ${o.y}%, width ${o.w}%, height ${o.h}% of canvas
+- Center point lock: x ${o.cx}%, y ${o.cy}% of canvas
+- Strict scale lock: height must remain ${scaleH}% of the HERO product height; width must remain ${scaleW}% of the HERO product width
+- Bottom alignment: bottom edge is ${bottomDiff>=0?'+':''}${bottomDiff}% relative to HERO bottom edge
+- Preserve this exact visible product scale and spacing from the layout reference
+- The editor preview is auto-trimmed to the actual visible product boundary; use the visible product size, not the original image canvas size
+- Keep the original product aspect ratio locked; do not stretch, squash, or reshape the product
+- Do not resize, rebalance, or beautify this product independently`;
+  }).join('\n\n'):'No products uploaded yet. After uploading products, describe each uploaded product here using its file name and layout coordinates.';
+  out.value=`Create a premium commercial product image using my uploaded product images.
+
+CORE INSTRUCTION
+Build a realistic studio environment around the uploaded products. Keep every product visually unchanged.
+
+ABSOLUTE PRODUCT LOCK — HIGHEST PRIORITY
+The uploaded product images are FINAL LOCKED ASSETS. They must be composited into the scene exactly as supplied.
+
+Strictly forbidden:
+- Do not change product angle.
+- Do not change product viewing direction.
+- Do not change product camera perspective.
+- Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform any product.
+- Do not convert the product into a new 3D object.
+- Do not infer hidden sides, hidden surfaces, backs, thickness, or new perspective planes.
+- Do not redraw, repaint, retouch, relight, beautify, stylize, simplify, sharpen, upscale, or reinterpret the product itself.
+- Do not alter logos, text, labels, typography, packaging layout, colors, materials, texture, pattern, silhouette, outline, geometry, or proportions.
+- Do not move printed graphics or change their scale.
+- Do not generate a similar-looking replacement product.
+- Do not hallucinate missing parts or extend hidden surfaces.
+
+Required:
+- Preserve the exact original uploaded image-plane angle.
+- Preserve the exact original product outline and visible shape.
+- Preserve the exact original front-facing / side-facing orientation from the upload.
+- Treat each product like a flat sticker / locked PNG layer placed on top of the generated scene.
+- Only generate the environment: background, platform, lighting around products, contact shadows, environmental reflections, atmosphere, and depth of field.
+
+SCENE
+${getSceneText()}
+
+COMMERCIAL PURPOSE
+${getPurposeText()}
+
+CAMERA
+- ${lens.value}
+- ${angle.value}
+- realistic perspective, balanced layout, premium product hierarchy
+- suitable for e-commerce banner advertising
+
+REFERENCE ASSET MAPPING
+${refMap}
+
+STRICT LAYOUT AND SCALE CONTROL — HIGHEST PRIORITY
+- Follow the exact product layout from my editor / layout reference PNG.
+- Composition is locked. Product position, product size, product spacing, product hierarchy, bounding boxes, and bottom alignment are locked.
+- Do not automatically rebalance the composition.
+- Do not shrink, enlarge, move, crop, or reframe products to create whitespace, banner spacing, text space, editorial balance, or cinematic framing.
+- Whitespace, background, props, and atmosphere must adapt around the locked products, not the other way around.
+- Do not change perceived product size due to perspective adjustments.
+- Preserve exact relative object scale, spacing, hierarchy, bottom alignment, and bounding boxes from the layout PNG.
+- All products should share the same floor line unless the layout explicitly places them at different depth.
+- Keep the HERO product as the fixed scale anchor.
+- Products must remain large and dominant according to the provided layout, regardless of selected style or commercial purpose.
+
+STYLE ISOLATION RULE
+- Scene style and advertising purpose may only affect background color, materials, lighting mood, architecture, set decoration, and atmosphere.
+- Scene style and advertising purpose must not affect composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing.
+- Any request for negative space, wide framing, editorial composition, cinematic framing, or text space must be interpreted as background-only space around the locked products, never by resizing or moving products.
+
+PRODUCT LAYOUT
+${lines}
+
+LIGHTING, SHADOW, DEPTH
+${lightPrompt()}
+- natural occlusion between products and platform
+- consistent shadow direction
+- products physically grounded on the same surface
+- soft depth transition between foreground and background
+- leave clean visual breathing room for headline and CTA when appropriate
+
+LOCKED PRODUCT RULES
+${lock.value}
+
+NEGATIVE PRODUCT MODIFICATION RULES
+no product angle change, no product rotation, no product tilt, no perspective change, no 3D reconstruction, no shape change, no silhouette change, no logo change, no text change, no packaging redesign, no warped labels, no stretched product, no squashed product, no bent product, no different product, no generated replacement product
+
+QUALITY
+ultra realistic, premium studio photography, clean background, accurate scale, no product distortion, no product rotation, no product tilt, no angle change, no perspective change, no relighting product surface, no product redesign, no duplicated products, no extra random items, no messy text artifacts`;
+}
+multiUpload.addEventListener('change',e=>{[...e.target.files].forEach(file=>addProductFromFile(file));multiUpload.value='';markUpdated()});
+document.querySelectorAll('select,textarea').forEach(x=>{x.addEventListener('input',leftChanged);x.addEventListener('change',leftChanged)});
+document.getElementById('copy').onclick=async()=>{await navigator.clipboard.writeText(out.value);copy.textContent='已複製';setTimeout(()=>copy.textContent='複製 Prompt',900)}
+document.getElementById('clearAll').onclick=()=>{document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());refreshList();leftChanged()}
+document.getElementById('toggleGrid').onclick=()=>stage.classList.toggle('showGrid');
+document.getElementById('snapBase').onclick=()=>{
+  const s=stage.getBoundingClientRect(), base=s.height*.76;
+  document.querySelectorAll('.product[data-id]').forEach(p=>{
+    const r=p.getBoundingClientRect(); const h=r.height; p.style.top=pct((base-h)/s.height*100)+'%';
+  });
+  leftChanged();
+}
+
+const opacitySlider=document.getElementById('opacitySlider');
+const activeOpacitySlider=document.getElementById('activeOpacitySlider');
+
+function updatePreviewOpacity(){
+  document.documentElement.style.setProperty('--previewOpacity', opacitySlider.value/100);
+  document.documentElement.style.setProperty('--activePreviewOpacity', activeOpacitySlider.value/100);
+  const styleTag=document.getElementById('dynamicOpacityStyle') || (()=>{const s=document.createElement('style');s.id='dynamicOpacityStyle';document.head.appendChild(s);return s;})();
+  styleTag.textContent=`
+  .product img{opacity:${opacitySlider.value/100}}
+  .product.active img,.product:hover img{opacity:${activeOpacitySlider.value/100}}
+  `;
+}
+opacitySlider.addEventListener('input',updatePreviewOpacity);
+activeOpacitySlider.addEventListener('input',updatePreviewOpacity);
+updatePreviewOpacity();
+
+
+async function exportLayoutPNG(){
+  const s=stage.getBoundingClientRect();
+  const scale=2;
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.round(s.width*scale);
+  canvas.height=Math.round(s.height*scale);
+  const ctx=canvas.getContext('2d');
+  ctx.scale(scale,scale);
+
+  // Background approximation for the layout reference
+  const bg=ctx.createLinearGradient(0,0,0,s.height);
+  bg.addColorStop(0,'#f7f9fc');
+  bg.addColorStop(.55,'#ffffff');
+  bg.addColorStop(1,'#eef2f7');
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,s.width,s.height);
+
+  // Clean floor / podium reference
+  ctx.fillStyle='rgba(255,255,255,.94)';
+  ctx.beginPath();
+  ctx.ellipse(s.width*.5,s.height*.82,s.width*.32,s.height*.095,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.10)';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // Baseline and center guides
+  ctx.setLineDash([8,6]);
+  ctx.strokeStyle='rgba(255,160,0,.7)';
+  ctx.beginPath();ctx.moveTo(s.width*.06,s.height*.76);ctx.lineTo(s.width*.94,s.height*.76);ctx.stroke();
+  ctx.strokeStyle='rgba(0,0,0,.16)';
+  ctx.beginPath();ctx.moveTo(s.width*.5,0);ctx.lineTo(s.width*.5,s.height);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,s.height*.5);ctx.lineTo(s.width,s.height*.5);ctx.stroke();
+  ctx.setLineDash([]);
+
+  const ps=[...document.querySelectorAll('.product[data-id]')];
+  for(const p of ps){
+    const r=p.getBoundingClientRect();
+    const x=r.left-s.left,y=r.top-s.top,w=r.width,h=r.height;
+    const img=p.querySelector('img');
+    ctx.save();
+    ctx.globalAlpha=.72;
+    if(img && img.complete) ctx.drawImage(img,x,y,w,h);
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=p.classList.contains('hero')?'#7cf0bd':'#8dd3ff';
+    ctx.lineWidth=3;
+    ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle=p.classList.contains('hero')?'#7cf0bd':'#8dd3ff';
+    ctx.font='bold 15px Arial';
+    const tag=(p.dataset.ref||'REF')+(p.classList.contains('hero')?' HERO':'');
+    ctx.fillRect(x,y-24,ctx.measureText(tag).width+14,22);
+    ctx.fillStyle='#06101a';
+    ctx.fillText(tag,x+7,y-8);
+    ctx.restore();
+  }
+
+  const a=document.createElement('a');
+  a.download='layout-reference.png';
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+}
+
+document.getElementById('exportLayout').onclick=exportLayoutPNG;
+
+function enforceSquareCanvas(){
+  const shell=document.querySelector('.stageShell');
+  if(!shell)return;
+  const w=shell.clientWidth;
+  shell.style.height=w+'px';
+}
+window.addEventListener('resize',enforceSquareCanvas);
+setTimeout(enforceSquareCanvas,0);
+
+
+function getLayoutState(){
+  refreshRefs();
+  const ps=[...document.querySelectorAll('.product[data-id]')].map(p=>({
+    id:p.dataset.id, ref:p.dataset.ref, name:p.dataset.name, filename:p.dataset.filename,
+    ratio:p.dataset.ratio, hero:p.classList.contains('hero'),
+    style:{left:p.style.left,top:p.style.top,width:p.style.width,height:p.style.height},
+    imgSrc:p.querySelector('img')?.src || ''
+  }));
+  return {version:'1.0',savedAt:new Date().toISOString(),selectedScene,selectedPurpose,
+    customScene:customScene.value,customPurpose:customPurpose.value,lens:lens.value,angle:angle.value,lock:lock.value,
+    lights:lights.map(l=>l[3]),products:ps};
+}
+function downloadLayoutStateFile(){
+  const data=getLayoutState();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='product-layout-state.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+function restoreLayoutState(data){
+  if(!data || !Array.isArray(data.products)){alert('這不是有效的構圖暫存檔');return;}
+  document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());
+  selectedScene=Number.isInteger(data.selectedScene)?data.selectedScene:0;
+  selectedPurpose=Number.isInteger(data.selectedPurpose)?data.selectedPurpose:0;
+  customScene.value=data.customScene||''; customPurpose.value=data.customPurpose||'';
+  lens.value=data.lens||lens.value; angle.value=data.angle||angle.value; lock.value=data.lock||lock.value;
+  if(Array.isArray(data.lights)){data.lights.forEach((v,i)=>{ if(lights[i]) lights[i][3]=!!v; });}
+  idSeq=0;
+  data.products.forEach((item,idx)=>{
+    const box=document.createElement('div'); box.className='product trimmed'+(item.hero?' hero':'');
+    box.dataset.id=item.id || ('p'+idx); box.dataset.name=item.name || ('Product '+(idx+1));
+    box.dataset.filename=item.filename || box.dataset.name; box.dataset.ratio=item.ratio || 1; box.dataset.ref=item.ref || ('REF-'+String(idx+1).padStart(2,'0'));
+    box.style.left=item.style?.left || '20%'; box.style.top=item.style?.top || '55%'; box.style.width=item.style?.width || '24%'; box.style.height=item.style?.height || '18%';
+    const img=new Image(); img.src=item.imgSrc || ''; box.appendChild(img);
+    const lab=document.createElement('span'); lab.className='label'; lab.textContent=box.dataset.name; box.appendChild(lab);
+    const ref=document.createElement('span'); ref.className='refBadge'; ref.textContent=box.dataset.ref; box.appendChild(ref);
+    box.insertAdjacentHTML('beforeend',productHandles()); stage.appendChild(box);
+    box.addEventListener('pointerdown',onPointerDown); box.addEventListener('wheel',onWheel,{passive:false}); idSeq=Math.max(idSeq,idx+1);
+  });
+  renderCards(); updateCustomVisibility(); refreshList(); gen(); markUpdated();
+}
+if(document.getElementById('downloadLayoutState')) document.getElementById('downloadLayoutState').onclick=downloadLayoutStateFile;
+if(document.getElementById('uploadLayoutStateBtn')) document.getElementById('uploadLayoutStateBtn').onclick=()=>document.getElementById('uploadLayoutState').click();
+if(document.getElementById('uploadLayoutState')) document.getElementById('uploadLayoutState').onchange=async(e)=>{
+  const file=e.target.files[0]; if(!file)return;
+  try{restoreLayoutState(JSON.parse(await file.text()));}catch(err){alert('構圖暫存檔讀取失敗，請確認是 JSON 檔');}
+  e.target.value='';
+};
+
+renderCards();updateCustomVisibility();refreshList();gen();
+</script>
+
+<div class="helpFloating" id="manualBtn" title="開啟說明書">
+  <div class="helpIconCircle">
+    <svg viewBox="0 0 24 24">
+      <path d="M6 4.5h9.5a2 2 0 0 1 2 2V19a0 0 0 0 1 0 0H8a2 2 0 0 0-2 2V4.5z"/>
+      <path d="M8 21V6.5a2 2 0 0 1 2-2"/>
+      <path d="M11 9h4"/>
+      <path d="M11 12h4"/>
+      <path d="M11 15h3"/>
+    </svg>
+  </div>
+  <div class="helpTooltip">開啟說明書</div>
+</div>
+
+<div class="manualOverlay" id="manualOverlay">
+  <div class="manualCard">
+    <button class="manualClose" id="manualClose">×</button>
+    <img src="./程式檔案/freelancer.png" alt="說明書">
+  </div>
+</div>
+
+<script>
+const manualBtn=document.getElementById('manualBtn');
+const manualOverlay=document.getElementById('manualOverlay');
+const manualClose=document.getElementById('manualClose');
+
+manualBtn.addEventListener('click',()=>{
+  manualOverlay.classList.add('show');
+});
+
+manualClose.addEventListener('click',()=>{
+  manualOverlay.classList.remove('show');
+});
+
+manualOverlay.addEventListener('click',(e)=>{
+  if(e.target===manualOverlay){
+    manualOverlay.classList.remove('show');
+  }
+});
+</script>
+
+</body></html>
