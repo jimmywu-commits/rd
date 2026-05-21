@@ -536,6 +536,332 @@ html,body{height:100%;overflow:hidden}
 .thumb.sceneImg:before,.thumb.sceneImg:after{display:none !important}
 
 @media(max-width:1180px){.app{grid-template-columns:1fr}.output{height:360px}.optionGrid,.lightGrid{grid-template-columns:1fr}}
+
+
+/* Promo video popup */
+.promoOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.76);
+  backdrop-filter:blur(10px);
+  z-index:12000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.promoOverlay.show{
+  display:flex;
+}
+.promoBox{
+  width:min(70vw,70vh);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+.promoCard{
+  position:relative;
+  width:100%;
+  aspect-ratio:1/1;
+  background:#000;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:28px;
+  box-shadow:0 34px 90px rgba(0,0,0,.52);
+  overflow:hidden;
+}
+.promoClose{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:52px;
+  height:52px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(15,17,23,.82);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:34px;
+  line-height:1;
+  font-weight:900;
+  z-index:2;
+  backdrop-filter:blur(10px);
+  transition:.18s ease;
+}
+.promoClose:hover{
+  transform:scale(1.06);
+  background:rgba(255,255,255,.12);
+}
+.promoVideoWrap{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  background:#000;
+}
+.promoVideoWrap iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#000;
+}
+.promoToday{
+  width:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  margin:0;
+  padding:10px 14px;
+  border-radius:999px;
+  background:rgba(15,17,23,.82);
+  border:1px solid rgba(255,255,255,.16);
+  color:#f5f7fb;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 30px rgba(0,0,0,.28);
+}
+.promoToday input{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:#8dd3ff;
+  cursor:pointer;
+}
+@media(max-width:720px){
+  .promoOverlay{padding:16px}
+  .promoBox{width:min(92vw,76vh);gap:12px}
+  .promoCard{border-radius:22px}
+  .promoClose{width:44px;height:44px;font-size:28px;border-radius:14px}
+}
+
+
+/* === Promo video popup override: centered square, outside close/check controls === */
+.promoOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:20000 !important;
+  display:none;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:24px !important;
+  background:rgba(6,10,16,.74) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoOverlay.show{display:flex !important;}
+.promoWrap{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  max-width:calc(100vw - 72px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+}
+.promoCard{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  height:min(70vw,70vh) !important;
+  max-width:calc(100vw - 72px) !important;
+  max-height:calc(100vh - 112px) !important;
+  aspect-ratio:1/1 !important;
+  border-radius:24px !important;
+  overflow:visible !important;
+  background:#000 !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 30px 90px rgba(0,0,0,.55) !important;
+}
+.promoCard iframe{
+  width:100% !important;
+  height:100% !important;
+  border:0 !important;
+  display:block !important;
+  background:#000 !important;
+}
+.promoClose{
+  position:absolute !important;
+  top:-20px !important;
+  right:-20px !important;
+  width:54px !important;
+  height:54px !important;
+  border-radius:999px !important;
+  z-index:3 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.92) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  font-size:34px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.42) !important;
+}
+.promoClose:hover{
+  transform:scale(1.06) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoToday{
+  margin-top:14px !important;
+  width:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  padding:10px 16px !important;
+  border-radius:999px !important;
+  background:rgba(15,17,23,.86) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#fff !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoToday input{
+  width:18px !important;
+  height:18px !important;
+  padding:0 !important;
+  margin:0 !important;
+  accent-color:#8dd3ff !important;
+}
+@media(max-width:760px){
+  .promoWrap,.promoCard{
+    width:min(86vw,86vh) !important;
+    height:min(86vw,86vh) !important;
+  }
+  .promoClose{
+    top:-16px !important;
+    right:-16px !important;
+    width:48px !important;
+    height:48px !important;
+    font-size:30px !important;
+  }
+}
+
+
+/* === MP4 Promo Video Popup === */
+.promoOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:20000 !important;
+  display:none;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:36px !important;
+  background:rgba(6,10,16,.74) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoOverlay.show{
+  display:flex !important;
+}
+.promoWrap{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  max-width:calc(100vw - 96px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.promoCard{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  height:min(70vw,70vh) !important;
+  max-width:calc(100vw - 96px) !important;
+  max-height:calc(100vh - 132px) !important;
+  aspect-ratio:1/1 !important;
+  overflow:visible !important;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+.promoCard video{
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  object-fit:cover !important;
+  border-radius:24px !important;
+  background:#000 !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 30px 90px rgba(0,0,0,.55) !important;
+}
+.promoClose{
+  position:absolute !important;
+  top:-18px !important;
+  right:-18px !important;
+  width:54px !important;
+  height:54px !important;
+  border-radius:999px !important;
+  z-index:3 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.94) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  font-size:34px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.42) !important;
+}
+.promoClose:hover{
+  transform:scale(1.06) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoToday{
+  margin-top:14px !important;
+  width:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  padding:10px 16px !important;
+  border-radius:999px !important;
+  background:rgba(15,17,23,.86) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#fff !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoToday input{
+  width:18px !important;
+  height:18px !important;
+  padding:0 !important;
+  margin:0 !important;
+  accent-color:#8dd3ff !important;
+}
+@media(max-width:760px){
+  .promoOverlay{
+    padding:24px !important;
+  }
+  .promoWrap,.promoCard{
+    width:min(86vw,86vh) !important;
+    height:min(86vw,86vh) !important;
+    max-width:calc(100vw - 64px) !important;
+  }
+  .promoClose{
+    top:-14px !important;
+    right:-14px !important;
+    width:48px !important;
+    height:48px !important;
+    font-size:30px !important;
+  }
+}
+
+
 </style>
 </head>
 <body>
@@ -1198,5 +1524,84 @@ manualOverlay.addEventListener('click',(e)=>{
   }
 });
 </script>
+
+
+
+
+
+<div class="promoOverlay" id="promoOverlay" aria-modal="true" role="dialog">
+  <div class="promoWrap">
+    <div class="promoCard">
+      <button class="promoClose" id="promoClose" type="button" aria-label="關閉影片">×</button>
+      <video id="promoVideo" controls playsinline preload="auto">
+        <source src="./freely.mp4" type="video/mp4">
+        您的瀏覽器不支援影片播放。
+      </video>
+    </div>
+    <label class="promoToday">
+      <input type="checkbox" id="hideToday">
+      <span>今日不再顯示</span>
+    </label>
+  </div>
+</div>
+
+
+
+
+<script>
+(function(){
+  const promoOverlay = document.getElementById('promoOverlay');
+  const promoClose = document.getElementById('promoClose');
+  const hideToday = document.getElementById('hideToday');
+  const promoVideo = document.getElementById('promoVideo');
+
+  const todayKey = new Date().toISOString().slice(0,10);
+  const storageKey = 'promoVideoHideDate_click_to_play_v1';
+
+  function openPromo(){
+    if(!promoOverlay) return;
+    if(localStorage.getItem(storageKey) === todayKey) return;
+
+    promoOverlay.classList.add('show');
+
+    if(promoVideo){
+      promoVideo.muted = false;
+      promoVideo.currentTime = 0;
+      // 不自動播放，保留聲音，讓使用者自己按播放。
+    }
+  }
+
+  function closePromo(){
+    if(hideToday && hideToday.checked){
+      localStorage.setItem(storageKey, todayKey);
+    }
+    if(promoVideo){
+      promoVideo.pause();
+      promoVideo.currentTime = 0;
+    }
+    if(promoOverlay) promoOverlay.classList.remove('show');
+  }
+
+  if(promoClose) promoClose.addEventListener('click', closePromo);
+  if(promoOverlay) promoOverlay.addEventListener('click', function(e){
+    if(e.target === promoOverlay) closePromo();
+  });
+
+  if(promoVideo){
+    promoVideo.addEventListener('click', function(e){
+      e.stopPropagation();
+    });
+    promoVideo.addEventListener('ended', function(){
+      closePromo();
+    });
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(openPromo, 350);
+  });
+})();
+</script>
+
+
 
 </body></html>
