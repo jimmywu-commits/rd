@@ -862,6 +862,70 @@ html,body{height:100%;overflow:hidden}
 }
 
 
+
+/* Center play button with slow breathing effect */
+.promoPlay{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) scale(1) !important;
+  width:104px !important;
+  height:104px !important;
+  border-radius:999px !important;
+  z-index:5 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.94) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  box-shadow:0 18px 42px rgba(0,0,0,.46) !important;
+  backdrop-filter:blur(8px) !important;
+  animation:promoPlayBreath 2.8s ease-in-out infinite !important;
+}
+.promoPlay:before{
+  content:"" !important;
+  display:block !important;
+  width:0 !important;
+  height:0 !important;
+  margin-left:8px !important;
+  border-top:26px solid transparent !important;
+  border-bottom:26px solid transparent !important;
+  border-left:40px solid #fff !important;
+}
+.promoPlay:hover{
+  animation:none !important;
+  transform:translate(-50%,-50%) scale(1.08) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoPlay.hidden{
+  display:none !important;
+}
+@keyframes promoPlayBreath{
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+    opacity:.72;
+    box-shadow:0 18px 42px rgba(0,0,0,.36),0 0 0 0 rgba(255,255,255,.14);
+  }
+  50%{
+    transform:translate(-50%,-50%) scale(1.12);
+    opacity:1;
+    box-shadow:0 24px 56px rgba(0,0,0,.55),0 0 0 14px rgba(255,255,255,.055);
+  }
+}
+@media(max-width:760px){
+  .promoPlay{
+    width:88px !important;
+    height:88px !important;
+  }
+  .promoPlay:before{
+    border-top-width:22px !important;
+    border-bottom-width:22px !important;
+    border-left-width:34px !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1537,6 +1601,7 @@ manualOverlay.addEventListener('click',(e)=>{
         <source src="./freely.mp4" type="video/mp4">
         您的瀏覽器不支援影片播放。
       </video>
+      <button class="promoPlay" id="promoPlay" type="button" aria-label="播放影片"></button>
     </div>
     <label class="promoToday">
       <input type="checkbox" id="hideToday">
@@ -1548,15 +1613,17 @@ manualOverlay.addEventListener('click',(e)=>{
 
 
 
+
 <script>
 (function(){
   const promoOverlay = document.getElementById('promoOverlay');
   const promoClose = document.getElementById('promoClose');
   const hideToday = document.getElementById('hideToday');
   const promoVideo = document.getElementById('promoVideo');
+  const promoPlay = document.getElementById('promoPlay');
 
   const todayKey = new Date().toISOString().slice(0,10);
-  const storageKey = 'promoVideoHideDate_click_to_play_v1';
+  const storageKey = 'promoVideoHideDate_click_to_play_v2';
 
   function openPromo(){
     if(!promoOverlay) return;
@@ -1567,7 +1634,22 @@ manualOverlay.addEventListener('click',(e)=>{
     if(promoVideo){
       promoVideo.muted = false;
       promoVideo.currentTime = 0;
-      // 不自動播放，保留聲音，讓使用者自己按播放。
+      promoVideo.pause();
+    }
+    if(promoPlay){
+      promoPlay.classList.remove('hidden');
+    }
+  }
+
+  function startVideo(){
+    if(!promoVideo) return;
+    promoVideo.muted = false;
+    const playPromise = promoVideo.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(function(){});
+    }
+    if(promoPlay){
+      promoPlay.classList.add('hidden');
     }
   }
 
@@ -1579,9 +1661,16 @@ manualOverlay.addEventListener('click',(e)=>{
       promoVideo.pause();
       promoVideo.currentTime = 0;
     }
+    if(promoPlay){
+      promoPlay.classList.remove('hidden');
+    }
     if(promoOverlay) promoOverlay.classList.remove('show');
   }
 
+  if(promoPlay) promoPlay.addEventListener('click', function(e){
+    e.stopPropagation();
+    startVideo();
+  });
   if(promoClose) promoClose.addEventListener('click', closePromo);
   if(promoOverlay) promoOverlay.addEventListener('click', function(e){
     if(e.target === promoOverlay) closePromo();
@@ -1590,6 +1679,17 @@ manualOverlay.addEventListener('click',(e)=>{
   if(promoVideo){
     promoVideo.addEventListener('click', function(e){
       e.stopPropagation();
+      if(promoVideo.paused){
+        startVideo();
+      }
+    });
+    promoVideo.addEventListener('play', function(){
+      if(promoPlay) promoPlay.classList.add('hidden');
+    });
+    promoVideo.addEventListener('pause', function(){
+      if(promoOverlay && promoOverlay.classList.contains('show') && promoVideo.currentTime > 0 && !promoVideo.ended){
+        if(promoPlay) promoPlay.classList.remove('hidden');
+      }
     });
     promoVideo.addEventListener('ended', function(){
       closePromo();
@@ -1601,6 +1701,7 @@ manualOverlay.addEventListener('click',(e)=>{
   });
 })();
 </script>
+
 
 
 
