@@ -223,6 +223,23 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
         <input class="ip" type="color" id="txt-col" value="#FFFFFF" oninput="onTxtPick(this.value)">
       </div>
       <div class="sws" id="txt-sws"></div>
+
+      <div class="rw" style="margin-top:10px">
+        <span class="lb">CTA色</span>
+        <input class="ip" type="text" id="cta-hex" value="#1a47ae" oninput="onCtaHex(this.value)" style="font-family:monospace;flex:1">
+        <input class="ip" type="color" id="cta-col" value="#1a47ae" oninput="onCtaPick(this.value)">
+      </div>
+      <div class="sws" id="cta-sws"></div>
+
+      <div class="rw" style="margin-top:10px">
+        <span class="lb">X高度</span>
+        <input class="ip" type="range" min="30" max="90" step="1" id="x-font-range" oninput="onXFontSize(this.value)">
+        <input class="ip" type="number" min="30" max="90" step="1" id="x-font-size" oninput="onXFontSize(this.value)" style="width:58px;flex:none">
+      </div>
+      <div class="hint" id="x-font-hint"></div>
+
+      
+
       <div style="margin-top:10px"></div>
       <textarea class="ta" id="ta-text" rows="3" placeholder="輸入文案（最多6字）&#10;中文=1字，英/數=0.5字" oninput="onTxt(event)" onblur="applyTextAuditOnBlur('text')" onkeydown="blockOver(event,'text')"></textarea>
       <div class="hint" id="h-text">0 / 6字</div>
@@ -381,6 +398,7 @@ async function loadFonts(){
 let S={
   color:'#FF6B35',
   textColor:'#FFFFFF',
+  ctaColor:'#1a47ae',
   text:'',
   prod:'',
   orig:null,
@@ -390,8 +408,12 @@ let S={
   imgOffY:0
 };
 let hist=[JSON.stringify(S)],hi=0;
+const X_FONT_SIZE_MIN=30;
+const X_FONT_SIZE_MAX=90;
+const X_FONT_SIZE_DEFAULT=52;
+let runtimeXFontSize=X_FONT_SIZE_DEFAULT;
 
-const HBN_EDITOR_STORAGE_KEY='hbn-floating-editor-state-v2';
+const HBN_EDITOR_STORAGE_KEY='hbn-floating-editor-state-v5-x-tool';
 const HBN_PENDING_DOWNLOAD_KEY='hbn-floating-editor-pending-product-png-v1';
 let _restoreUsed=false;
 
@@ -411,6 +433,9 @@ function makePersistSnapshot(){
   return {
     color:S.color,
     textColor:S.textColor,
+    ctaColor:S.ctaColor||'#1a47ae',
+    
+    
     text:S.text,
     prod:S.prod,
     orig:S.orig,
@@ -466,13 +491,24 @@ const SW_CIRCLE=['#FF6B35','#FF3B5C','#FF9500','#FFCC00','#34C759','#00C7BE',
 const SW_TEXT=['#FFFFFF','#222222','#FF6B35','#FFCC00','#34C759','#007AFF',
                '#AF52DE','#FF3B5C','#FFD700','#00C7BE'];
 
+const SW_CTA=['#1a47ae','#007AFF','#0052CC','#34C759','#FF6B35','#AF52DE','#111827','#222222'];
+
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 window.addEventListener('load',async()=>{
   await loadFonts();
+  initXFontSizeControl();
   buildSw('sws',SW_CIRCLE,()=>S.color,(c)=>{ S.color=c; syncCircleUI(c); push(); draw(); });
   buildSw('txt-sws',SW_TEXT,()=>S.textColor,(c)=>{ S.textColor=c; document.getElementById('txt-hex').value=c; document.getElementById('txt-col').value=c; push(); draw(); });
+
+  buildSw('cta-sws',SW_CTA,()=>S.ctaColor,(c)=>{ 
+    S.ctaColor=c; 
+    document.getElementById('cta-hex').value=c; 
+    document.getElementById('cta-col').value=c; 
+    push(); 
+    draw(); 
+  });
   setupProd2Drag();
   setupProd2Drop();
   setupProd2Scroll();
@@ -557,6 +593,57 @@ function onPick(v){ setCol(v); }
 // ══════════════════════════════════════════════
 function onTxtHex(v){ if(/^#[0-9a-fA-F]{6}$/.test(v)){ S.textColor=v; document.getElementById('txt-col').value=v; document.querySelectorAll('#txt-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v)); push(); draw(); } }
 function onTxtPick(v){ S.textColor=v; document.getElementById('txt-hex').value=v; document.querySelectorAll('#txt-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v)); push(); draw(); }
+
+
+
+function initXFontSizeControl(){
+  const range=document.getElementById('x-font-range');
+  const input=document.getElementById('x-font-size');
+  if(range){
+    range.min=X_FONT_SIZE_MIN;
+    range.max=X_FONT_SIZE_MAX;
+    range.value=runtimeXFontSize;
+  }
+  if(input){
+    input.min=X_FONT_SIZE_MIN;
+    input.max=X_FONT_SIZE_MAX;
+    input.value=runtimeXFontSize;
+  }
+  syncXFontSizeControl();
+}
+
+function syncXFontSizeControl(){
+  const range=document.getElementById('x-font-range');
+  const input=document.getElementById('x-font-size');
+  const hint=document.getElementById('x-font-hint');
+  if(range) range.value=runtimeXFontSize;
+  if(input) input.value=runtimeXFontSize;
+  if(hint) hint.textContent=`實際可見高度 ${runtimeXFontSize}px / 可調 ${X_FONT_SIZE_MIN}–${X_FONT_SIZE_MAX}px`;
+}
+
+function onXFontSize(v){
+  runtimeXFontSize=Math.max(X_FONT_SIZE_MIN,Math.min(X_FONT_SIZE_MAX,parseInt(v,10)||X_FONT_SIZE_DEFAULT));
+  syncXFontSizeControl();
+  draw();
+}
+
+function onCtaHex(v){
+  if(/^#[0-9a-fA-F]{6}$/.test(v)){
+    S.ctaColor=v;
+    document.getElementById('cta-col').value=v;
+    document.querySelectorAll('#cta-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v));
+    push();
+    draw();
+  }
+}
+
+function onCtaPick(v){
+  S.ctaColor=v;
+  document.getElementById('cta-hex').value=v;
+  document.querySelectorAll('#cta-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v));
+  push();
+  draw();
+}
 
 // ══════════════════════════════════════════════
 // TABS
@@ -814,14 +901,24 @@ function fillCirc(ctx,cx,cy,r,fill){
 }
 
 // Shared top-right X badge for both Text/Product canvases.
-// Keep this as the single source of truth so the two X marks always render at the same size.
-const TOP_RIGHT_X_BADGE_RADIUS = 45.5;
-const TOP_RIGHT_X_FONT_SIZE = 54;
+// X font size is controlled only by the sidebar X字級 control.
+const TOP_RIGHT_X_BADGE_RADIUS = 48;
+
+function getXFontPxForVisibleHeight(ctx,targetVisibleHeight){
+  const baseFontPx=100;
+  ctx.font=`700 ${baseFontPx}px ${FONT_SNS_BOLD}`;
+  const baseMetrics=ctx.measureText('X');
+  const baseVisibleHeight=(baseMetrics.actualBoundingBoxAscent||0)+(baseMetrics.actualBoundingBoxDescent||0);
+  if(!baseVisibleHeight) return targetVisibleHeight;
+  return targetVisibleHeight*baseFontPx/baseVisibleHeight;
+}
 
 function drawX(ctx,cx,cy){
   fillCirc(ctx,cx,cy,TOP_RIGHT_X_BADGE_RADIUS,'#555555');
   ctx.save();
-  ctx.font=`700 ${TOP_RIGHT_X_FONT_SIZE}px ${FONT_SNS_BOLD}`;
+  const targetVisibleHeight=runtimeXFontSize||X_FONT_SIZE_DEFAULT;
+  const adjustedFontPx=getXFontPxForVisibleHeight(ctx,targetVisibleHeight);
+  ctx.font=`700 ${adjustedFontPx}px ${FONT_SNS_BOLD}`;
   ctx.fillStyle='#fff';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
@@ -848,7 +945,7 @@ function d1(){
   ctx.clearRect(0,0,360,360);
   const col=S.color;
   fillCirc(ctx,180,180,150,col);
-  drawX(ctx,300,60);
+  drawX(ctx,255.3+48,8+48);
 
   const ls=lines(S.text,3);
   if(ls.length){
@@ -912,8 +1009,8 @@ function d2(){
 }
 
 function d2ui(ctx){
-  drawX(ctx,300,60);
-  roundRect(ctx,6,249,312,64,32,'#1a47ae');
+  drawX(ctx,255.3+48,8+48);
+  roundRect(ctx,6,249,312,64,32,S.ctaColor||'#1a47ae');
 
   const raw=(S.prod||'');
   const chars=[...raw,' ','▶'];
@@ -1027,6 +1124,8 @@ function applyStateToUI(shouldDraw=true){
   document.getElementById('col-in').value=S.color;
   document.getElementById('txt-hex').value=S.textColor;
   document.getElementById('txt-col').value=S.textColor;
+  if(document.getElementById('cta-hex')) document.getElementById('cta-hex').value=S.ctaColor||'#1a47ae';
+  if(document.getElementById('cta-col')) document.getElementById('cta-col').value=S.ctaColor||'#1a47ae';
   document.getElementById('ta-text').value=S.text;
   document.getElementById('ta-prod').value=S.prod;
   document.querySelectorAll('#sws .sw').forEach(s=>s.classList.toggle('on',s.title===S.color));
