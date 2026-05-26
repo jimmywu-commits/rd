@@ -356,14 +356,19 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
     <div class="mh">✦ 去背處理 <button class="mc" onclick="closeMo('ov-bg')">×</button></div>
     <div class="rw" style="margin-bottom:12px">
       <span class="lb">容差</span>
-      <input class="ip" type="range" min="5" max="120" value="30" id="tol" oninput="prevBg(this.value)">
-      <span id="tolv" style="font-size:12px;min-width:28px">30</span>
+      <input class="ip" type="range" min="1" max="120" value="1" id="tol" oninput="prevBg(this.value)">
+      <span id="tolv" style="font-size:12px;min-width:28px">1</span>
     </div>
     <div class="bgprev"><canvas id="bgCv" style="max-width:100%;max-height:220px;display:block"></canvas></div>
     <div class="hint" style="margin-top:6px;margin-bottom:0">以四角取樣顏色作為背景進行去除</div>
-    <div class="ma">
-      <button class="mb" onclick="closeMo('ov-bg')">取消</button>
-      <button class="mb ok" onclick="applyBg()">套用去背</button>
+    <div class="ma" style="justify-content:space-between;align-items:center">
+      <button class="mb" type="button" onclick="window.open('https://www.photoroom.com/tools/background-remover','_blank')" style="border-color:#ff4d4f;color:#ff4d4f;font-weight:700">
+        去背不乾淨？超強去背 Remove
+      </button>
+      <div style="display:flex;gap:8px">
+        <button class="mb" onclick="closeMo('ov-bg')">取消</button>
+        <button class="mb ok" onclick="applyBg()">套用去背</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1094,7 +1099,7 @@ function openBg(){
     cv.width=img.width; cv.height=img.height;
     cv.getContext('2d').drawImage(img,0,0);
     bgOrig=cv.getContext('2d').getImageData(0,0,cv.width,cv.height);
-    prevBg(30);
+    prevBg(1);
   };
   img.src=S.proc;
 }
