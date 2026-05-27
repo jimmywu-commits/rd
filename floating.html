@@ -232,20 +232,12 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
         <input class="ip" type="color" id="txt-col" value="#FFFFFF" oninput="onTxtPick(this.value)">
       </div>
       <div class="sws" id="txt-sws"></div>
-
-      <div class="rw" style="margin-top:10px">
-        <span class="lb">CTA色</span>
-        <input class="ip" type="text" id="cta-hex" value="#1a47ae" oninput="onCtaHex(this.value)" style="font-family:monospace;flex:1">
-        <input class="ip" type="color" id="cta-col" value="#1a47ae" oninput="onCtaPick(this.value)">
-      </div>
-      <div class="sws" id="cta-sws"></div>
-
-      <div class="rw" style="margin-top:10px">
+<div class="rw" style="margin-top:10px;display:none">
         <span class="lb">X高度</span>
         <input class="ip" type="range" min="30" max="90" step="1" id="x-font-range" oninput="onXFontSize(this.value)">
         <input class="ip" type="number" min="30" max="90" step="1" id="x-font-size" oninput="onXFontSize(this.value)" style="width:58px;flex:none">
       </div>
-      <div class="hint" id="x-font-hint"></div>
+      <div class="hint" id="x-font-hint" style="display:none"></div>
 
       
 
@@ -258,7 +250,16 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
     <!-- Product floating settings -->
     <div class="sc" id="sc-product" style="display:none">
       <div class="st">標題設定</div>
-      <textarea class="ta" id="ta-prod" rows="2" placeholder="輸入標題（最多5字）" oninput="onProd(event)" onblur="applyTextAuditOnBlur('prod')" onkeydown="blockOver(event,'prod')"></textarea>
+      <div class="rw">
+        <span class="lb">CTA色</span>
+        <input class="ip" type="text" id="cta-hex" value="#1a47ae" oninput="onCtaHex(this.value)" style="font-family:monospace;flex:1">
+        <input class="ip" type="color" id="cta-col" value="#1a47ae" oninput="onCtaPick(this.value)">
+      </div>
+      <div class="sws" id="cta-sws"></div>
+      <div style="margin-top:10px"></div>
+
+
+<textarea class="ta" id="ta-prod" rows="2" placeholder="輸入標題（最多5字）" oninput="onProd(event)" onblur="applyTextAuditOnBlur('prod')" onkeydown="blockOver(event,'prod')"></textarea>
       <div class="hint" id="h-prod">0 / 5字</div>
       <div class="audit-msg" id="audit-prod"></div>
     </div>
