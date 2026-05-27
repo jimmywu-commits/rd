@@ -109,27 +109,6 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
 .hb:disabled{opacity:.2;cursor:default}
 .hb svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
 
-/* scroll zoom hint — floats on right side of product canvas */
-.zoom-hint{position:absolute;top:50%;right:-74px;left:auto;transform:translateY(-50%);
-  background:rgba(13,16,24,.92);backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.22);border-radius:10px;
-  padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;
-  color:rgba(255,255,255,.62);font-size:9px;text-align:center;line-height:1.3;
-  pointer-events:auto;user-select:none;white-space:nowrap;z-index:8;animation:zoomHintPulse 1.8s ease-in-out infinite}
-.zoom-actions{display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.14);width:100%}
-.zoom-btn{width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;font-size:24px;line-height:1;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:.15s}
-.zoom-btn:hover{border-color:var(--ac);background:rgba(74,144,226,.18);transform:translateY(-1px)}
-.zoom-btn:active{transform:translateY(0) scale(.96)}
-.zoom-btn span{display:block;transform:translateY(-1px)}
-.zoom-btn.minus span{transform:translateY(-3px)}
-.zoom-hint{animation:zoomHintPulse 1.8s ease-in-out infinite}
-.zoom-hint svg{opacity:.9}
-.zoom-hint .wheel{animation:zoomWheelMove 1.05s ease-in-out infinite;transform-origin:center}
-
-@keyframes zoomHintPulse{0%,100%{opacity:.72;transform:translateY(-50%) scale(1)}50%{opacity:1;transform:translateY(-50%) scale(1.04)}}
-@keyframes zoomWheelMove{0%,100%{transform:translateY(-2px);opacity:.45}50%{transform:translateY(3px);opacity:1}}
-@keyframes zoomHintPulse{0%,100%{box-shadow:0 0 0 rgba(74,144,226,0)}50%{box-shadow:0 0 18px rgba(74,144,226,.22)}}
-
 /* MODALS */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s;backdrop-filter:blur(4px)}
 .ov.open{opacity:1;pointer-events:all}
@@ -152,6 +131,36 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
 .ch.bl{bottom:-5px;left:-5px;cursor:sw-resize}.ch.br{bottom:-5px;right:-5px;cursor:se-resize}
 .bgprev{border-radius:8px;overflow:hidden;background-image:linear-gradient(45deg,#1a1d2a 25%,transparent 25%),linear-gradient(-45deg,#1a1d2a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1d2a 75%),linear-gradient(-45deg,transparent 75%,#1a1d2a 75%);background-size:10px 10px;min-height:180px;display:flex;align-items:center;justify-content:center}
 
+
+/* inline canvas text editor */
+.canvas-text-editor{
+  position:absolute;
+  left:50%;
+  top:104px;
+  width:260px;
+  min-height:160px;
+  transform:translateX(-50%);
+  padding:0;
+  border:0;
+  background:transparent;
+  color:var(--canvas-text-color,#fff);
+  font-size:74px;
+  line-height:1.08;
+  font-family:'ShopeeNotoSans',sans-serif;
+  font-weight:500;
+  text-align:center;
+  outline:none;
+  resize:none;
+  overflow:hidden;
+  z-index:30;
+  caret-color:#fff;
+  white-space:pre-wrap;
+  word-break:break-word;
+  -webkit-user-select:text;
+  user-select:text;
+}
+.canvas-text-editor::selection{background:rgba(74,144,226,.22)}
+.canvas-text-editor *{font:inherit;color:inherit}
 /* TOAST */
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--p1);border:1px solid var(--b2);padding:9px 18px;border-radius:8px;font-size:12px;transition:.3s;opacity:0;z-index:200;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
@@ -303,27 +312,6 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
       <div class="clb">商品型 Floating</div>
       <div class="cf" id="cf2">
         <canvas id="cv2" width="360" height="360"></canvas>
-        <!-- zoom hint float (right of canvas) -->
-        <div class="zoom-hint" id="zoom-hint">
-          <!-- mouse + scroll wheel icon -->
-          <svg width="28" height="38" viewBox="0 0 28 38" fill="none">
-            <!-- mouse body -->
-            <rect x="4" y="6" width="20" height="28" rx="10" stroke="currentColor" stroke-width="1.8" fill="none"/>
-            <!-- scroll wheel -->
-            <rect class="wheel" x="11.5" y="10" width="5" height="9" rx="2.5" fill="currentColor" opacity=".7"/>
-            <!-- up arrow -->
-            <polyline points="14,2 14,5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <polyline points="11,4 14,1 17,4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            <!-- down arrow -->
-            <polyline points="14,36 14,33" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <polyline points="11,34 14,37 17,34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-          <span>滾輪<br>縮放</span>
-          <div class="zoom-actions" aria-label="商品圖縮放控制">
-            <button type="button" class="zoom-btn plus" onclick="return zoomProductImage(1,event)" title="放大商品圖"><span>+</span></button>
-            <button type="button" class="zoom-btn minus" onclick="return zoomProductImage(-1,event)" title="縮小商品圖"><span>−</span></button>
-          </div>
-        </div>
       </div>
       <div style="font-size:10px;color:var(--mu)">360 × 360 px · 透明底 · 可拖曳圖片至圓形區域</div>
     </div>
@@ -664,12 +652,12 @@ function switchTab(t){
 // TEXT — char width & limit enforcement
 // ══════════════════════════════════════════════
 function cw(ch){ return /[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef\u2e80-\u2eff]/.test(ch)?1:0.5; }
-function cws(s){ let w=0; for(const c of s) w+=cw(c); return w; }
+function cws(s){ let w=0; for(const c of s){ if(c==='\n') continue; w+=cw(c); } return w; }
 
 // Trim string to max char-width
 function trimToMax(s,max){
   let w=0; let out='';
-  for(const c of [...s]){ const cW=cw(c); if(w+cW>max+0.001) break; w+=cW; out+=c; }
+  for(const c of [...s]){ if(c==='\n'){ out+=c; continue; } const cW=cw(c); if(w+cW>max+0.001) break; w+=cW; out+=c; }
   return out;
 }
 
@@ -743,13 +731,17 @@ function shakeEl(el){ el.classList.remove('shake'); void el.offsetWidth; el.clas
 
 // split into lines max 3 char-widths each
 function lines(text,mx=3){
-  const arr=[...text]; const ls=[]; let ln='',lw=0;
-  for(const ch of arr){
-    const w=cw(ch);
-    if(lw+w>mx+.001&&ln){ ls.push(ln); ln=ch; lw=w; }
-    else{ ln+=ch; lw+=w; }
-  }
-  if(ln) ls.push(ln);
+  const ls=[];
+  String(text||'').split(/\n/).forEach(part=>{
+    const arr=[...part]; let ln='',lw=0;
+    for(const ch of arr){
+      const w=cw(ch);
+      if(lw+w>mx+.001&&ln){ ls.push(ln); ln=ch; lw=w; }
+      else{ ln+=ch; lw+=w; }
+    }
+    if(ln) ls.push(ln);
+    else if(part==='') ls.push('');
+  });
   return ls;
 }
 
@@ -838,59 +830,6 @@ function setupProd2Drag(){
   cv2.addEventListener('mouseleave',()=>{ if(!dragging) cv2.style.cursor=''; });
 }
 
-function zoomProductImage(direction,evt){
-  if(evt){ evt.preventDefault(); evt.stopPropagation(); }
-  if(!S.proc){ toast('請先上傳圖片','wa'); return false; }
-  const step = direction > 0 ? 0.12 : -0.12;
-  S.imgScale=Math.max(0.2,Math.min(5,S.imgScale+step));
-  push();
-  draw();
-  showZoomLevel();
-  return false;
-}
-
-// ══════════════════════════════════════════════
-// PRODUCT CANVAS — mouse wheel zoom
-// ══════════════════════════════════════════════
-function setupProd2Scroll(){
-  const cf2=document.getElementById('cf2');
-  cf2.addEventListener('wheel',e=>{
-    if(!S.proc) return;
-    e.preventDefault();
-    const delta=e.deltaY>0?-0.08:0.08;
-    S.imgScale=Math.max(0.2,Math.min(5,S.imgScale+delta));
-    push(); draw();
-    // flash zoom level
-    showZoomLevel();
-  },{passive:false});
-}
-
-let zoomLabelTimer=null;
-function showZoomLevel(){
-  const hint=document.getElementById('zoom-hint');
-  const pct=Math.round(S.imgScale*100);
-  hint.innerHTML=`<svg width="28" height="38" viewBox="0 0 28 38" fill="none">
-    <rect x="4" y="6" width="20" height="28" rx="10" stroke="currentColor" stroke-width="1.8" fill="none"/>
-    <rect class="wheel" x="11.5" y="10" width="5" height="9" rx="2.5" fill="currentColor" opacity=".7"/>
-    <polyline points="14,2 14,5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <polyline points="11,4 14,1 17,4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <polyline points="14,36 14,33" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <polyline points="11,34 14,37 17,34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  </svg><span style="font-size:11px;color:rgba(255,255,255,.8);font-weight:700">${pct}%</span><div class="zoom-actions" aria-label="商品圖縮放控制"><button type="button" class="zoom-btn plus" onclick="return zoomProductImage(1,event)" title="放大商品圖"><span>+</span></button><button type="button" class="zoom-btn minus" onclick="return zoomProductImage(-1,event)" title="縮小商品圖"><span>−</span></button></div>`;
-  clearTimeout(zoomLabelTimer);
-  zoomLabelTimer=setTimeout(resetZoomHint,1800);
-}
-function resetZoomHint(){
-  document.getElementById('zoom-hint').innerHTML=`<svg width="28" height="38" viewBox="0 0 28 38" fill="none">
-    <rect x="4" y="6" width="20" height="28" rx="10" stroke="currentColor" stroke-width="1.8" fill="none"/>
-    <rect class="wheel" x="11.5" y="10" width="5" height="9" rx="2.5" fill="currentColor" opacity=".7"/>
-    <polyline points="14,2 14,5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <polyline points="11,4 14,1 17,4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    <polyline points="14,36 14,33" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-    <polyline points="11,34 14,37 17,34" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  </svg><span>滾輪<br>縮放</span><div class="zoom-actions" aria-label="商品圖縮放控制"><button type="button" class="zoom-btn plus" onclick="return zoomProductImage(1,event)" title="放大商品圖"><span>+</span></button><button type="button" class="zoom-btn minus" onclick="return zoomProductImage(-1,event)" title="縮小商品圖"><span>−</span></button></div>`;
-}
-
 // ══════════════════════════════════════════════
 // DRAW
 // ══════════════════════════════════════════════
@@ -953,7 +892,7 @@ function d1(){
   drawX(ctx,255.3+48,8+48);
 
   const ls=lines(S.text,3);
-  if(ls.length){
+  if(ls.length && !inlineEditor){
     let y=104;
     ls.forEach(line=>{
       ctx.save();
@@ -1343,6 +1282,148 @@ function dlAll(evt){
   return false;
 }
 
+
+// inline canvas editor
+let inlineEditor=null;
+
+function enableCanvasTextEdit(){
+  const cv=document.getElementById('cv1');
+
+  cv.addEventListener('click',(e)=>{
+    const rect=cv.getBoundingClientRect();
+    const y=(e.clientY-rect.top)*(360/rect.height);
+
+    // 點文案顯示區時，直接在圓色塊上原地編輯
+    if(y>=88 && y<=245){
+      openInlineEditor();
+    }
+  });
+}
+
+function plainTextFromEditable(el){
+  return (el.innerText||'').replace(/\u00a0/g,' ');
+}
+
+function setEditablePlainText(el,text){
+  el.textContent=text||'';
+}
+
+function placeCaretAtEnd(el){
+  el.focus();
+  const range=document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel=window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function syncInlineTextToSidebar(value){
+  S.text=value;
+  const ta=document.getElementById('ta-text');
+  ta.value=value;
+
+  const w=cws(value.replace(/\n/g,''));
+  const hint=document.getElementById('h-text');
+  hint.textContent=`${w} / 6字`;
+  hint.className='hint'+(w>=6?' over':'');
+  ta.className='ta'+(w>=6?' over':'');
+  persistEditorState();
+}
+
+function trimMultilineTextToMax(value,max){
+  let w=0;
+  let out='';
+  for(const ch of [...value]){
+    if(ch==='\n'){
+      out+=ch;
+      continue;
+    }
+    const cW=cw(ch);
+    if(w+cW>max+0.001) break;
+    w+=cW;
+    out+=ch;
+  }
+  return out.replace(/\n{3,}/g,'\n\n');
+}
+
+function openInlineEditor(){
+  if(inlineEditor) return;
+
+  const wrap=document.getElementById('cf1');
+  const ed=document.createElement('div');
+  ed.className='canvas-text-editor';
+  ed.contentEditable='true';
+  ed.spellcheck=false;
+  ed.style.setProperty('--canvas-text-color',S.textColor||'#fff');
+  setEditablePlainText(ed,S.text||'');
+
+  wrap.appendChild(ed);
+  inlineEditor=ed;
+
+  // 暫時隱藏 canvas 文字，只保留圓色塊與 X，避免文字重疊；編輯器位置與 canvas 文字位置一致。
+  d1();
+
+  setTimeout(()=>placeCaretAtEnd(ed),0);
+
+  ed.addEventListener('input',()=>{
+    const before=plainTextFromEditable(ed);
+    const trimmed=trimMultilineTextToMax(before,6);
+    if(before!==trimmed){
+      setEditablePlainText(ed,trimmed);
+      placeCaretAtEnd(ed);
+      shakeEl(ed);
+      toast('已達字數上限','wa');
+    }
+    syncInlineTextToSidebar(trimmed);
+  });
+
+  ed.addEventListener('paste',(e)=>{
+    e.preventDefault();
+    const text=(e.clipboardData||window.clipboardData).getData('text/plain');
+    document.execCommand('insertText',false,text);
+  });
+
+  function finishInlineEdit(){
+    if(!inlineEditor) return;
+    const val=trimMultilineTextToMax(plainTextFromEditable(inlineEditor),6);
+    inlineEditor.remove();
+    inlineEditor=null;
+
+    const ta=document.getElementById('ta-text');
+    ta.value=val;
+    updateTextField('text',{audit:true});
+    push();
+    draw();
+  }
+
+  ed.addEventListener('blur',finishInlineEdit);
+
+  ed.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter'){
+      // Enter 保留原地斷行；避免 contenteditable 產生 div/p 等元素造成排版跳動。
+      e.preventDefault();
+      document.execCommand('insertLineBreak');
+      const val=trimMultilineTextToMax(plainTextFromEditable(ed),6);
+      if(val!==plainTextFromEditable(ed)){
+        setEditablePlainText(ed,val);
+        placeCaretAtEnd(ed);
+      }
+      syncInlineTextToSidebar(val);
+    }
+    if(e.key==='Escape'){
+      e.preventDefault();
+      inlineEditor.remove();
+      inlineEditor=null;
+      draw();
+    }
+  });
+}
+
+window.addEventListener('load',()=>{
+  setTimeout(enableCanvasTextEdit,300);
+});
+
 // ══════════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════════
@@ -1358,127 +1439,11 @@ function toast(msg,type=''){
 
 
 
-<!-- 使用說明書按鈕 -->
-<button id="manual-btn" onclick="openManual()" aria-label="說明書">
-  <svg class="manual-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-    <path d="M7 6.5h11.5c3.6 0 6.5 2.9 6.5 6.5v12.5H12.5C9.5 25.5 7 23 7 20V6.5Z" />
-    <path d="M7 6.5v18.8" />
-    <path d="M12 11h8" />
-    <path d="M12 15.5h7" />
-    <path d="M12 20h5" />
-  </svg>
-  <div class="manual-label">說明書</div>
-</button>
+<!-- Product zoom plugin: 商品圖縮放外掛 -->
+<script src="product-zoom-plugin.js"></script>
 
-
-
-<!-- 使用說明 Overlay -->
-<div id="manual-overlay" onclick="closeManual()">
-  <div id="manual-wrap" onclick="event.stopPropagation()">
-
-    <button id="manual-close" onclick="closeManual()">×</button>
-
-    <img
-      id="manual-img"
-      src="https://github.com/jimmywu-commits/rd/blob/main/%E7%A8%8B%E5%BC%8F%E6%AA%94%E6%A1%88/floating_manual.jpg?raw=true"
-    />
-  </div>
-</div>
-
-<style>
-
-
-#manual-btn{
-  position:fixed;
-  right:18px;
-  bottom:18px;
-  z-index:999;
-  width:74px;
-  padding:10px 8px;
-  border:none;
-  border-radius:14px;
-  background:rgba(13,16,24,.92);
-  backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,.22);
-  color:rgba(255,255,255,.82);
-  cursor:pointer;
-  box-shadow:0 10px 28px rgba(0,0,0,.35);
-  transition:.18s;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:6px;
-}
-#manual-btn:hover{
-  transform:translateY(-2px) scale(1.03);
-  border-color:#4a90e2;
-  color:#fff;
-}
-.manual-icon{
-  width:34px;
-  height:34px;
-  stroke:currentColor;
-  stroke-width:1.8;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-}
-.manual-label{
-  font-size:10px;
-  line-height:1.2;
-  letter-spacing:.5px;
-}
-
-#manual-overlay{
-  position:fixed;
-  inset:0;
-  z-index:9999;
-  background:rgba(0,0,0,.82);
-  display:none;
-  align-items:flex-start;
-  justify-content:center;
-  overflow:auto;
-  padding:28px;
-  backdrop-filter:blur(4px);
-}
-
-#manual-wrap{
-  position:relative;
-  width:min(1400px,95vw);
-}
-
-#manual-img{
-  width:100%;
-  display:block;
-  border-radius:18px;
-  box-shadow:0 25px 80px rgba(0,0,0,.5);
-}
-
-#manual-close{
-  position:fixed;
-  top:18px;
-  right:18px;
-  width:54px;
-  height:54px;
-  border:none;
-  border-radius:50%;
-  background:#ff4d4f;
-  color:#fff;
-  font-size:30px;
-  cursor:pointer;
-  z-index:10000;
-  box-shadow:0 8px 24px rgba(0,0,0,.35);
-}
-</style>
-
-<script>
-function openManual(){
-  document.getElementById('manual-overlay').style.display='flex';
-}
-
-function closeManual(){
-  document.getElementById('manual-overlay').style.display='none';
-}
-</script>
+<!-- Manual plugin: 說明書外掛 -->
+<script src="manual-plugin.js"></script>
 
 </body>
 </html>
