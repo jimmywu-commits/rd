@@ -439,7 +439,25 @@ button{cursor:pointer;background:linear-gradient(135deg,#6ac6ff,#9b8cff);border:
   box-shadow:0 0 0 2px rgba(141,211,255,.25);
 }
 
-.toggleRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.toggleRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+  margin-bottom:10px;
+}
+
+.layoutStateRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+  margin-bottom:10px;
+}
+
+#clearAll{
+  margin-top:0;
+}
 
 .refBadge{
   position:absolute;
@@ -926,6 +944,120 @@ html,body{height:100%;overflow:hidden}
   }
 }
 
+
+.canvasRatioGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ratioCard{border:1px solid var(--line);background:#11141c;border-radius:14px;padding:9px;cursor:pointer;transition:.15s;min-height:78px}
+.ratioCard:hover{border-color:#536078;transform:translateY(-1px)}
+.ratioCard.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(141,211,255,.18)}
+.ratioThumb{height:34px;margin:0 auto 7px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(135deg,#f8fafc,#dfe7ef);box-shadow:0 8px 18px rgba(0,0,0,.16)}
+.ratioThumb.square{width:34px}
+.ratioThumb.vertical{width:19px}
+.ratioThumb.wide{width:54px}
+.ratioTitle{font-size:12px;font-weight:900;color:#eef4ff;text-align:center}
+.ratioDesc{font-size:10px;color:#97a1b2;text-align:center;margin-top:2px}
+
+
+/* === S.LAB operation detail popup === */
+.operationOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.74);
+  backdrop-filter:blur(8px);
+  z-index:21000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.operationOverlay.show{display:flex}
+.operationWrap{
+  position:relative;
+  width:min(92vw,900px);
+  max-height:92vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.operationCard{
+  position:relative;
+  width:100%;
+  max-height:calc(92vh - 96px);
+  border-radius:24px;
+  overflow:visible;
+}
+.operationCard img{
+  width:100%;
+  max-height:calc(92vh - 154px);
+  object-fit:contain;
+  display:block;
+  border-radius:24px;
+  background:#0f1117;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 30px 90px rgba(0,0,0,.55);
+}
+.operationClose{
+  position:absolute;
+  top:-18px;
+  right:-18px;
+  width:54px;
+  height:54px;
+  border-radius:999px;
+  z-index:3;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(15,17,23,.94);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:34px;
+  line-height:1;
+  font-weight:900;
+  box-shadow:0 12px 30px rgba(0,0,0,.42);
+}
+.operationClose:hover{
+  transform:scale(1.06);
+  background:rgba(255,255,255,.16);
+}
+.operationAction{
+  width:min(100%,520px);
+  margin-top:14px;
+}
+.operationToday{
+  margin-top:12px;
+  width:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  padding:10px 16px;
+  border-radius:999px;
+  background:rgba(15,17,23,.86);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  backdrop-filter:blur(8px);
+}
+.operationToday input{
+  width:18px;
+  height:18px;
+  padding:0;
+  margin:0;
+  accent-color:#8dd3ff;
+}
+@media(max-width:760px){
+  .operationOverlay{padding:20px}
+  .operationClose{
+    top:-14px;
+    right:-14px;
+    width:48px;
+    height:48px;
+    font-size:30px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -941,11 +1073,31 @@ html,body{height:100%;overflow:hidden}
 <label>已上傳商品</label>
 <div class="productList" id="productList"></div>
 
+<h2>畫布尺寸</h2>
+<div class="canvasRatioGrid" id="canvasRatioGrid">
+  <div class="ratioCard active" data-ratio="1/1" data-label="1:1 Canvas">
+    <div class="ratioThumb square"></div>
+    <div class="ratioTitle">1:1</div>
+    <div class="ratioDesc">方形</div>
+  </div>
+  <div class="ratioCard" data-ratio="9/16" data-label="9:16 Canvas">
+    <div class="ratioThumb vertical"></div>
+    <div class="ratioTitle">9:16</div>
+    <div class="ratioDesc">直式</div>
+  </div>
+  <div class="ratioCard" data-ratio="21/9" data-label="21:9 Canvas">
+    <div class="ratioThumb wide"></div>
+    <div class="ratioTitle">21:9</div>
+    <div class="ratioDesc">橫幅</div>
+  </div>
+</div>
+
 <h2>場景風格</h2>
 <div class="optionGrid" id="sceneGrid"></div>
 <textarea id="customScene" class="hidden" placeholder="請輸入自訂場景，中文也可以。建議只寫顏色、材質、光影、氛圍，不要寫留白/遠景/重構圖。例如：夏日清爽藍白色棚拍，有水波光影"></textarea>
 
-<h2>用途 / 廣告目的</h2>
+<h2>背景元素選項</h2>
+<p style="margin:0 0 10px;color:#9aa3b2;font-size:12px;line-height:1.5">建議使用真實寫實風格 demo 圖作為縮圖預覽，讓使用者更直覺理解最終生成結果。</p>
 <div class="optionGrid" id="purposeGrid"></div>
 <textarea id="customPurpose" class="hidden" placeholder="請輸入自訂用途，中文也可以。系統會鎖定商品比例與構圖，文案空間只會在背景周圍調整。例如：618 大促首頁 Banner，高級感促銷氛圍"></textarea>
 
@@ -994,7 +1146,7 @@ Only generate or adjust:
 <section class="panel stagePanel">
 <div class="stageScroll">
 <div class="hint">拖曳商品調整位置；四角可縮放；滑鼠移到商品上可用滾輪縮放。建議把最大主商品設為 HERO，並用底線對齊提升比例準確度。商品預設為半透明預覽模式，避免產生前後景大小錯覺；滑鼠移入或選取時會恢復清晰。</div><br>
-<div class="stageShell"><div class="stage showGrid" id="stage"><div class="canvasSizeTag">1:1 Canvas</div>
+<div class="stageShell"><div class="stage showGrid" id="stage"><div class="canvasSizeTag" id="canvasSizeTag">1:1 Canvas</div>
   <div class="canvasGuide"></div><div class="centerFocus"></div><div class="baseline"></div>
   <div class="floatTip"><span class="wheelIcon"></span><span>滑鼠滾輪<br>放大 / 縮小</span></div>
 </div>
@@ -1018,7 +1170,7 @@ Only generate or adjust:
 <button class="secondary" id="uploadLayoutStateBtn">上傳構圖暫存</button>
 <input class="stateFileInput" id="uploadLayoutState" type="file" accept="application/json,.json">
 </div>
-<button class="secondary" id="clearAll">清除全部商品</button>
+<div style="margin-top:10px"><button class="secondary" id="clearAll">清除全部商品</button></div>
 </div>
 </section>
 
@@ -1048,15 +1200,10 @@ const scenes=[
  ['custom','自訂場景','custom','中文輸入可用']
 ];
 const purposes=[
- ['clean','精品商業廣告','product-centric high-end luxury commercial advertisement, photorealistic product photography, locked product layout remains the main visual priority','高級形象'],
- ['gradient','首頁 Hero Banner','product-centric e-commerce hero banner, premium clean commercial look, controlled copy space around locked products, do not shrink or move products for text space','首頁主視覺'],
- ['season','Marketplace 活動','product-centric marketplace campaign banner, strong product focus, clean promotional atmosphere suitable for e-commerce platforms, product layout remains locked','平台活動'],
- ['white','新品上市','product-centric new product launch campaign, hero product hierarchy, premium reveal atmosphere, product scale and placement remain locked','新品主推'],
- ['window','季節促銷','product-centric seasonal sale campaign banner, attractive premium promotion mood, controlled whitespace around products, do not shrink products for promotional space','檔期促銷'],
- ['beige','美妝保養','product-centric beauty and skincare advertising atmosphere, soft lighting, elegant premium texture, product layout remains locked','柔光質感'],
- ['tech','3C 電子產品','product-centric consumer electronics advertising atmosphere, sleek modern design, sharp premium lighting, product layout remains locked','俐落科技'],
- ['dark','時尚生活','product-centric fashion and lifestyle campaign mood, aspirational premium atmosphere, no editorial reframing, product layout remains locked','雜誌形象'],
- ['custom','自訂用途','custom','中文輸入可用']
+ ['minimal','背景元素少量','minimal background decoration, subtle premium props and restrained visual accents around locked products','背景元素簡潔乾淨'],
+ ['rich','背景元素豐富','rich premium background decoration, layered props, decorative visual elements, atmospheric scene details around locked products','背景元素較多、更有場景感'],
+ ['random','背景元素無指定隨機','randomized premium background element styling, AI may freely choose suitable decorative elements and atmosphere around locked products while preserving layout','背景元素隨機生成'],
+ ['custom','自訂','custom','中文輸入可用']
 ];
 const lights=[
  ['shadow','接地陰影','realistic contact shadows under every product',true],
@@ -1069,8 +1216,13 @@ const lights=[
 
 function renderCards(){
   sceneGrid.innerHTML=scenes.map((s,i)=>{
-    const imgPath = `./場景縮圖/${s[1]}.png`;
-    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="background-image:url('${imgPath}')"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">SCENE PREVIEW</div></div>`;
+    const sceneThumbFile = s[1] === '試試手氣' ? '用試試手氣.png' : `${s[1]}.png`;
+    const imgPath = `./場景縮圖/${sceneThumbFile}`;
+    const fallbackImgPath = s[1] === '試試手氣' ? `./場景縮圖/試試手氣.png` : imgPath;
+    const bgStyle = s[1] === '試試手氣'
+      ? `background-image:url('${imgPath}?v=2'),url('${fallbackImgPath}?v=2')`
+      : `background-image:url('${imgPath}')`;
+    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">SCENE PREVIEW</div></div>`;
   }).join('');
   purposeGrid.innerHTML=purposes.map((s,i)=>`<div class="optionCard ${i===selectedPurpose?'active':''}" data-type="purpose" data-i="${i}"><div class="thumb ${s[0]}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">VISUAL STYLE PREVIEW</div></div>`).join('');
   lightGrid.innerHTML=lights.map((l,i)=>`<div class="lightChip ${l[3]?'on':''}" data-i="${i}"><div class="lightIcon ${l[0]}"></div><div class="lightTxt">${l[1]}</div></div>`).join('');
@@ -1396,7 +1548,12 @@ ultra realistic, premium studio photography, clean background, accurate scale, n
 }
 multiUpload.addEventListener('change',e=>{[...e.target.files].forEach(file=>addProductFromFile(file));multiUpload.value='';markUpdated()});
 document.querySelectorAll('select,textarea').forEach(x=>{x.addEventListener('input',leftChanged);x.addEventListener('change',leftChanged)});
-document.getElementById('copy').onclick=async()=>{await navigator.clipboard.writeText(out.value);copy.textContent='已複製';setTimeout(()=>copy.textContent='複製 Prompt',900)}
+async function performCopyPrompt(){
+  await navigator.clipboard.writeText(out.value);
+  copy.textContent='已複製';
+  setTimeout(()=>copy.textContent='複製 Prompt',900);
+}
+document.getElementById('copy').onclick=()=>openOperationGuide('copy');
 document.getElementById('clearAll').onclick=()=>{document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());refreshList();leftChanged()}
 document.getElementById('toggleGrid').onclick=()=>stage.classList.toggle('showGrid');
 document.getElementById('snapBase').onclick=()=>{
@@ -1481,18 +1638,66 @@ async function exportLayoutPNG(){
   }
 
   const a=document.createElement('a');
-  a.download='layout-reference.png';
+  a.download='layout-reference-'+selectedCanvasRatio.replace('/','x')+'.png';
   a.href=canvas.toDataURL('image/png');
   a.click();
 }
 
-document.getElementById('exportLayout').onclick=exportLayoutPNG;
+document.getElementById('exportLayout').onclick=()=>openOperationGuide('export');
+
+let selectedCanvasRatio='1/1';
+
+function ratioValue(ratio){
+  const parts=String(ratio).split('/').map(Number);
+  if(parts.length!==2 || !parts[0] || !parts[1]) return 1;
+  return parts[0]/parts[1];
+}
+
+function applyCanvasRatio(ratio,label){
+  selectedCanvasRatio=ratio || '1/1';
+  const shell=document.querySelector('.stageShell');
+  const stageEl=document.getElementById('stage');
+  const tag=document.getElementById('canvasSizeTag');
+  if(shell){
+    shell.style.aspectRatio=selectedCanvasRatio;
+  }
+  if(stageEl){
+    stageEl.style.aspectRatio=selectedCanvasRatio;
+  }
+  if(tag){
+    tag.textContent=label || selectedCanvasRatio + ' Canvas';
+  }
+  document.querySelectorAll('.ratioCard').forEach(card=>{
+    card.classList.toggle('active', card.dataset.ratio===selectedCanvasRatio);
+  });
+  enforceSquareCanvas();
+  gen();
+  markUpdated();
+}
 
 function enforceSquareCanvas(){
   const shell=document.querySelector('.stageShell');
+  const stageEl=document.getElementById('stage');
   if(!shell)return;
-  const w=shell.clientWidth;
-  shell.style.height=w+'px';
+
+  const scroll=document.querySelector('.stageScroll');
+  const availableW=Math.max(260, (scroll?scroll.clientWidth:shell.parentElement.clientWidth) - 8);
+  const availableH=Math.max(260, (window.innerHeight || 900) - 190);
+  const r=ratioValue(selectedCanvasRatio);
+
+  let w=Math.min(availableW, 760);
+  let h=w/r;
+  if(h>availableH){
+    h=availableH;
+    w=h*r;
+  }
+
+  shell.style.width=Math.round(w)+'px';
+  shell.style.height=Math.round(h)+'px';
+  if(stageEl){
+    stageEl.style.width='100%';
+    stageEl.style.height='100%';
+  }
 }
 window.addEventListener('resize',enforceSquareCanvas);
 setTimeout(enforceSquareCanvas,0);
@@ -1506,7 +1711,7 @@ function getLayoutState(){
     style:{left:p.style.left,top:p.style.top,width:p.style.width,height:p.style.height},
     imgSrc:p.querySelector('img')?.src || ''
   }));
-  return {version:'1.0',savedAt:new Date().toISOString(),selectedScene,selectedPurpose,
+  return {version:'1.1',savedAt:new Date().toISOString(),selectedCanvasRatio,selectedScene,selectedPurpose,
     customScene:customScene.value,customPurpose:customPurpose.value,lens:lens.value,angle:angle.value,lock:lock.value,
     lights:lights.map(l=>l[3]),products:ps};
 }
@@ -1519,6 +1724,7 @@ function downloadLayoutStateFile(){
 function restoreLayoutState(data){
   if(!data || !Array.isArray(data.products)){alert('這不是有效的構圖暫存檔');return;}
   document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());
+  selectedCanvasRatio=data.selectedCanvasRatio || '1/1';
   selectedScene=Number.isInteger(data.selectedScene)?data.selectedScene:0;
   selectedPurpose=Number.isInteger(data.selectedPurpose)?data.selectedPurpose:0;
   customScene.value=data.customScene||''; customPurpose.value=data.customPurpose||'';
@@ -1536,7 +1742,7 @@ function restoreLayoutState(data){
     box.insertAdjacentHTML('beforeend',productHandles()); stage.appendChild(box);
     box.addEventListener('pointerdown',onPointerDown); box.addEventListener('wheel',onWheel,{passive:false}); idSeq=Math.max(idSeq,idx+1);
   });
-  renderCards(); updateCustomVisibility(); refreshList(); gen(); markUpdated();
+  renderCards(); updateCustomVisibility(); applyCanvasRatio(selectedCanvasRatio, selectedCanvasRatio+' Canvas'); refreshList(); gen(); markUpdated();
 }
 if(document.getElementById('downloadLayoutState')) document.getElementById('downloadLayoutState').onclick=downloadLayoutStateFile;
 if(document.getElementById('uploadLayoutStateBtn')) document.getElementById('uploadLayoutStateBtn').onclick=()=>document.getElementById('uploadLayoutState').click();
@@ -1546,6 +1752,10 @@ if(document.getElementById('uploadLayoutState')) document.getElementById('upload
   e.target.value='';
 };
 
+document.querySelectorAll('.ratioCard').forEach(card=>{
+  card.addEventListener('click',()=>applyCanvasRatio(card.dataset.ratio, card.dataset.label));
+});
+applyCanvasRatio('1/1','1:1 Canvas');
 renderCards();updateCustomVisibility();refreshList();gen();
 </script>
 
@@ -1592,6 +1802,21 @@ manualOverlay.addEventListener('click',(e)=>{
 
 
 
+
+
+<div class="operationOverlay" id="operationOverlay" aria-modal="true" role="dialog">
+  <div class="operationWrap">
+    <div class="operationCard">
+      <button class="operationClose" id="operationClose" type="button" aria-label="關閉說明">×</button>
+      <img src="./程式檔案/S.LAB操作細節.jpg" alt="S.LAB 操作細節">
+    </div>
+    <button class="operationAction" id="operationActionBtn" type="button">繼續</button>
+    <label class="operationToday">
+      <input type="checkbox" id="operationHideToday">
+      <span>今日不再顯示</span>
+    </label>
+  </div>
+</div>
 
 <div class="promoOverlay" id="promoOverlay" aria-modal="true" role="dialog">
   <div class="promoWrap">
@@ -1704,5 +1929,60 @@ manualOverlay.addEventListener('click',(e)=>{
 
 
 
+
+
+<script>
+(function(){
+  const overlay=document.getElementById('operationOverlay');
+  const closeBtn=document.getElementById('operationClose');
+  const actionBtn=document.getElementById('operationActionBtn');
+  const hideToday=document.getElementById('operationHideToday');
+  const todayKey=new Date().toISOString().slice(0,10);
+  const storageKey='slabOperationDetailHideDate_v1';
+  let pendingAction=null;
+
+  function shouldSkipGuide(){
+    return localStorage.getItem(storageKey)===todayKey;
+  }
+
+  async function runPendingAction(){
+    const action=pendingAction;
+    pendingAction=null;
+    if(action==='copy'){
+      await performCopyPrompt();
+    }else if(action==='export'){
+      await exportLayoutPNG();
+    }
+  }
+
+  function closeGuide(){
+    if(hideToday && hideToday.checked){
+      localStorage.setItem(storageKey,todayKey);
+    }
+    if(overlay) overlay.classList.remove('show');
+  }
+
+  window.openOperationGuide=async function(action){
+    pendingAction=action;
+    if(actionBtn){
+      actionBtn.textContent=action==='copy'?'複製 Prompt':'下載 Layout PNG';
+    }
+    if(shouldSkipGuide()){
+      await runPendingAction();
+      return;
+    }
+    if(overlay) overlay.classList.add('show');
+  };
+
+  if(actionBtn) actionBtn.addEventListener('click',async function(){
+    closeGuide();
+    await runPendingAction();
+  });
+  if(closeBtn) closeBtn.addEventListener('click',closeGuide);
+  if(overlay) overlay.addEventListener('click',function(e){
+    if(e.target===overlay) closeGuide();
+  });
+})();
+</script>
 
 </body></html>
