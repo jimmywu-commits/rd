@@ -293,8 +293,8 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
       <div class="banword-status" id="bw-status">⏳ 禁用語規則載入中…</div>
     </div>
 
-    <!-- Image upload -->
-    <div class="sc">
+    <!-- Image upload: only show on Product tab -->
+    <div class="sc" id="sc-image" style="display:none">
       <div class="st">商品圖片</div>
       <div class="up" id="upzone">
         <input type="file" accept="image/*" id="fIn" onchange="onFile(event)">
@@ -675,6 +675,7 @@ function switchTab(t){
   document.getElementById('t-product').classList.toggle('on',t==='product');
   document.getElementById('sc-text').style.display=t==='text'?'':'none';
   document.getElementById('sc-product').style.display=t==='product'?'':'none';
+  document.getElementById('sc-image').style.display=t==='product'?'':'none';
 }
 
 // ══════════════════════════════════════════════
