@@ -670,18 +670,8 @@
         else el.classList.remove('audit-error');
       }
 
-      el.addEventListener('input', function(){
-        normalizeLiveEditable();
-      });
-
-      el.addEventListener('compositionend', function(){
-        normalizeLiveEditable();
-      });
-
-      el.addEventListener('focus', function(){
-        normalizeLiveEditable();
-      });
-
+      // Only normalize after the user leaves the editing area.
+      // This prevents JS from rewriting text while the user is typing.
       el.addEventListener('blur', function(){
         normalizeLiveEditable();
       });

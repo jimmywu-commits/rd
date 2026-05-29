@@ -53,6 +53,18 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="./banwords-engine-hbn.js"></script>
+<script id="banword-engine-load-check">
+(function(){
+  window.addEventListener('DOMContentLoaded', function(){
+    if(window.banwordEngine && typeof window.banwordEngine.applyToElement === 'function'){
+      console.log('[banword] engine active:', window.banwordEngine.version || 'unknown');
+    }else{
+      console.error('[banword] engine NOT active. Please check banwords-engine-hbn.js path.');
+      if(typeof showToast === 'function') showToast('禁用語 JS 未啟用，請確認 banwords-engine-hbn.js 是否同層', 'err', 4000);
+    }
+  });
+})();
+</script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
   @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
@@ -3271,9 +3283,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); }});
 
-    // 全刪後瀏覽器會產生巢狀 <div><br></div>，造成欄位跳成兩行高度
-    // 在每次 input 後偵測並攤平，確保只保留純文字與 .counter
-    el.addEventListener('input', ()=>{
+    // 改為 blur 後才整理 DOM，避免使用者輸入中被即時改寫內容
+    el.addEventListener('blur', ()=>{
       const childDivs = el.querySelectorAll('div');
       if(childDivs.length === 0) return;
 
@@ -3285,20 +3296,6 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         el.appendChild(document.createTextNode(rawText));
       }
       if(counter) el.appendChild(counter);
-
-      // 游標移到文字末尾
-      const sel = window.getSelection();
-      const range = document.createRange();
-      const textNode = el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild : null;
-      if(textNode){
-        range.setStart(textNode, textNode.length);
-        range.collapse(true);
-      }else{
-        range.selectNodeContents(el);
-        range.collapse(false);
-      }
-      sel.removeAllRanges();
-      sel.addRange(range);
     });
   });
   function ensureCounter(el){ let c = el.querySelector('.counter'); if(!c){ c = document.createElement('span'); c.className='counter'; c.setAttribute('aria-hidden','true'); el.appendChild(c); } return c; }
@@ -8040,9 +8037,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   async function fetchBanwordWorkbook(){
-    var res = await fetch('./banwords.xlsx', { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ./banwords.xlsx');
-    return await res.arrayBuffer();
+    var paths = ['./banwords.xlsx', 'banwords.xlsx', './程式檔案/banwords.xlsx'];
+    var lastErr = null;
+    for(var i=0;i<paths.length;i++){
+      try{
+        var res = await fetch(paths[i], { cache: 'no-store' });
+        if(res.ok){
+          console.log('[banword] Excel loaded from', paths[i]);
+          return await res.arrayBuffer();
+        }
+        lastErr = new Error('HTTP ' + res.status + ' @ ' + paths[i]);
+      }catch(err){
+        lastErr = err;
+      }
+    }
+    throw lastErr || new Error('找不到 banwords.xlsx');
   }
 
   async function loadBanwordsFromExcel(){
