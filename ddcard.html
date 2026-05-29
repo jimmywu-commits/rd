@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>DDCard 製圖工具</title>
+<title>v2 DDCard 製圖工具</title>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="./banwords-engine-hbn.js"></script>
@@ -502,18 +502,14 @@ function bindTextEl(el){
   if(el.dataset.tb==='1')return;el.dataset.tb='1';
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
+
+  // 輸入中只更新字數與浮動提示，不執行禁用語 / 金額 / 日期格式化，
+  // 避免使用者一邊打字，內容一邊被 JS 改寫。
   el.addEventListener('input',function(){
-    if(el.querySelectorAll('div').length>0){
-      var c=el.querySelector('.counter'),txt=(el.textContent||'').replace(/\u00A0/g,' ').trim();
-      el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
-    }
-    updateCounter(el);showFloatMeter(el);
-    clearTimeout(el._bwTimer);
-    el._bwTimer=setTimeout(function(){
-      processBanword(el);
-      updateCounter(el);
-    },150);
+    updateCounter(el);
+    showFloatMeter(el);
   });
+
   el.addEventListener('beforeinput',function(e){
     if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();return;}
     var lim=DD_LIMITS[el.dataset.role];if(!lim||e.inputType==='insertFromPaste')return;
@@ -523,30 +519,30 @@ function bindTextEl(el){
       if(calcUnits(base+(e.data||''))>lim){e.preventDefault();showToast('超出上限（'+lim+'）','err',1800);}
     }
   });
+
   el.addEventListener('paste',function(e){
     e.preventDefault();
     var text=((e.clipboardData&&e.clipboardData.getData('text/plain'))||'')
       .replace(/[\u00A0\u2000-\u200B\u3000]/g,' ').replace(/[\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
     if(calcUnits(getRawText(el)+text)>(DD_LIMITS[el.dataset.role]||Infinity)){showToast('超出上限（'+(DD_LIMITS[el.dataset.role]||'∞')+'）','err',1800);return;}
-    try{if(document.execCommand('insertText',false,text))return;}catch(er){}
+    try{if(document.execCommand('insertText',false,text)){updateCounter(el);showFloatMeter(el);return;}}catch(er){}
     var sel=window.getSelection();
     if(sel&&sel.rangeCount){var range=sel.getRangeAt(0);range.deleteContents();var node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.setEndAfter(node);sel.removeAllRanges();sel.addRange(range);}
-    updateCounter(el);showFloatMeter(el);
-    clearTimeout(el._bwTimer);
-    el._bwTimer=setTimeout(function(){
-      processBanword(el);
-      updateCounter(el);
-    },0);
+    updateCounter(el);
+    showFloatMeter(el);
   });
-  el.addEventListener('focus',function(){
-    clearTimeout(el._bwTimer);
-    el._bwTimer=setTimeout(function(){
-      processBanword(el);
-      updateCounter(el);
-    },0);
-  });
+
+  // 游標離開編輯區後才整理 DOM 與執行禁用語 / 金額 / 日期格式化。
   el.addEventListener('blur',function(){
     clearTimeout(el._bwTimer);
+
+    if(el.querySelectorAll('div').length>0){
+      var c=el.querySelector('.counter'),txt=(el.textContent||'').replace(/\u00A0/g,' ').trim();
+      el.innerHTML='';
+      if(txt)el.appendChild(document.createTextNode(txt));
+      if(c)el.appendChild(c);
+    }
+
     processBanword(el);
     updateCounter(el);
   });
