@@ -3192,7 +3192,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   function updateLs(){ const n = lsPanel && lsPanel.querySelector ? lsPanel.querySelector('.ls-val') : null; if(!n) return; if(!activeEl){ n.textContent='--'; return; } let ls = getComputedStyle(activeEl).letterSpacing; if(ls==='normal'||!ls) ls='0px'; n.textContent = Math.round(parseFloat(ls)) + 'px'; }
 
   const floatMeter = document.getElementById('floatMeter');
-  function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\n/g,''); }
+  function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\u200B/g,'').replace(/\n/g,''); }
   const hanRegex = /\p{Script=Han}/u;
   function calcUnits(str){ let units = 0; for(const ch of str){ units += hanRegex.test(ch) ? 1 : 0.5; } return units; }
   const limits = new Map([ ['h1',8], ['h2',7], ['date',14] ]);
@@ -8093,29 +8093,34 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function ensureEditablePlaceholder(el){
     if(!el || !isVisuallyEmpty(el)) return;
+
+    // Do not insert <br> into empty contenteditable fields. In flex-based subtitle
+    // fields, <br> can be treated as an extra line after the user deletes all text,
+    // causing newly typed text to jump upward. Use a zero-width space only as a
+    // temporary caret anchor, and keep .counter intact.
     const counter = el.querySelector('.counter');
-    if(counter){
-      el.insertBefore(document.createElement('br'), counter);
-    }else{
-      el.innerHTML = '<br>';
-    }
-    placeCaretAtStart(el);
+    el.innerHTML = '';
+    const zwsp = document.createTextNode('\u200B');
+    el.appendChild(zwsp);
+    if(counter) el.appendChild(counter);
+
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.setStart(zwsp, 1);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   function cleanupEditablePlaceholder(el){
     if(!el) return;
-    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
+    const counter = el.querySelector('.counter');
+    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).replace(/\u200B/g,'').trim();
     if(raw !== '') return;
-    el.querySelectorAll('br').forEach(function(br){ br.remove(); });
-    const html = (el.innerHTML || '')
-      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
-      .replace(/&nbsp;/gi, ' ')
-      .trim();
-    if(html === ''){
-      el.innerHTML = '';
-      const counter = el.querySelector('.counter');
-      if(counter) el.appendChild(counter);
-    }
+
+    // Clear temporary caret anchors and stray browser-created line breaks/divs.
+    el.innerHTML = '';
+    if(counter) el.appendChild(counter);
   }
 
   function bindEmptyCaretFix(el){
