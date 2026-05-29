@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>v2 DDCard 製圖工具</title>
+<title>DDCard 製圖工具</title>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="./banwords-engine-hbn.js"></script>
+<script src="./banwords-engine-hbn.js?v=combined-bluronly-20260529"></script>
 <style>
 @font-face{font-family:"ShopeeNotoSans-Content-M";src:url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype");font-weight:500;font-style:normal;font-display:swap;}
 @font-face{font-family:"ShopeeNotoSans-Content-B";src:url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap;}
@@ -495,7 +495,7 @@ function showFloatMeter(el){
 }
 function processBanword(el){
   if(!window.banwordEngine||typeof window.banwordEngine.applyToElement!=='function')return;
-  var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText});
+  var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText,force:true});
   updateCounter(el);if(result&&result.message)showToast(result.message,'err',result.duration||4000);
 }
 function bindTextEl(el){
@@ -503,8 +503,7 @@ function bindTextEl(el){
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
 
-  // 輸入中只更新字數與浮動提示，不執行禁用語 / 金額 / 日期格式化，
-  // 避免使用者一邊打字，內容一邊被 JS 改寫。
+  // 輸入中只更新字數與浮動提示，不執行禁用語 / 金額 / 日期格式化。
   el.addEventListener('input',function(){
     updateCounter(el);
     showFloatMeter(el);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>v4 HBN製圖、審圖工具</title>
+<title>v3 HBN製圖、審圖工具</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
 <!-- underlay restore fix: preserve no-underlay/pending-underlay state on JSON import -->
 <!-- json restore guard: prevent bg onload sync from overwriting saved solid/gradient -->
@@ -37,7 +37,8 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
           processBanwordElement(el);
         }else if(window.banwordEngine && typeof window.banwordEngine.applyToElement === 'function'){
           window.banwordEngine.applyToElement(el, {
-            role: el && el.dataset ? (el.dataset.role || '') : ''
+            role: el && el.dataset ? (el.dataset.role || '') : '',
+            force: true
           });
         }
         if(typeof updateCounter === 'function') updateCounter(el);
@@ -52,19 +53,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="./banwords-engine-hbn.js"></script>
-<script id="banword-engine-load-check">
-(function(){
-  window.addEventListener('DOMContentLoaded', function(){
-    if(window.banwordEngine && typeof window.banwordEngine.applyToElement === 'function'){
-      console.log('[banword] engine active:', window.banwordEngine.version || 'unknown');
-    }else{
-      console.error('[banword] engine NOT active. Please check banwords-engine-hbn.js path.');
-      if(typeof showToast === 'function') showToast('禁用語 JS 未啟用，請確認 banwords-engine-hbn.js 是否同層', 'err', 4000);
-    }
-  });
-})();
-</script>
+<script src="./banwords-engine-hbn.js?v=combined-bluronly-20260529"></script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
   @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
@@ -3305,7 +3294,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     if(!window.banwordEngine || typeof window.banwordEngine.applyToElement !== 'function') return;
     const result = window.banwordEngine.applyToElement(el, {
       role: el?.dataset?.role || '',
-      getText: getRawText
+      getText: getRawText,
+      force: true
     });
     ensureCounter(el);
     updateCounter(el);
@@ -8037,21 +8027,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 
   async function fetchBanwordWorkbook(){
-    var paths = ['./banwords.xlsx', 'banwords.xlsx', './程式檔案/banwords.xlsx'];
-    var lastErr = null;
-    for(var i=0;i<paths.length;i++){
-      try{
-        var res = await fetch(paths[i], { cache: 'no-store' });
-        if(res.ok){
-          console.log('[banword] Excel loaded from', paths[i]);
-          return await res.arrayBuffer();
-        }
-        lastErr = new Error('HTTP ' + res.status + ' @ ' + paths[i]);
-      }catch(err){
-        lastErr = err;
-      }
-    }
-    throw lastErr || new Error('找不到 banwords.xlsx');
+    var res = await fetch('./banwords.xlsx', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ' @ ./banwords.xlsx');
+    return await res.arrayBuffer();
   }
 
   async function loadBanwordsFromExcel(){
