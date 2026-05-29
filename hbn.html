@@ -27,6 +27,27 @@ function wrapEnUp(el){
 document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
   el.addEventListener('blur', ()=>{
     wrapEnUp(el);
+
+    // After wrapEnUp() rewrites innerHTML for English/number vertical alignment,
+    // re-run the banword/numeric formatter so thousands separators and counters
+    // are restored consistently across browsers/contenteditable DOM variants.
+    requestAnimationFrame(()=>{
+      try{
+        if(typeof processBanwordElement === 'function'){
+          processBanwordElement(el);
+        }else if(window.banwordEngine && typeof window.banwordEngine.applyToElement === 'function'){
+          window.banwordEngine.applyToElement(el, {
+            role: el && el.dataset ? (el.dataset.role || '') : ''
+          });
+        }
+        if(typeof updateCounter === 'function') updateCounter(el);
+        if(typeof syncPcText === 'function') syncPcText();
+        if(typeof syncPcSText === 'function') syncPcSText();
+        if(window.syncDdLinkedCanvases) window.syncDdLinkedCanvases();
+      }catch(err){
+        console.warn('[hbn] contenteditable blur reformat failed', err);
+      }
+    });
   });
 });
 </script>
