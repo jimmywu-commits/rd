@@ -272,7 +272,7 @@
     const protectedMap = [];
 
     // 保護「數字+折」「數字+件/組/個」：個位數或雙位數後接「折、件、組、個」，不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件組個])/g, function(match, prefix, digits){
+    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件組個入盒包罐台支雙])/g, function(match, prefix, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({
         token: key,
