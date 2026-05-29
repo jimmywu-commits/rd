@@ -508,6 +508,11 @@ function bindTextEl(el){
       el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
     }
     updateCounter(el);showFloatMeter(el);
+    clearTimeout(el._bwTimer);
+    el._bwTimer=setTimeout(function(){
+      processBanword(el);
+      updateCounter(el);
+    },150);
   });
   el.addEventListener('beforeinput',function(e){
     if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();return;}
@@ -527,8 +532,24 @@ function bindTextEl(el){
     var sel=window.getSelection();
     if(sel&&sel.rangeCount){var range=sel.getRangeAt(0);range.deleteContents();var node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.setEndAfter(node);sel.removeAllRanges();sel.addRange(range);}
     updateCounter(el);showFloatMeter(el);
+    clearTimeout(el._bwTimer);
+    el._bwTimer=setTimeout(function(){
+      processBanword(el);
+      updateCounter(el);
+    },0);
   });
-  el.addEventListener('blur',function(){processBanword(el);updateCounter(el);});
+  el.addEventListener('focus',function(){
+    clearTimeout(el._bwTimer);
+    el._bwTimer=setTimeout(function(){
+      processBanword(el);
+      updateCounter(el);
+    },0);
+  });
+  el.addEventListener('blur',function(){
+    clearTimeout(el._bwTimer);
+    processBanword(el);
+    updateCounter(el);
+  });
 }
 
 /* ---- logo upload ---- */
