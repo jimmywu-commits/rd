@@ -1560,7 +1560,7 @@ async function addProductFromFile(file){
     document.querySelectorAll('.product[data-id]').forEach(p => p.classList.remove('rearmost'));
     box.classList.add('rearmost');
   }
-  selectProduct(box);refreshList();genAll();markUpdated();
+  if(!window._mobBatchUpload) { selectProduct(box);refreshList();genAll();markUpdated(); }
 }
 
 function refreshRefs(){
@@ -2401,14 +2401,14 @@ setTimeout(()=>{
 
   /* Header */
   .mob-header{
-    padding:14px 16px 10px;
+    padding:10px 16px 8px;
     flex-shrink:0;
     background:#0b0e17;
     border-bottom:1px solid rgba(255,255,255,.07);
   }
   .mob-brand{
-    font-size:12px;font-weight:900;letter-spacing:.08em;
-    color:rgba(141,211,255,.5);margin-bottom:10px;
+    font-size:11px;font-weight:900;letter-spacing:.08em;
+    color:rgba(141,211,255,.5);margin-bottom:8px;
   }
 
   /* Progress bar */
@@ -2593,33 +2593,34 @@ setTimeout(()=>{
 
   /* Footer nav */
   .mob-footer{
-    padding:12px 16px;
-    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    padding:8px 16px;
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
     background:#0b0e17;
     border-top:1px solid rgba(255,255,255,.07);
     display:flex;
-    gap:10px;
+    gap:8px;
     flex-shrink:0;
+    box-sizing:border-box;
   }
   .mob-btn-back{
     flex:0 0 auto;
-    padding:14px 18px;
+    padding:11px 16px;
     background:#1a1f2e;
     border:1px solid rgba(255,255,255,.12);
-    border-radius:14px;
+    border-radius:12px;
     color:#9aa3b2;
-    font-size:14px;
+    font-size:13px;
     font-weight:800;
     cursor:pointer;
   }
   .mob-btn-next{
     flex:1;
-    padding:14px;
+    padding:12px;
     background:linear-gradient(135deg,#4285f4,#8dd3ff);
     border:0;
-    border-radius:14px;
+    border-radius:12px;
     color:#fff;
-    font-size:15px;
+    font-size:14px;
     font-weight:900;
     cursor:pointer;
     transition:.15s;
@@ -3808,17 +3809,16 @@ manualOverlay.addEventListener('click',(e)=>{
           <div style="font-size:10px;font-weight:700;color:#ff8a8a;flex:1;text-align:center">可能造成比例移位</div>
         </div>
         <textarea class="mob-prompt-out" id="mobPromptOut" readonly></textarea>
-        <div class="mob-action-grid">
-          <button class="mob-action-btn primary" id="mobCopyBtn" onclick="mobCopyPrompt()">📋 複製 Prompt</button>
-          <button class="mob-action-btn" onclick="document.getElementById('exportLayout').click()">⬇ Layout PNG</button>
-          <button class="mob-action-btn" onclick="mobCopyBg()">① 背景 Prompt</button>
-          <button class="mob-action-btn" onclick="mobCopyComposite()">② 合成 Prompt</button>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+          <button id="mobCopyBtn" onclick="mobCopyPrompt()" style="width:100%;padding:15px;background:linear-gradient(135deg,#4285f4,#8dd3ff);border:0;border-radius:14px;color:#fff;font-size:15px;font-weight:900;cursor:pointer">📋 複製 Prompt</button>
+          <button onclick="document.getElementById('exportLayout').click()" style="width:100%;padding:15px;background:linear-gradient(135deg,#1a2236,#252b3a);border:1px solid rgba(255,255,255,.15);border-radius:14px;color:#dce7ff;font-size:15px;font-weight:900;cursor:pointer">⬇ 下載 Layout PNG</button>
+          <button onclick="mobStepBack()" style="width:100%;padding:13px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:14px;color:#6a7892;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px">← 上一步</button>
         </div>
       </div>
 
     </div><!-- /mob-content -->
 
-    <div class="mob-footer">
+    <div class="mob-footer" id="mobFooter">
       <button class="mob-btn-back" id="mobBack" style="display:none" onclick="mobStepBack()">← 上一步</button>
       <button class="mob-btn-next" id="mobNext" onclick="mobStepNext()">選好了 →</button>
     </div>
@@ -3879,10 +3879,16 @@ manualOverlay.addEventListener('click',(e)=>{
     document.getElementById('mobBack').style.display = n > 1 ? '' : 'none';
 
     const nextBtn = document.getElementById('mobNext');
-    nextBtn.textContent = NEXT_LABELS[n-1];
-    nextBtn.className = 'mob-btn-next' + (n === 5 ? ' green' : '');
-    if(n === 5) nextBtn.style.display = 'none';
-    else nextBtn.style.display = '';
+    const footer  = document.getElementById('mobFooter');
+    if(n === 5){
+      // Step 5: hide footer entirely, actions are in content
+      footer.style.display = 'none';
+    } else {
+      footer.style.display = '';
+      nextBtn.textContent = NEXT_LABELS[n-1];
+      nextBtn.className = 'mob-btn-next';
+      nextBtn.style.display = '';
+    }
 
     // Scroll content to top
     wiz.querySelector('.mob-content').scrollTop = 0;
@@ -3907,8 +3913,63 @@ manualOverlay.addEventListener('click',(e)=>{
   });
 
   // ── Step 2: Upload ──
+  // ── Step 2: Upload — direct file input, bypass desktop modal ──
+  // Hidden file input for mobile
+  const mobFileInput = document.createElement('input');
+  mobFileInput.type = 'file';
+  mobFileInput.accept = 'image/*';
+  mobFileInput.multiple = true;
+  mobFileInput.style.display = 'none';
+  document.body.appendChild(mobFileInput);
+
   document.getElementById('mobUploadArea').addEventListener('click', ()=>{
-    document.getElementById('openUploadModal').click();
+    mobFileInput.click();
+  });
+
+  mobFileInput.addEventListener('change', async e => {
+    const files = [...e.target.files].slice(0, 3);
+    mobFileInput.value = '';
+    if(!files.length) return;
+
+    // Show loading state
+    const uploadArea = document.getElementById('mobUploadArea');
+    uploadArea.innerHTML = '<div class="mob-upload-icon">⏳</div><div class="mob-upload-text">上傳中...</div>';
+
+    // Clear existing products silently
+    document.querySelectorAll('.product[data-id]').forEach(p => p.remove());
+
+    // Suppress intermediate renders during batch upload
+    window._mobBatchUpload = true;
+
+    // Add products one by one
+    for(const file of files){
+      await addProductFromFile(file);
+    }
+
+    window._mobBatchUpload = false;
+
+    // Assign hero/rearmost
+    const ps = [...document.querySelectorAll('.product[data-id]')];
+    ps.forEach(p => { p.classList.remove('hero'); p.classList.remove('rearmost'); });
+    if(ps[0]) ps[0].classList.add('hero');
+    if(ps.length > 1) ps[ps.length-1].classList.add('rearmost');
+
+    // One-time render after all products loaded
+    requestAnimationFrame(() => {
+      applyInvertedTriangle(ps, null);
+      refreshList();
+      genAll();
+      markUpdated();
+    });
+
+    // Restore upload area
+    uploadArea.innerHTML = `
+      <div class="mob-upload-icon">✅</div>
+      <div class="mob-upload-text">已上傳 ${ps.length} 張商品</div>
+      <div class="mob-upload-sub">點擊可重新上傳</div>
+    `;
+
+    refreshMobProducts();
   });
 
   function refreshMobProducts(){
