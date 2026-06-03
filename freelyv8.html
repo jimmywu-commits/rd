@@ -1300,14 +1300,14 @@ const stage=document.getElementById('stage'), out=document.getElementById('out')
 let active=null, drag=null, idSeq=0, selectedScene=0, selectedPurpose=0;
 
 const scenes=[
- ['white','未來感白色棚','studio backdrop: futuristic luxury white, smooth curved architecture, circular podium surface, glowing ceiling ring light. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','乾淨精品感','商品大小比例依畫布為主'],
- ['beige','暖米色棚拍','studio backdrop: warm beige premium, soft fabric backdrop texture, stone podium surface, natural warm luxury lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','美妝/保養適合','商品大小比例依畫布為主'],
- ['clean','電商乾淨白棚','studio backdrop: clean bright white, minimal e-commerce studio, flat clean surface, pure controlled lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','轉換導向','商品大小比例依畫布為主'],
- ['window','精品展示棚','studio backdrop: premium boutique display, reflective dark surface, elegant warm spotlights, luxury retail atmosphere. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','高級櫥窗感','商品大小比例依畫布為主'],
- ['gradient','漸層色棚','studio backdrop: soft gradient color wash background, subtle modern color gradient from corner, clean podium surface. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','年輕活動感','商品大小比例依畫布為主'],
- ['season','節慶氛圍棚','studio backdrop: seasonal festive atmosphere, elegant holiday accents strictly in background, warm celebratory lighting on backdrop only. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','大促/節日','商品大小比例依畫布為主'],
- ['tech','科技生活棚','studio backdrop: tech lifestyle studio, clean desk surface, soft natural daylight, modern minimal consumer electronics mood. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','3C/家電','商品大小比例依畫布為主'],
- ['dark','黑色精品棚','studio backdrop: dark luxury showroom, glossy black platform surface, dramatic spotlight on backdrop, deep shadows in background. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','精品/高單價','商品大小比例依畫布為主'],
+ ['white','未來感白色棚','studio backdrop: pure white seamless backdrop, high-gloss white podium surface, cool white ambient studio lighting, subtle soft shadow on white surface. Apply this ONLY to backdrop color, surface material, and lighting color temperature. Do NOT build any architecture, curved structures, or spatial environments. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','乾淨精品感','商品大小比例依畫布為主'],
+ ['beige','暖米色棚拍','studio backdrop: warm beige seamless backdrop, natural stone or linen podium surface, soft warm ambient lighting. Apply this ONLY to backdrop color, surface material, and lighting warmth. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','美妝/保養適合','商品大小比例依畫布為主'],
+ ['clean','電商乾淨白棚','studio backdrop: bright clean white seamless backdrop, flat matte white podium surface, even neutral studio lighting. Apply this ONLY to backdrop color and surface material. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','轉換導向','商品大小比例依畫布為主'],
+ ['window','精品展示棚','studio backdrop: deep charcoal or dark grey seamless backdrop, polished dark reflective podium surface, warm focused spotlights on backdrop only. Apply this ONLY to backdrop color, surface material, and lighting mood. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','高級櫥窗感','商品大小比例依畫布為主'],
+ ['gradient','漸層色棚','studio backdrop: soft color gradient seamless backdrop transitioning from light to slightly deeper tone, clean neutral podium surface. Apply this ONLY to backdrop color gradient and surface material. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','年輕活動感','商品大小比例依畫布為主'],
+ ['season','節慶氛圍棚','studio backdrop: warm festive-toned seamless backdrop with subtle seasonal color warmth, clean podium surface, warm ambient lighting. Apply this ONLY to backdrop color temperature and lighting warmth. Do NOT add decorative objects, props, or elements near or overlapping products. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','大促/節日','商品大小比例依畫布為主'],
+ ['tech','科技生活棚','studio backdrop: cool grey or slate seamless backdrop, clean matte desk surface, soft neutral daylight-balanced studio lighting. Apply this ONLY to backdrop color, surface material, and lighting color temperature. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','3C/家電','商品大小比例依畫布為主'],
+ ['dark','黑色精品棚','studio backdrop: deep black seamless backdrop, high-gloss black or dark marble podium surface, narrow dramatic spotlight aimed at backdrop only. Apply this ONLY to backdrop color, surface material, and spotlight mood. Do NOT change product positions, sizes, scale, or layout. Products stay exactly where they are.','精品/高單價','商品大小比例依畫布為主'],
  ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機','⚠ 可能造成商品大小比例移位'],
  ['custom','自訂場景','custom','中文輸入可用','⚠ 可能造成商品大小比例移位']
 ];
@@ -2385,7 +2385,7 @@ setTimeout(()=>{
         <div id="modalDropZone" class="uploadDropZone" style="margin-bottom:14px">
           <div style="font-size:28px;margin-bottom:6px">🖼️</div>
           <div style="font-size:14px;font-weight:900;color:#dce7ff">拖拉圖片到這裡</div>
-          <p style="margin:6px 0 0">或點擊選取（最多 3 張，PNG / JPG / WEBP / AVIF）</p>
+          <p style="margin:6px 0 0">已載入畫布現有商品，可新增或移除。最多可同時預覽 6 張，但需刪到剩 3 張才可確認</p>
           <input id="modalFileInput" type="file" accept="image/*" multiple style="display:none">
         </div>
         <div id="modalPreviewGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px"></div>
@@ -2412,7 +2412,7 @@ setTimeout(()=>{
 
 <script>
 (function(){
-  const MAX_UPLOAD = 3;   // max images per upload session
+  const MAX_UPLOAD = 6;   // can see up to 6 in modal (3 existing + 3 new), must trim to 3 before confirm
   const MAX_APPLY  = 3;   // must be ≤ this to proceed
   const modal       = document.getElementById('uploadModal');
   const openBtn     = document.getElementById('openUploadModal');
@@ -2455,8 +2455,12 @@ setTimeout(()=>{
   }
 
   function openModal(){
-    stagedFiles = [];   // always start fresh — don't pre-load canvas products
-    heroIndex   = 0;
+    // Pre-load existing canvas products so user can edit them
+    const existing = loadExistingProducts();
+    stagedFiles = existing.slice(0, MAX_UPLOAD); // cap at max just in case
+    // Put hero first
+    const hi = stagedFiles.findIndex(f => f.isHero);
+    heroIndex = hi >= 0 ? hi : 0;
     rankOrder   = null;
     currentStep = 1;
     renderPreviewGrid(); updateLimitWarn(); showStep(1);
@@ -2501,13 +2505,22 @@ setTimeout(()=>{
   function updateLimitWarn(){
     const n = stagedFiles.length;
     if(n > MAX_APPLY){
+      const needRemove = n - MAX_APPLY;
       limitWarn.style.display = '';
-      limitWarn.textContent   = `最多只能上傳 ${MAX_APPLY} 張，請移除多餘的圖片`;
-      limitWarn.style.color   = n > MAX_APPLY ? '#ffd166' : '#7cf0bd';
+      limitWarn.innerHTML = `目前共 <b style="color:#fff">${n}</b> 張，請移除 <b style="color:#ffd166">${needRemove}</b> 張，剩下 3 張才可確認套用`;
+      limitWarn.style.color = '#ffd166';
+    } else if(n === MAX_APPLY){
+      limitWarn.style.display = '';
+      limitWarn.innerHTML = `✓ 已選 <b style="color:#7cf0bd">3</b> 張，可以繼續下一步`;
+      limitWarn.style.color = '#7cf0bd';
+    } else if(n > 0){
+      limitWarn.style.display = '';
+      limitWarn.innerHTML = `已選 <b style="color:#dce7ff">${n}</b> 張（最多 3 張）`;
+      limitWarn.style.color = '#9aa3b2';
     } else {
       limitWarn.style.display = 'none';
     }
-    // update next button state
+    // Lock/unlock next button
     if(currentStep === 1){
       const canProceed = n > 0 && n <= MAX_APPLY;
       modalNext.style.opacity = canProceed ? '1' : '0.4';
