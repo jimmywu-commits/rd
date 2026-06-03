@@ -1300,16 +1300,16 @@ const stage=document.getElementById('stage'), out=document.getElementById('out')
 let active=null, drag=null, idSeq=0, selectedScene=0, selectedPurpose=0;
 
 const scenes=[
- ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機'],
- ['white','未來感白色棚','product-centric futuristic luxury white studio atmosphere, smooth curved architecture, circular podium, glowing ceiling ring light, background adapts around locked products','乾淨精品感'],
- ['beige','暖米色棚拍','product-centric warm beige premium studio atmosphere, soft fabric backdrop, stone podium, natural luxury lighting, background adapts around locked products','美妝/保養適合'],
- ['clean','電商乾淨 Banner','product-centric clean premium e-commerce banner environment, bright clean background, controlled whitespace around locked products, products remain large and dominant, background adapts around product layout','轉換導向'],
- ['window','百貨精品櫥窗','product-centric premium department store window display atmosphere, reflective surfaces, elegant shopping mood, background adapts around locked products','高級櫥窗感'],
- ['gradient','漸層數位 Banner','product-centric soft gradient color background, subtle modern digital commerce accents, controlled decorative shapes behind locked products, products remain dominant','年輕活動感'],
- ['season','節慶促銷場景','product-centric seasonal campaign atmosphere, elegant festive accents behind products, premium online promotion mood, products remain dominant and unchanged','大促/節日'],
- ['tech','科技生活棚拍','product-centric tech lifestyle studio atmosphere, clean desk platform, soft daylight, modern consumer electronics mood, background adapts around locked products','3C/家電'],
- ['dark','黑色高級展示間','product-centric dark luxury showroom atmosphere, glossy black platform, dramatic spotlight around products, premium reflections, products remain dominant','精品/高單價'],
- ['custom','自訂場景','custom','中文輸入可用']
+ ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機','⚠ 高風險'],
+ ['white','未來感白色棚','studio backdrop: futuristic luxury white, smooth curved architecture, circular podium surface, glowing ceiling ring light. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','乾淨精品感','✅ 安全'],
+ ['beige','暖米色棚拍','studio backdrop: warm beige premium, soft fabric backdrop texture, stone podium surface, natural warm luxury lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','美妝/保養適合','✅ 安全'],
+ ['clean','電商乾淨白棚','studio backdrop: clean bright white, minimal e-commerce studio, flat clean surface, pure controlled lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','轉換導向','✅ 安全'],
+ ['window','精品展示棚','studio backdrop: premium boutique display, reflective dark surface, elegant warm spotlights, luxury retail atmosphere. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','高級櫥窗感','✅ 安全'],
+ ['gradient','漸層色棚','studio backdrop: soft gradient color wash background, subtle modern color gradient from corner, clean podium surface. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','年輕活動感','✅ 安全'],
+ ['season','節慶氛圍棚','studio backdrop: seasonal festive atmosphere, elegant holiday accents strictly in background, warm celebratory lighting on backdrop only. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','大促/節日','✅ 安全'],
+ ['tech','科技生活棚','studio backdrop: tech lifestyle studio, clean desk surface, soft natural daylight, modern minimal consumer electronics mood. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','3C/家電','✅ 安全'],
+ ['dark','黑色精品棚','studio backdrop: dark luxury showroom, glossy black platform surface, dramatic spotlight on backdrop, deep shadows in background. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','精品/高單價','✅ 安全'],
+ ['custom','自訂場景','custom','中文輸入可用','⚠ 注意用詞']
 ];
 const purposes=[
  ['minimal','背景元素少量','minimal background decoration, subtle premium props and restrained visual accents around locked products','背景元素簡潔乾淨'],
@@ -1334,7 +1334,8 @@ function renderCards(){
     const bgStyle = s[1] === '試試手氣'
       ? `background-image:url('${imgPath}?v=2'),url('${fallbackImgPath}?v=2')`
       : `background-image:url('${imgPath}')`;
-    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">SCENE PREVIEW</div></div>`;
+    const riskBadge = s[4] ? `<div style="margin-top:4px;font-size:10px;font-weight:900;letter-spacing:.2px;color:${s[4].startsWith('✅')?'#7cf0bd':s[4].startsWith('⚡')?'#ffd166':'#ff8a8a'}">${s[4]}</div>` : '';
+    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div>${riskBadge}</div>`;
   }).join('');
   purposeGrid.innerHTML=purposes.map((s,i)=>`<div class="optionCard ${i===selectedPurpose?'active':''}" data-type="purpose" data-i="${i}"><div class="thumb ${s[0]}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">VISUAL STYLE PREVIEW</div></div>`).join('');
   lightGrid.innerHTML=lights.map((l,i)=>`<div class="lightChip ${l[3]?'on':''}" data-i="${i}"><div class="lightIcon ${l[0]}"></div><div class="lightTxt">${l[1]}</div></div>`).join('');
@@ -1377,7 +1378,7 @@ function getSceneText(){
   }
   if(scenes[selectedScene][2]==='custom'){
     const v=sanitizeCustomPromptText(customScene.value.trim());
-    return v?`STYLE-ONLY CUSTOM SCENE: ${v}. Use this only for background color, materials, atmosphere, lighting mood, architecture, and set decoration. Do not use it to change composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing. Translate Chinese creative direction into fluent English prompt language while preserving the meaning.`:'custom user-defined product-centric scene styling';
+    return v?`studio backdrop only: ${v}. Apply this ONLY to background material, surface texture, backdrop color, lighting mood, and atmosphere. This description must NOT influence product position, product size, product scale, product layout, composition, camera distance, or framing. Products remain exactly where they are. Translate Chinese creative direction into fluent English while preserving meaning.`:'studio backdrop: premium clean studio, neutral background, professional lighting';
   }
   return scenes[selectedScene][2];
 }
@@ -1717,6 +1718,7 @@ function setPlatform(p){
 }
 
 // ── Gemini / Imagen 3 — default platform ──
+// ── Gemini / Imagen 3 ──
 function gen(){
   const ps=[...document.querySelectorAll('.product[data-id]')], infos=ps.map(info);
   refreshRefs();
@@ -1727,65 +1729,101 @@ function gen(){
   const ratioNum=ratioValue(selectedCanvasRatio);
   const aspectDesc=ratioNum>1.2?'landscape':ratioNum<0.85?'portrait':'square';
   const canvasLabel=document.getElementById('canvasSizeTag')?.textContent||selectedCanvasRatio;
-
-  const frontP=heroEl?`${heroEl.dataset.ref}`:' none';
-  const backP=rearmostEl?`${rearmostEl.dataset.ref}`:'none';
+  const frontP=heroEl?heroEl.dataset.ref:'none';
+  const backP=rearmostEl?rearmostEl.dataset.ref:'none';
   const midList=ps.filter(p=>!p.classList.contains('hero')&&!p.classList.contains('rearmost')).map(p=>p.dataset.ref).join(', ')||'none';
 
   const prodLines=ps.length?ps.map((p,idx)=>{
     const o=infos[idx];
     const isHero=p.classList.contains('hero'),isRear=p.classList.contains('rearmost');
     const scaleH=Math.round(parseFloat(o.h)/(parseFloat(hero.h)||1)*100);
+    const scaleW=Math.round(parseFloat(o.w)/(parseFloat(hero.w)||1)*100);
+    const bdiff=pct(parseFloat(o.bottom)-parseFloat(hero.bottom));
     const sem=semanticPos(o,p.dataset.name,isHero,isRear,infos,hero);
+    const depthRole=isHero?'foreground — closest, sharpest, strongest shadow':isRear?'background — furthest, softest shadow, SAME SIZE as layout':'middle — moderate shadow, clear focus';
     return `[${p.dataset.ref}] ${isHero?'★FOREGROUND':isRear?'●BACKGROUND':'○MIDDLE'} "${p.dataset.name}"
   canvas position: left=${o.x}% top=${o.y}% width=${o.w}% height=${o.h}%
   center: x=${o.cx}% y=${o.cy}% | bottom edge: ${o.bottom}%
-  scale vs foreground: ${scaleH}% | zone: ${zone(o)}
+  scale vs foreground: height=${scaleH}% width=${scaleW}% | bottom offset: ${parseFloat(bdiff)>=0?'+':''}${bdiff}%
   natural language: ${sem}
-  depth: ${isHero?'foreground — closest, sharpest, strongest shadow':isRear?'background — furthest, softest shadow, SAME SIZE as layout':'middle — moderate shadow'}
-  PLACEMENT LOCK: composite this product image at EXACTLY the pixel area defined above`;
+  depth role: ${depthRole}
+  PLACEMENT LOCK: composite this product image at EXACTLY the pixel area defined above — no movement, no resizing`;
   }).join('\n\n'):'no products';
 
   out.value=`TASK: Studio product photo — composite products onto generated background.
 
-OUTPUT: ${selectedCanvasRatio.replace('/',':')} ${aspectDesc} — MUST be exactly this ratio.
+OUTPUT FORMAT
+Canvas: ${selectedCanvasRatio.replace('/',':')} ${aspectDesc} — MUST be exactly this ratio.
 
-UPLOADED PRODUCT IMAGES
+THE BACKGROUND IS GENERATED AROUND THE PRODUCTS.
+THE PRODUCTS ARE NEVER MOVED OR RESIZED FOR THE BACKGROUND.
+
+LAYOUT REFERENCE IMAGE — COMPOSITION CONTRACT
+I have uploaded a layout reference image together with the product images.
+This layout image shows the EXACT position, size, and spatial arrangement of every product.
+You MUST reproduce this layout with pixel-accurate fidelity. This is not a suggestion or inspiration — it is a binding composition contract.
+
+How to read the layout image:
+• Each product occupies a specific rectangular area in the canvas
+• The relative sizes between products are FIXED — do not change any product's apparent size
+• The spatial positions (left/center/right, top/middle/bottom) are FIXED — do not reposition any product
+• Products that appear larger in the layout MUST appear larger in the output
+• Products that appear on the left in the layout MUST appear on the left in the output
+• The overall composition, spacing, and hierarchy shown in the layout must be preserved exactly
+
+The layout image also contains bounding box lines, REF labels, grid lines, and annotation text.
+These are visual guides only — do NOT render them in the final image output.
 ${ps.map(p=>`${p.dataset.ref} = "${p.dataset.filename||p.dataset.name}" — flat locked layer, use as-is`).join('\n')}
 
 ═══════════════════════════════════════
-PRODUCT IMAGE RULES — NON-NEGOTIABLE
+ABSOLUTE PRODUCT PRESERVATION — NON-NEGOTIABLE
 ═══════════════════════════════════════
-Every product image must be treated as a LOCKED FLAT LAYER:
-• composite as-is, do not redraw, regenerate, or replace
-• no rotation, no perspective change, no 3D rendering
-• no colour change, no logo change, no label change
-• no retouching, no sharpening, no beautifying
-• no resizing beyond exact specified dimensions
-• depth = shadow/lighting adjustment only, NEVER scale change
+Treat all uploaded products as final locked image assets and flat locked PNG/image-plane layers.
+
+Never modify the uploaded products:
+• Do not change product angle, viewing direction, or camera perspective
+• Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform products
+• Do not convert products into new 3D objects
+• Do not infer hidden sides, backs, thickness, or new perspective planes
+• Do not redesign packaging
+• Do not alter logo placement, label placement, typography, printed graphics, colors, materials, texture, pattern, shape, silhouette, outline, geometry, or proportions
+• Do not beautify, stylize, relight, repaint, retouch, sharpen, upscale, or enhance the product itself
+• Do not generate a similar-looking replacement product
+• Do not hallucinate missing product parts or extend hidden surfaces
+• depth = shadow/lighting adjustment only, NEVER scale or position change
+
+Preserve exactly:
+• original uploaded image-plane angle
+• original product outline and visible shape
+• original front-facing / side-facing orientation
+• original product proportions and printed details
+
+Only generate or adjust:
+• background, platform / podium
+• lighting around products (not on the product surface itself)
+• contact shadows, environmental reflections, atmosphere, depth of field
 
 ═══════════════════════════════════════
 POSITION & SCALE — STRICT PIXEL LOCK
 ═══════════════════════════════════════
-Canvas is divided into a percentage grid (0–100% horizontal, 0–100% vertical).
+Canvas is a percentage grid (0–100% horizontal, 0–100% vertical).
 Each product MUST occupy EXACTLY the specified grid area. No exceptions.
 
 ${prodLines}
 
-FORBIDDEN POSITION CHANGES:
+FORBIDDEN CHANGES:
 • do not move any product for compositional balance
 • do not resize any product for aesthetic reasons
-• do not reframe for whitespace or text area
+• do not reframe for whitespace, text area, or editorial balance
 • do not adjust scale due to perspective or depth
-• the background environment MUST adapt to products, not vice versa
+• background MUST adapt to products, not the other way around
 
 ═══════════════════════════════════════
-DEPTH HIERARCHY — LIGHTING ONLY
+DEPTH HIERARCHY — LIGHTING ONLY, NOT SCALE
 ═══════════════════════════════════════
-Foreground ${frontP}: strongest defined shadow, highest contrast lighting
-Middle ${midList}: moderate shadow, clear lighting
-Background ${backP}: softest diffuse shadow, reduced contrast
-→ Size of each product is FIXED. Depth = shadow/atmosphere ONLY.
+Foreground ${frontP}: strongest defined shadow, highest contrast
+Middle ${midList}: moderate shadow, clear focus
+Background ${backP}: softest diffuse shadow — SIZE UNCHANGED
 
 SCENE
 ${getSceneText()}
@@ -1799,11 +1837,15 @@ ${lens.value}, ${angle.value}, ${aspectDesc} ${selectedCanvasRatio.replace('/','
 LIGHTING
 ${lightPrompt()||'soft studio lighting, warm consistent direction'}
 single light source | ${frontP}: strongest shadow | ${backP}: softest shadow
+products physically grounded on same surface | consistent shadow direction
 
-DO NOT RENDER: bounding boxes, REF labels, grid lines, annotation text, layout guides
+DO NOT RENDER: bounding boxes, REF labels, grid lines, annotation text
+
+NEGATIVE PRODUCT MODIFICATION RULES
+no product angle change, no product rotation, no product tilt, no perspective change, no 3D reconstruction, no shape change, no silhouette change, no logo change, no text change, no packaging redesign, no warped labels, no stretched product, no squashed product, no bent product, no different product, no generated replacement product
 
 QUALITY
-photorealistic studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, accurate product positions, accurate product scales, no product distortion, no product movement, no text overlays`;
+photorealistic studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, accurate product positions, accurate product scales, no product distortion, no product movement, no text overlays, no REF labels, no bounding boxes`;
 }
 
 // ── ChatGPT / DALL·E 3 ──
@@ -1817,16 +1859,9 @@ function genGemini(){
   const ratioNum=ratioValue(selectedCanvasRatio);
   const aspectDesc=ratioNum>1.2?'landscape / horizontal':ratioNum<0.85?'portrait / vertical':'square';
   const canvasLabel=document.getElementById('canvasSizeTag')?.textContent||selectedCanvasRatio;
-
   const frontP=heroEl?`${heroEl.dataset.ref} (${heroEl.dataset.name})`:'none';
   const backP=rearmostEl?`${rearmostEl.dataset.ref} (${rearmostEl.dataset.name})`:'none';
   const midList=ps.filter(p=>!p.classList.contains('hero')&&!p.classList.contains('rearmost')).map(p=>`${p.dataset.ref} (${p.dataset.name})`).join(', ')||'none';
-
-  function depthLabel(p){
-    if(p.classList.contains('hero'))     return 'FOREGROUND — closest to camera, sharpest focus, strongest contact shadow';
-    if(p.classList.contains('rearmost')) return 'BACKGROUND — furthest from camera, softest shadow. Size is LOCKED — do NOT make smaller';
-    return 'MIDDLE GROUND — clear focus, moderate shadow';
-  }
 
   const lines=ps.length?ps.map((p,idx)=>{
     const o=infos[idx];
@@ -1835,69 +1870,80 @@ function genGemini(){
     const scaleW=Math.round(parseFloat(o.w)/(parseFloat(hero.w)||1)*100);
     const bdiff=pct(parseFloat(o.bottom)-parseFloat(hero.bottom));
     const sem=semanticPos(o,p.dataset.name,isHero,isRear,infos,hero);
-    return `━━ ${p.dataset.ref} "${p.dataset.name}" ${isHero?'[★ FOREGROUND]':isRear?'[● BACKGROUND]':'[○ MIDDLE]'}
-Natural position: ${sem}
-Exact grid: left=${o.x}% top=${o.y}% width=${o.w}% height=${o.h}%
-Center point: x=${o.cx}% y=${o.cy}% | Bottom edge: ${o.bottom}%
-Size relative to foreground: height=${scaleH}% width=${scaleW}%
-Bottom alignment: ${parseFloat(bdiff)>=0?'+':''}${bdiff}% vs foreground bottom
-Depth role: ${depthLabel(p)}
-→ HARD LOCK: place this uploaded product image at this exact grid position, at this exact scale. Do not move, resize, rotate, recolour, or redraw for any reason.`;
+    return `━━ ${p.dataset.ref} / ${p.dataset.name} ${isHero?'[★ FOREGROUND / 最前面]':isRear?'[● BACKGROUND / 最後面]':'[○ MIDDLE]'}
+- Reference asset: ${p.dataset.ref} = "${p.dataset.filename||p.dataset.name}"
+  Use ${p.dataset.ref} as the exact product source. Match uploaded reference image exactly.
+  Do not replace, redraw, reinterpret, rotate, tilt, reshape, or reconstruct this asset.
+- Placement: ${zone(o)}
+- Bounding box lock: left ${o.x}%, top ${o.y}%, width ${o.w}%, height ${o.h}% of canvas
+- Center point lock: x ${o.cx}%, y ${o.cy}% of canvas
+- Strict scale lock: height must remain ${scaleH}% of the FOREGROUND product height; width must remain ${scaleW}% of the FOREGROUND product width
+- Bottom alignment: bottom edge is ${parseFloat(bdiff)>=0?'+':''}${bdiff}% relative to FOREGROUND bottom edge
+- Natural language: ${sem}
+- Depth role: ${isHero?'FOREGROUND — closest, sharpest, strongest shadow':isRear?'BACKGROUND — furthest, softest shadow, size LOCKED':'MIDDLE — moderate shadow, clear focus'}
+- The editor preview is auto-trimmed to the actual visible product boundary; use the visible product size, not the original image canvas size
+- Do not resize, rebalance, or beautify this product independently`;
   }).join('\n\n'):'No products uploaded.';
 
-  out.value=`Create a premium commercial product image using my uploaded product images and layout reference.
+  out.value=`Create a premium commercial product image using my uploaded product images.
+
+THE BACKGROUND IS GENERATED AROUND THE PRODUCTS.
+THE PRODUCTS ARE NEVER MOVED OR RESIZED FOR THE BACKGROUND.
+
+LAYOUT REFERENCE IMAGE — BINDING COMPOSITION CONTRACT
+I have uploaded a layout reference image together with the product images.
+This layout image shows the EXACT position, size, and spatial arrangement of every product in the final output.
+This is not a mood board or rough guide — it is a BINDING COMPOSITION CONTRACT that must be followed with pixel-accurate fidelity.
+
+How to read and use the layout image:
+• Identify each product's rectangular area in the canvas — this is its EXACT placement zone
+• The relative sizes shown between products are LOCKED — reproduce them exactly
+• Horizontal positions are LOCKED — left means left, center means center, right means right
+• Vertical positions are LOCKED — top means top, middle means middle, bottom means bottom
+• Products that appear larger in the layout MUST appear proportionally larger in the output
+• The overall composition hierarchy shown in the layout must be preserved without any rebalancing
+• Do not resize, reposition, or rescale any product for aesthetic, compositional, or stylistic reasons
+
+The layout image also contains bounding box overlays, REF-01/REF-02/REF-03 labels, grid lines, center lines, and a baseline guide.
+These are annotation overlays — do NOT render any of them in the final image output.
 
 OUTPUT FORMAT — HIGHEST PRIORITY
 Canvas: ${selectedCanvasRatio.replace('/',':')} (${canvasLabel}) — ${aspectDesc}
 The final image MUST be exactly ${selectedCanvasRatio.replace('/',':')} aspect ratio.
 
 CORE INSTRUCTION
-Composite the uploaded product images into a realistic studio environment.
-Products are LOCKED FLAT LAYERS — only background, lighting, and shadows are generated.
+Build a realistic studio environment around the uploaded products. Keep every product visually unchanged.
 
-LAYOUT REFERENCE NOTE
-Layout PNG shows bounding boxes, REF labels, grid lines — GUIDES ONLY.
-✗ Do not render bounding boxes  ✗ Do not render REF labels  ✗ Do not render grid lines
+ABSOLUTE PRODUCT PRESERVATION RULES — HIGHEST PRIORITY
+Treat all uploaded products as final locked image assets and flat locked PNG/image-plane layers.
 
-██████████████████████████████████████
-ABSOLUTE PRODUCT LOCK — MAXIMUM PRIORITY
-██████████████████████████████████████
+Never modify the uploaded products:
+- Do not change product angle
+- Do not change product viewing direction
+- Do not change product perspective
+- Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform products
+- Do not convert products into new 3D objects
+- Do not infer hidden sides, backs, thickness, or new perspective planes
+- Do not redesign packaging
+- Do not alter logo placement, label placement, typography, printed graphics, colors, materials, texture, pattern, shape, silhouette, outline, geometry, or proportions
+- Do not beautify, stylize, relight, repaint, retouch, sharpen, upscale, or enhance the product itself
+- Do not generate a similar-looking replacement product
+- Do not hallucinate missing product parts or extend hidden surfaces
 
-Every uploaded product image is a FINAL LOCKED ASSET:
-• PIXEL-FOR-PIXEL identical to upload — any change = CRITICAL FAILURE
-• No rotation, tilt, skew, warp, stretch, squash, or reshape
-• No 3D conversion, no hidden sides, no perspective inference
-• No logo, label, colour, texture, or proportion changes
-• No retouching, relighting, or beautifying product surfaces
-• Treat every product as a FLAT STICKER pasted at exact coordinates
+Preserve exactly:
+- original uploaded image-plane angle
+- original product outline and visible shape
+- original front-facing / side-facing orientation
+- original product proportions and printed details
 
-FAILURE CONDITIONS (retry until all pass):
-✗ Product position differs from specified grid → FAIL
-✗ Product scale differs from specified size → FAIL
-✗ Product angle or perspective changed → FAIL
-✗ Product redrawn or regenerated → FAIL
-✗ Any product label, logo, or text changed → FAIL
-✗ Output aspect ratio is not ${selectedCanvasRatio.replace('/',':')} → FAIL
-
-POSITION AND SCALE CONTRACT
-The canvas is a percentage grid: 0% = left/top edge, 100% = right/bottom edge.
-Each product's left, top, width, height define its EXACT pixel footprint.
-This is a CONTRACT — no artistic licence on position or scale.
-
-${lines}
-
-COMPOSITION CONTRACT
-• All product positions and sizes are FINAL — no exceptions
-• Background, platform, atmosphere adapt around products
-• Do not rebalance for whitespace, text space, or editorial aesthetics
-• Do not change perceived product scale for depth or perspective
-• Scale anchor: ${frontP}
-
-DEPTH HIERARCHY — LIGHTING AND SHADOW ONLY
-Products sizes are LOCKED. Express depth through shadow intensity only:
-• ${frontP} → strongest, most defined contact shadow + clearest highlight
-• ${midList} → moderate shadow
-• ${backP} → softest diffuse shadow — SIZE UNCHANGED, depth = light only
+Only generate or adjust:
+- background
+- platform / podium
+- lighting around products, not on the product design itself
+- contact shadows
+- environmental reflections
+- atmosphere
+- depth of field
 
 SCENE
 ${getSceneText()}
@@ -1908,19 +1954,85 @@ ${getPurposeText()}
 CAMERA
 - ${lens.value}
 - ${angle.value}
-- ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} output
+- realistic perspective, balanced layout, premium product hierarchy
+- suitable for e-commerce banner advertising
+- Output: ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format
 
 REFERENCE ASSET MAPPING
-${ps.map(p=>`${p.dataset.ref}: "${p.dataset.filename||p.dataset.name}" — use ONLY this uploaded image`).join('\n')}
+${ps.map(p=>`${p.dataset.ref}: "${p.dataset.filename||p.dataset.name}"
+- This exact uploaded image is the source asset for ${p.dataset.ref}.
+- Match this uploaded reference image exactly.
+- Do not replace, redraw, reinterpret, rotate, tilt, reshape, or reconstruct this asset.`).join('\n\n')}
 
-LIGHTING
-${lightPrompt()||'- soft studio lighting, consistent warm direction'}
-- ${frontP}: strongest shadow and highlight
-- ${backP}: softest shadow, depth via lighting NOT by resizing
-- Single consistent light source direction
+STRICT LAYOUT AND SCALE CONTROL — HIGHEST PRIORITY
+- Follow the exact product layout from my editor / layout reference PNG.
+- Composition is locked. Product position, product size, product spacing, product hierarchy, bounding boxes, and bottom alignment are locked.
+- Do not automatically rebalance the composition.
+- Do not shrink, enlarge, move, crop, or reframe products to create whitespace, banner spacing, text space, editorial balance, or cinematic framing.
+- Whitespace, background, props, and atmosphere must adapt around the locked products, not the other way around.
+- Do not change perceived product size due to perspective adjustments.
+- Preserve exact relative object scale, spacing, hierarchy, bottom alignment, and bounding boxes from the layout PNG.
+- Keep the FOREGROUND product as the fixed scale anchor.
+- Products must remain large and dominant according to the provided layout, regardless of selected style or commercial purpose.
+
+STYLE ISOLATION RULE
+- Scene style and advertising purpose may only affect background color, materials, lighting mood, architecture, set decoration, and atmosphere.
+- Scene style and advertising purpose must not affect composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing.
+
+PRODUCT LAYOUT
+${lines}
+
+DEPTH HIERARCHY — EXPRESS THROUGH LIGHTING ONLY, NOT SCALE
+All product sizes are LOCKED. Do NOT change product apparent size to express depth.
+- FOREGROUND ${frontP} → strongest, sharpest contact shadow, highest contrast lighting highlight
+- MIDDLE ${midList} → moderate shadow definition, clear focus
+- BACKGROUND ${backP} → softest diffuse shadow — SIZE IS LOCKED, depth = light only
+
+LIGHTING, SHADOW, DEPTH
+${lightPrompt()}
+- realistic contact shadows under every product
+- subtle ambient reflections on the podium
+- soft cinematic depth of field
+- physically accurate lighting interaction with products
+- natural occlusion between products and platform
+- consistent shadow direction
+- products physically grounded on the same surface
+- soft depth transition between foreground and background
+
+LOCKED PRODUCT RULES
+ABSOLUTE PRODUCT PRESERVATION RULES — HIGHEST PRIORITY
+Treat all uploaded products as final locked image assets and flat locked PNG/image-plane layers.
+Never modify the uploaded products:
+- Do not change product angle
+- Do not change product viewing direction
+- Do not change product perspective
+- Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform products
+- Do not convert products into new 3D objects
+- Do not infer hidden sides, backs, thickness, or new perspective planes
+- Do not redesign packaging
+- Do not alter logo placement, label placement, typography, printed graphics, colors, materials, texture, pattern, shape, silhouette, outline, geometry, or proportions
+- Do not beautify, stylize, relight, repaint, retouch, sharpen, upscale, or enhance the product itself
+- Do not generate a similar-looking replacement product
+- Do not hallucinate missing product parts or extend hidden surfaces
+Preserve exactly:
+- original uploaded image-plane angle
+- original product outline and visible shape
+- original front-facing / side-facing orientation
+- original product proportions and printed details
+Only generate or adjust:
+- background
+- platform / podium
+- lighting around products, not on the product design itself
+- contact shadows
+- environmental reflections
+- atmosphere
+- depth of field
+
+NEGATIVE PRODUCT MODIFICATION RULES
+no product angle change, no product rotation, no product tilt, no perspective change, no 3D reconstruction, no shape change, no silhouette change, no logo change, no text change, no packaging redesign, no warped labels, no stretched product, no squashed product, no bent product, no different product, no generated replacement product
 
 QUALITY
-Ultra realistic, premium studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, products at exact layout positions and scales, no product distortion, no annotation text, no bounding box lines, no REF labels visible`;
+ultra realistic, premium studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, clean background, accurate scale, no product distortion, no product rotation, no product tilt, no angle change, no perspective change, no relighting product surface, no product redesign, no duplicated products, no extra random items, no messy text artifacts, no annotation text, no bounding boxes, no REF labels visible`;
 }
 multiUpload.addEventListener('change',e=>{[...e.target.files].forEach(file=>addProductFromFile(file));multiUpload.value='';markUpdated()});
 document.querySelectorAll('select,textarea').forEach(x=>{x.addEventListener('input',leftChanged);x.addEventListener('change',leftChanged)});
