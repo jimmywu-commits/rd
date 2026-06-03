@@ -1132,7 +1132,7 @@ html,body{height:100%;overflow:hidden}
 <body>
 <div class="app">
 <section class="panel leftPanel">
-<div class="brandMark">S.FREELY v1.1</div>
+<div class="brandMark">S.FREELY</div>
 <h1>商品圖片上傳 Prompt 構圖工具 Pro+</h1>
 <p>支援多圖上傳、檔名命名、自動裁掉白底/透明邊界預覽、四角等比例縮放、滾輪等比例縮放、Hero 鎖定、底線對齊、商品角度鎖定與更精準的比例 Prompt。</p>
 
@@ -1300,7 +1300,6 @@ const stage=document.getElementById('stage'), out=document.getElementById('out')
 let active=null, drag=null, idSeq=0, selectedScene=0, selectedPurpose=0;
 
 const scenes=[
- ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機','⚠ 可能造成商品大小比例移位'],
  ['white','未來感白色棚','studio backdrop: futuristic luxury white, smooth curved architecture, circular podium surface, glowing ceiling ring light. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','乾淨精品感','商品大小比例依畫布為主'],
  ['beige','暖米色棚拍','studio backdrop: warm beige premium, soft fabric backdrop texture, stone podium surface, natural warm luxury lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','美妝/保養適合','商品大小比例依畫布為主'],
  ['clean','電商乾淨白棚','studio backdrop: clean bright white, minimal e-commerce studio, flat clean surface, pure controlled lighting. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','轉換導向','商品大小比例依畫布為主'],
@@ -1309,6 +1308,7 @@ const scenes=[
  ['season','節慶氛圍棚','studio backdrop: seasonal festive atmosphere, elegant holiday accents strictly in background, warm celebratory lighting on backdrop only. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','大促/節日','商品大小比例依畫布為主'],
  ['tech','科技生活棚','studio backdrop: tech lifestyle studio, clean desk surface, soft natural daylight, modern minimal consumer electronics mood. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','3C/家電','商品大小比例依畫布為主'],
  ['dark','黑色精品棚','studio backdrop: dark luxury showroom, glossy black platform surface, dramatic spotlight on backdrop, deep shadows in background. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','精品/高單價','商品大小比例依畫布為主'],
+ ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機','⚠ 可能造成商品大小比例移位'],
  ['custom','自訂場景','custom','中文輸入可用','⚠ 可能造成商品大小比例移位']
 ];
 const purposes=[
