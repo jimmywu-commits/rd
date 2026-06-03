@@ -1309,7 +1309,7 @@ const scenes=[
  ['season','節慶氛圍棚','studio backdrop: seasonal festive atmosphere, elegant holiday accents strictly in background, warm celebratory lighting on backdrop only. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','大促/節日','✅ 安全'],
  ['tech','科技生活棚','studio backdrop: tech lifestyle studio, clean desk surface, soft natural daylight, modern minimal consumer electronics mood. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','3C/家電','✅ 安全'],
  ['dark','黑色精品棚','studio backdrop: dark luxury showroom, glossy black platform surface, dramatic spotlight on backdrop, deep shadows in background. Background material and atmosphere only — product positions, sizes, and layout are fixed and must not change.','精品/高單價','✅ 安全'],
- ['custom','自訂場景','custom','中文輸入可用','⚠ 注意用詞']
+ ['custom','自訂場景','custom','中文輸入可用','⚠ 可能造成商品大小比例移位']
 ];
 const purposes=[
  ['minimal','背景元素少量','minimal background decoration, subtle premium props and restrained visual accents around locked products','背景元素簡潔乾淨'],
@@ -1328,14 +1328,21 @@ const lights=[
 
 function renderCards(){
   sceneGrid.innerHTML=scenes.map((s,i)=>{
-    const sceneThumbFile = s[1] === '試試手氣' ? '用試試手氣.png' : `${s[1]}.png`;
-    const imgPath = `./場景縮圖/${sceneThumbFile}`;
-    const fallbackImgPath = s[1] === '試試手氣' ? `./場景縮圖/試試手氣.png` : imgPath;
-    const bgStyle = s[1] === '試試手氣'
-      ? `background-image:url('${imgPath}?v=2'),url('${fallbackImgPath}?v=2')`
-      : `background-image:url('${imgPath}')`;
+    const isCustom = s[2] === 'custom';
+    let thumbHtml;
+    if(isCustom){
+      thumbHtml = `<div class="thumb custom"></div>`;
+    } else {
+      const sceneThumbFile = s[1] === '試試手氣' ? '用試試手氣.png' : `${s[1]}.png`;
+      const imgPath = `./場景縮圖/${sceneThumbFile}`;
+      const fallbackImgPath = s[1] === '試試手氣' ? `./場景縮圖/試試手氣.png` : imgPath;
+      const bgStyle = s[1] === '試試手氣'
+        ? `background-image:url('${imgPath}?v=2'),url('${fallbackImgPath}?v=2')`
+        : `background-image:url('${imgPath}')`;
+      thumbHtml = `<div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div>`;
+    }
     const riskBadge = s[4] ? `<div style="margin-top:4px;font-size:10px;font-weight:900;letter-spacing:.2px;color:${s[4].startsWith('✅')?'#7cf0bd':s[4].startsWith('⚡')?'#ffd166':'#ff8a8a'}">${s[4]}</div>` : '';
-    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div>${riskBadge}</div>`;
+    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}">${thumbHtml}<div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div>${riskBadge}</div>`;
   }).join('');
   purposeGrid.innerHTML=purposes.map((s,i)=>`<div class="optionCard ${i===selectedPurpose?'active':''}" data-type="purpose" data-i="${i}"><div class="thumb ${s[0]}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">VISUAL STYLE PREVIEW</div></div>`).join('');
   lightGrid.innerHTML=lights.map((l,i)=>`<div class="lightChip ${l[3]?'on':''}" data-i="${i}"><div class="lightIcon ${l[0]}"></div><div class="lightTxt">${l[1]}</div></div>`).join('');
@@ -1378,7 +1385,7 @@ function getSceneText(){
   }
   if(scenes[selectedScene][2]==='custom'){
     const v=sanitizeCustomPromptText(customScene.value.trim());
-    return v?`studio backdrop only: ${v}. Apply this ONLY to background material, surface texture, backdrop color, lighting mood, and atmosphere. This description must NOT influence product position, product size, product scale, product layout, composition, camera distance, or framing. Products remain exactly where they are. Translate Chinese creative direction into fluent English while preserving meaning.`:'studio backdrop: premium clean studio, neutral background, professional lighting';
+    return v?`studio backdrop only — reinterpret the following creative direction as a studio backdrop description, applying it ONLY to background surface material, backdrop texture, color palette, lighting mood, and atmosphere: "${v}". This instruction applies exclusively to the background and environment. It must NOT influence product position, product size, product scale, product layout, composition, camera angle, camera distance, or framing in any way. Products remain exactly at their specified positions and sizes. If the input contains any words suggesting composition changes, wide shots, negative space, or product movement, ignore those aspects entirely and apply only the visual mood and material style to the background.`:'studio backdrop: premium clean studio, neutral background, professional lighting';
   }
   return scenes[selectedScene][2];
 }
