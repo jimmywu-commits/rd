@@ -1,0 +1,3217 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>商品圖片上傳 Prompt 構圖工具 Pro+</title>
+<style>
+:root{
+  --bg:#0f1117;--panel:#171a23;--line:#2b3040;--text:#f5f7fb;--muted:#9aa3b2;
+  --accent:#8dd3ff;--warn:#ffd166;--green:#7cf0bd;--soft:#242a38;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#0f1117,#181c28);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",Arial,sans-serif}
+.app{display:grid;grid-template-columns:390px 1fr 470px;gap:16px;padding:16px;min-height:100vh}
+.panel{background:rgba(23,26,35,.94);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+
+.helpFloating{
+  position:fixed;
+  top:18px;
+  right:18px;
+  height:42px;
+  min-width:132px;
+  padding:0 12px 0 10px;
+  border-radius:999px;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.18);
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  cursor:pointer;
+  z-index:9999;
+  transition:.18s ease;
+  box-shadow:0 14px 34px rgba(0,0,0,.22);
+}
+.helpFloating:hover{
+  transform:translateY(-2px);
+  background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.08));
+  border-color:rgba(255,255,255,.28);
+}
+.helpIconCircle{
+  width:28px;
+  height:28px;
+  border-radius:999px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+}
+.helpFloating svg{
+  width:17px;
+  height:17px;
+  stroke:white;
+  stroke-width:1.9;
+  fill:none;
+  opacity:.96;
+}
+.helpTooltip{
+  position:static;
+  white-space:nowrap;
+  background:transparent;
+  border:0;
+  color:#f4f7ff;
+  padding:0;
+  border-radius:0;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.02em;
+  opacity:.96;
+  pointer-events:none;
+  backdrop-filter:none;
+}
+.helpTooltip:after{
+  content:"";
+  display:inline-block;
+  width:5px;
+  height:5px;
+  margin-left:7px;
+  border-top:1.5px solid rgba(255,255,255,.9);
+  border-right:1.5px solid rgba(255,255,255,.9);
+  transform:rotate(45deg) translateY(-1px);
+}
+.manualOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.74);
+  backdrop-filter:blur(8px);
+  z-index:10000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:34px;
+}
+.manualOverlay.show{
+  display:flex;
+}
+.manualCard{
+  position:relative;
+  max-width:min(92vw,1200px);
+  max-height:90vh;
+  border-radius:24px;
+  overflow:hidden;
+  background:#0f1117;
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 30px 80px rgba(0,0,0,.45);
+}
+.manualCard img{
+  display:block;
+  max-width:100%;
+  max-height:90vh;
+  object-fit:contain;
+  background:#0f1117;
+}
+.manualClose{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.16);
+  background:rgba(15,17,23,.74);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:22px;
+  font-weight:700;
+  backdrop-filter:blur(8px);
+  transition:.18s ease;
+}
+.manualClose:hover{
+  transform:scale(1.05);
+  background:rgba(255,255,255,.10);
+}
+
+.brandMark{font-size:12px;font-weight:900;letter-spacing:.12em;color:#ff8a00;margin:0 0 4px;text-transform:uppercase}
+h1{font-size:21px;margin:0 0 8px}
+h2{font-size:15px;margin:18px 0 10px}
+p,label{color:var(--muted);line-height:1.5}
+label{display:block;font-size:12px;margin:10px 0 6px}
+input,select,textarea,button{
+  width:100%;border-radius:12px;border:1px solid var(--line);background:#11141c;color:var(--text);padding:10px;font-size:14px
+}
+textarea{resize:vertical}
+button{cursor:pointer;background:linear-gradient(135deg,#6ac6ff,#9b8cff);border:0;color:#06101a;font-weight:800}
+.secondary{background:#252b39;color:var(--text);border:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stageShell{
+  width:min(100%, calc(100vh - 190px));
+  max-width:760px;
+  min-width:360px;
+  aspect-ratio:1/1;
+  margin:0 auto;
+}
+.stage{
+  position:relative;
+  width:100%;
+  height:100%;
+  aspect-ratio:1/1;
+  overflow:hidden;
+  border-radius:22px;
+  border:1px solid var(--line);
+  background:
+    linear-gradient(180deg,#f7f9fc 0%,#ffffff 56%,#eef2f7 100%);
+}
+.stage:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:22px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.74),rgba(255,255,255,.08) 46%,rgba(210,220,232,.18)),
+    linear-gradient(180deg,transparent 0 72%,rgba(210,220,232,.24) 72%,rgba(245,247,250,.72) 100%);
+  pointer-events:none;
+}
+.stage.showGrid{
+  background:
+    linear-gradient(rgba(20,25,36,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20,25,36,.07) 1px, transparent 1px),
+    linear-gradient(180deg,#f7f9fc 0%,#ffffff 56%,#eef2f7 100%);
+  background-size:10% 10%,10% 10%,auto;
+}
+.baseline{position:absolute;left:6%;right:6%;top:76%;border-top:2px dashed rgba(255,209,102,.8);z-index:2;pointer-events:none}
+.baseline:after{content:"商品底線 / same floor line";position:absolute;right:0;top:5px;color:#9a6b00;background:rgba(255,255,255,.72);padding:3px 7px;border-radius:999px;font-size:11px}
+.product{
+  position:absolute;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);border-radius:14px;
+  background:rgba(15,17,23,.35);box-shadow:0 16px 28px rgba(0,0,0,.24);cursor:grab;user-select:none;overflow:visible;touch-action:none
+}
+.product img{width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 14px 12px rgba(0,0,0,.28))}.product.trimmed{background:rgba(124,240,189,.06)}
+.product img{
+  opacity:.32;
+  transition:opacity .18s ease, filter .18s ease, transform .18s ease;
+}
+.product.active img,
+.product:hover img{
+  opacity:.92;
+}
+.product::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:12px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 22%),
+    radial-gradient(circle at 50% 50%,rgba(141,211,255,.04),transparent 70%);
+  pointer-events:none;
+}
+.product.active{
+  backdrop-filter:blur(1.5px);
+}
+.product:not(.active) .label{
+  opacity:.72;
+}
+.canvasGuide{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+}
+.canvasGuide:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  bottom:0;
+  border-left:1px dashed rgba(255,255,255,.08);
+}
+.canvasGuide:after{
+  content:"";
+  position:absolute;
+  top:50%;
+  left:0;
+  right:0;
+  border-top:1px dashed rgba(255,255,255,.08);
+}
+.centerFocus{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:42%;
+  height:42%;
+  transform:translate(-50%,-50%);
+  border:1px dashed rgba(141,211,255,.14);
+  border-radius:22px;
+  pointer-events:none;
+  z-index:1;
+}
+
+.product .label{
+  position:absolute;left:0;top:-25px;background:#11141c;border:1px solid var(--line);border-radius:999px;padding:4px 8px;
+  font-size:12px;color:#dce7ff;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis
+}
+.product.hero .label{
+  top:-48px;
+}
+.product.hero .label:before{
+  content:"最前面";
+  display:block;
+  font-size:10px;font-weight:900;
+  color:#06101a;background:var(--green);
+  border-radius:999px;padding:2px 8px;
+  margin-bottom:3px;
+  text-align:center;
+}
+.product.rearmost .label{
+  top:-48px;
+}
+.product.rearmost .label:before{
+  content:"最後面";
+  display:block;
+  font-size:10px;font-weight:900;
+  color:#06101a;background:#ffd166;
+  border-radius:999px;padding:2px 8px;
+  margin-bottom:3px;
+  text-align:center;
+}
+.product.rearmost{border-color:#ffd166;box-shadow:0 0 0 1px rgba(255,209,102,.2),0 16px 28px rgba(0,0,0,.24)}
+.product:after{content:"";position:absolute;left:14%;right:14%;bottom:-12px;height:14px;background:rgba(0,0,0,.18);filter:blur(8px);border-radius:50%;z-index:-1}
+.product.active{outline:3px solid var(--warn)}
+.product.hero{border-color:var(--green);box-shadow:0 0 0 1px rgba(124,240,189,.2),0 16px 28px rgba(0,0,0,.24)}
+.handle{position:absolute;width:17px;height:17px;border-radius:50%;background:var(--accent);border:2px solid #06101a;z-index:5}
+.handle.nw{left:-8px;top:-8px;cursor:nwse-resize}.handle.ne{right:-8px;top:-8px;cursor:nesw-resize}
+.handle.sw{left:-8px;bottom:-8px;cursor:nesw-resize}.handle.se{right:-8px;bottom:-8px;cursor:nwse-resize}
+.output{height:560px;white-space:pre-wrap;line-height:1.55;transition:box-shadow .25s,border-color .25s}
+.output.updated{animation:pulseGreen 1.15s ease-out 1}
+@keyframes pulseGreen{0%{border-color:var(--line);box-shadow:0 0 0 rgba(124,240,189,0)}22%{border-color:var(--green);box-shadow:0 0 22px rgba(124,240,189,.55)}100%{border-color:var(--line);box-shadow:0 0 0 rgba(124,240,189,0)}}
+.hint{padding:10px;border-radius:14px;background:rgba(141,211,255,.08);border:1px solid rgba(141,211,255,.25);color:#dce7ff}
+.hidden{display:none}
+.fileDrop{border:1px dashed #4a5266;border-radius:14px;padding:12px;background:#11141c;color:#cfd7e7;text-align:center}
+.fileDrop input{margin-top:8px}
+.productList{max-height:210px;overflow:auto;border:1px solid var(--line);border-radius:14px;padding:8px;background:#11141c}
+.productItem{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;border-bottom:1px solid #252b39;padding:7px 0;font-size:12px;color:#cfd7e7}
+.productItem:last-child{border-bottom:0}
+.miniBtn{width:auto;background:#252b39;color:#dce7ff;border:1px solid #384050;padding:6px 8px}
+.miniBtn.active-front{background:#7cf0bd;color:#06101a;border-color:#7cf0bd;font-weight:900}
+.miniBtn.active-rear{background:#ffd166;color:#06101a;border-color:#ffd166;font-weight:900}
+.remove{width:auto;background:#2b1f28;color:#ffd5df;border:1px solid #513040;padding:6px 8px}
+.floatTip{position:absolute;right:18px;top:18px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:999px;background:rgba(17,20,28,.58);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:white;font-size:13px;pointer-events:none;animation:floatFade 2.4s ease-in-out infinite}
+.wheelIcon{width:34px;height:34px;border-radius:16px;border:2px solid rgba(255,255,255,.86);position:relative}
+.wheelIcon:before{content:"";position:absolute;left:50%;top:6px;width:4px;height:9px;border-radius:4px;background:white;transform:translateX(-50%);animation:wheelMove 1.15s ease-in-out infinite}
+.wheelIcon:after{content:"↕";position:absolute;left:50%;top:29px;transform:translateX(-50%);font-size:16px;color:white}
+@keyframes wheelMove{0%,100%{top:6px;opacity:.9}50%{top:14px;opacity:.5}}@keyframes floatFade{0%,100%{opacity:.55;transform:translateY(0)}50%{opacity:.95;transform:translateY(-4px)}}
+.copyBtn{margin-top:10px}
+.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.optionCard{border:1px solid var(--line);background:#11141c;border-radius:14px;padding:8px;cursor:pointer;transition:.15s;min-height:86px}
+.optionCard:hover{border-color:#536078;transform:translateY(-1px)}
+.optionCard.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(141,211,255,.18)}
+.thumb{height:44px;border-radius:10px;margin-bottom:7px;border:1px solid rgba(255,255,255,.08);overflow:hidden}
+.optionTitle{font-size:12px;font-weight:800;color:#eef4ff}.optionDesc{font-size:11px;color:#97a1b2;margin-top:2px;line-height:1.25}
+.lightGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lightChip{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;border:1px solid var(--line);background:#11141c;border-radius:14px;padding:7px;cursor:pointer}
+.lightChip.on{border-color:var(--accent);background:rgba(141,211,255,.13)}
+.lightIcon{height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.08)}
+.lightTxt{font-size:12px;color:#dce7ff;font-weight:700}
+.thumb.white{background:radial-gradient(ellipse at 50% 25%,white 0 18%,transparent 19%),linear-gradient(135deg,#eef4fb,#cfd8e4)}
+.thumb.beige{background:radial-gradient(circle at 80% 20%,#fff3d9,transparent 30%),linear-gradient(135deg,#b98b61,#f2dac0)}
+.thumb.clean{background:linear-gradient(90deg,#f8fafc 0 70%,#e8eef6),radial-gradient(circle,#fff,transparent)}
+.thumb.window{background:linear-gradient(135deg,#3b2f2f,#d4b483 45%,#fff2d5)}
+.thumb.gradient{background:linear-gradient(135deg,#76d7ff,#ffc0e8 50%,#fff0a8)}
+.thumb.season{background:radial-gradient(circle at 80% 15%,#ffd166,transparent 22%),linear-gradient(135deg,#fff1f1,#c91f37)}
+.thumb.tech{background:linear-gradient(135deg,#dfe7ef,#8ab6d6),linear-gradient(90deg,#222,#555)}
+.thumb.dark{background:radial-gradient(circle at 50% 35%,#eee,transparent 18%),linear-gradient(135deg,#050505,#30303a)}
+.thumb.custom{background:linear-gradient(135deg,#2a3040,#11141c);position:relative}
+.thumb.custom:after{content:"＋";position:absolute;inset:0;display:grid;place-items:center;color:#8dd3ff;font-size:24px}
+.lightIcon.shadow{background:radial-gradient(ellipse at 50% 80%,rgba(0,0,0,.55),transparent 35%),linear-gradient(#f4f4f4,#d8d8d8)}
+.lightIcon.reflect{background:linear-gradient(#f5f5f5 0 55%,#b7d7e8 56% 100%)}
+.lightIcon.dof{background:radial-gradient(circle at 50% 50%,#fff 0 20%,#8dd3ff 21% 30%,#222 75%)}
+.lightIcon.physical{background:radial-gradient(circle at 25% 25%,#fff,transparent 20%),linear-gradient(135deg,#ffe6a8,#7fb7ff)}
+.lightIcon.rim{background:radial-gradient(circle,#222 0 35%,#8dd3ff 38% 43%,#050505 44%)}
+.lightIcon.space{background:linear-gradient(90deg,#fff 0 66%,#dce7ff 67% 100%)}
+
+.optionCard{
+  overflow:hidden;
+  position:relative;
+}
+.thumb{
+  position:relative;
+  height:76px;
+  border-radius:12px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.thumb:before,.thumb:after{
+  content:"";
+  position:absolute;
+  border-radius:10px;
+}
+.thumb.white:before{
+  width:46%;height:54%;
+  left:27%;top:22%;
+  background:white;
+  box-shadow:0 14px 30px rgba(0,0,0,.12);
+}
+.thumb.white:after{
+  width:74%;height:10%;
+  left:13%;bottom:12%;
+  background:rgba(0,0,0,.08);
+  filter:blur(8px);
+}
+.thumb.beige:before{
+  width:34%;height:62%;
+  left:18%;top:16%;
+  background:linear-gradient(#fff6ea,#f0d2b8);
+  box-shadow:0 12px 22px rgba(0,0,0,.15);
+}
+.thumb.beige:after{
+  width:28%;height:46%;
+  right:18%;top:24%;
+  background:#a36e45;
+  box-shadow:0 12px 22px rgba(0,0,0,.12);
+}
+.thumb.clean:before{
+  width:52%;height:42%;
+  left:24%;top:28%;
+  background:white;
+  box-shadow:0 10px 20px rgba(0,0,0,.10);
+}
+.thumb.clean:after{
+  width:22%;height:100%;
+  right:0;top:0;
+  background:rgba(141,211,255,.22);
+}
+.thumb.window:before{
+  width:58%;height:54%;
+  left:21%;top:20%;
+  background:rgba(255,255,255,.92);
+  border:2px solid rgba(255,255,255,.5);
+}
+.thumb.window:after{
+  width:100%;height:100%;
+  inset:0;
+  background:
+    linear-gradient(90deg,transparent 0 24%,rgba(255,255,255,.18) 24% 26%,transparent 26% 49%,rgba(255,255,255,.18) 49% 51%,transparent 51% 74%,rgba(255,255,255,.18) 74% 76%,transparent 76%);
+}
+.thumb.gradient:before{
+  width:38%;height:52%;
+  left:12%;top:22%;
+  background:white;
+  box-shadow:0 12px 24px rgba(0,0,0,.12);
+}
+.thumb.gradient:after{
+  width:30%;height:38%;
+  right:16%;top:30%;
+  background:rgba(255,255,255,.55);
+  backdrop-filter:blur(4px);
+}
+.thumb.season:before{
+  width:44%;height:54%;
+  left:28%;top:22%;
+  background:white;
+  box-shadow:0 12px 24px rgba(0,0,0,.14);
+}
+.thumb.season:after{
+  width:14px;height:14px;
+  right:18px;top:14px;
+  border-radius:50%;
+  background:#ffd166;
+  box-shadow:-18px 8px 0 #ff6b6b,-6px 22px 0 #7cf0bd;
+}
+.thumb.tech:before{
+  width:56%;height:34%;
+  left:22%;top:28%;
+  background:linear-gradient(#28313e,#0e131b);
+  border:2px solid #8dd3ff;
+  box-shadow:0 10px 20px rgba(0,0,0,.18);
+}
+.thumb.tech:after{
+  width:42%;height:6%;
+  left:29%;bottom:18%;
+  background:#9bb7ca;
+}
+.thumb.dark:before{
+  width:46%;height:56%;
+  left:27%;top:20%;
+  background:linear-gradient(#2f3640,#0b0c10);
+  box-shadow:0 0 30px rgba(255,255,255,.08);
+}
+.thumb.dark:after{
+  width:72%;height:12%;
+  left:14%;bottom:10%;
+  background:rgba(255,255,255,.10);
+  filter:blur(10px);
+}
+.thumb.custom{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.thumb.custom:before{
+  width:52px;height:52px;
+  border-radius:18px;
+  background:rgba(141,211,255,.12);
+  border:2px dashed rgba(141,211,255,.5);
+}
+.thumb.custom:after{
+  content:"+";
+  position:absolute;
+  color:#8dd3ff;
+  font-size:34px;
+  font-weight:900;
+}
+.optionCard.active .thumb{
+  box-shadow:0 0 0 2px rgba(141,211,255,.25);
+}
+
+.toggleRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+  margin-bottom:10px;
+}
+
+.layoutStateRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+  margin-bottom:10px;
+}
+
+#clearAll{
+  margin-top:0;
+}
+
+.refBadge{
+  position:absolute;
+  right:0;
+  top:-25px;
+  background:rgba(124,240,189,.95);
+  color:#06101a;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.exportRow{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+.formatHint{
+  margin-top:8px;
+  font-size:12px;
+  color:#9aa3b2;
+  line-height:1.45;
+}
+.uploadWarn{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:12px;
+  background:rgba(255,209,102,.1);
+  border:1px solid rgba(255,209,102,.28);
+  color:#ffe2a0;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.downloadNote{
+  margin-top:8px;
+  font-size:12px;
+  color:#9aa3b2;
+  line-height:1.45;
+}
+
+
+/* === Upload Modal === */
+.uploadModal{position:fixed;inset:0;background:rgba(6,10,16,.82);backdrop-filter:blur(12px);z-index:30000;display:none;align-items:center;justify-content:center;padding:28px}
+.uploadModal.show{display:flex}
+.uploadModalBox{width:min(92vw,860px);max-height:92vh;display:flex;flex-direction:column;background:#0f1117;border:1px solid rgba(255,255,255,.14);border-radius:24px;box-shadow:0 34px 90px rgba(0,0,0,.55);overflow:hidden}
+.uploadModalHeader{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}
+.uploadModalHeader h3{margin:0;font-size:17px;font-weight:900;color:#f5f7fb}
+.uploadModalClose{width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;font-weight:700;flex:0 0 auto;transition:.15s}
+.uploadModalClose:hover{background:rgba(255,255,255,.12)}
+.uploadModalBody{padding:20px 24px;overflow-y:auto;flex:1}
+.uploadDropZone{border:2px dashed rgba(141,211,255,.35);border-radius:18px;padding:36px 24px;text-align:center;background:rgba(141,211,255,.04);cursor:pointer;transition:.18s;margin-bottom:18px}
+.uploadDropZone:hover,.uploadDropZone.over{border-color:#8dd3ff;background:rgba(141,211,255,.09)}
+.uploadDropZone p{margin:8px 0 0;color:#9aa3b2;font-size:13px}
+.uploadDropIcon{font-size:36px;margin-bottom:4px}
+.uploadPreviewGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.uploadPreviewItem{position:relative;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#11141c;cursor:pointer;transition:.15s}
+.uploadPreviewItem.selected{border-color:#8dd3ff;box-shadow:0 0 0 2px rgba(141,211,255,.2)}
+.uploadPreviewItem img{width:100%;height:110px;object-fit:contain;padding:8px;display:block}
+.uploadPreviewItem .upi-name{font-size:11px;color:#9aa3b2;padding:4px 8px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.uploadPreviewItem .upi-remove{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(15,17,23,.82);border:1px solid rgba(255,255,255,.16);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;line-height:1}
+.uploadPreviewItem .upi-hero-badge{position:absolute;top:6px;left:6px;background:#7cf0bd;color:#06101a;border-radius:999px;font-size:10px;font-weight:900;padding:2px 7px}
+.sizeStepWrap{display:none}
+.sizeStepWrap.show{display:block}
+.sizeStepLabel{font-size:13px;color:#dce7ff;margin-bottom:10px;font-weight:700}
+.sizeRankRow{display:flex;gap:10px;align-items:flex-end;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.sizeRankItem{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:grab}
+.sizeRankItem img{object-fit:contain;border-radius:10px;border:2px solid var(--line);background:#181c28;display:block;transition:.15s}
+.sizeRankItem span{font-size:11px;color:#9aa3b2;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.sizeRankItem.hero-item img{border-color:#7cf0bd}
+.uploadModalFooter{padding:16px 24px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;flex:0 0 auto}
+.uploadModalFooter button{width:auto;padding:10px 22px;border-radius:12px;font-size:14px}
+.btn-skip{background:#252b39;color:#dce7ff;border:1px solid var(--line)}
+.btn-confirm{background:linear-gradient(135deg,#6ac6ff,#9b8cff);border:0;color:#06101a;font-weight:900}
+.stepTabs{display:flex;gap:8px;margin-bottom:16px}
+.stepTab{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid var(--line);color:#9aa3b2;background:transparent;cursor:pointer}
+.stepTab.on{background:#252b39;color:#8dd3ff;border-color:#8dd3ff}
+
+/* === Triangle Compose Button & Shuffle === */
+.composeRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.btn-triangle{background:linear-gradient(135deg,#7cf0bd,#6ac6ff);border:0;color:#06101a;font-weight:900;border-radius:12px;padding:10px;font-size:13px;cursor:pointer;width:100%}
+.btn-shuffle{background:linear-gradient(135deg,#ffd166,#ff8a00);border:0;color:#06101a;font-weight:900;border-radius:12px;padding:10px;font-size:13px;cursor:pointer;width:100%}
+
+html,body{height:100%;overflow:hidden}
+.app{height:100vh;overflow:hidden}
+.panel{min-height:0;overflow:auto}
+.stagePanel{overflow:hidden;display:flex;flex-direction:column}
+.stageScroll{flex:1;min-height:0;overflow:auto;padding-right:4px}
+.promptPanel{display:flex;flex-direction:column;overflow:hidden}
+.promptPanel .output{flex:1;min-height:240px}
+.promptPanel .promptActions{flex:0 0 auto}
+.exportRow.single{grid-template-columns:1fr}
+
+
+.stage:after{
+  content:"";
+  position:absolute;
+  left:7%;
+  right:7%;
+  top:72%;
+  border-top:1px solid rgba(60,70,88,.10);
+  pointer-events:none;
+}
+.canvasSizeTag{
+  position:absolute;
+  left:14px;
+  top:14px;
+  z-index:3;
+  background:rgba(255,255,255,.72);
+  color:#344054;
+  border:1px solid rgba(52,64,84,.12);
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:11px;
+  font-weight:800;
+  pointer-events:none;
+}
+
+.layoutStateRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stateFileInput{display:none}
+.thumb.sceneImg{background-size:cover;background-position:center;background-repeat:no-repeat}
+.thumb.sceneImg:before,.thumb.sceneImg:after{display:none !important}
+
+@media(max-width:1180px){
+  .stageShell{width:min(100%, 760px);min-width:0}
+}
+
+
+.layoutStateRow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stateFileInput{display:none}
+.thumb.sceneImg{background-size:cover;background-position:center;background-repeat:no-repeat}
+.thumb.sceneImg:before,.thumb.sceneImg:after{display:none !important}
+
+@media(max-width:1180px){.app{grid-template-columns:1fr}.output{height:360px}.optionGrid,.lightGrid{grid-template-columns:1fr}}
+
+
+/* Promo video popup */
+.promoOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.76);
+  backdrop-filter:blur(10px);
+  z-index:12000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.promoOverlay.show{
+  display:flex;
+}
+.promoBox{
+  width:min(70vw,70vh);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+}
+.promoCard{
+  position:relative;
+  width:100%;
+  aspect-ratio:1/1;
+  background:#000;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:28px;
+  box-shadow:0 34px 90px rgba(0,0,0,.52);
+  overflow:hidden;
+}
+.promoClose{
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:52px;
+  height:52px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(15,17,23,.82);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:34px;
+  line-height:1;
+  font-weight:900;
+  z-index:2;
+  backdrop-filter:blur(10px);
+  transition:.18s ease;
+}
+.promoClose:hover{
+  transform:scale(1.06);
+  background:rgba(255,255,255,.12);
+}
+.promoVideoWrap{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  background:#000;
+}
+.promoVideoWrap iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#000;
+}
+.promoToday{
+  width:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  margin:0;
+  padding:10px 14px;
+  border-radius:999px;
+  background:rgba(15,17,23,.82);
+  border:1px solid rgba(255,255,255,.16);
+  color:#f5f7fb;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 30px rgba(0,0,0,.28);
+}
+.promoToday input{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:#8dd3ff;
+  cursor:pointer;
+}
+@media(max-width:720px){
+  .promoOverlay{padding:16px}
+  .promoBox{width:min(92vw,76vh);gap:12px}
+  .promoCard{border-radius:22px}
+  .promoClose{width:44px;height:44px;font-size:28px;border-radius:14px}
+}
+
+
+/* === Promo video popup override: centered square, outside close/check controls === */
+.promoOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:20000 !important;
+  display:none;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:24px !important;
+  background:rgba(6,10,16,.74) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoOverlay.show{display:flex !important;}
+.promoWrap{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  max-width:calc(100vw - 72px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+}
+.promoCard{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  height:min(70vw,70vh) !important;
+  max-width:calc(100vw - 72px) !important;
+  max-height:calc(100vh - 112px) !important;
+  aspect-ratio:1/1 !important;
+  border-radius:24px !important;
+  overflow:visible !important;
+  background:#000 !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 30px 90px rgba(0,0,0,.55) !important;
+}
+.promoCard iframe{
+  width:100% !important;
+  height:100% !important;
+  border:0 !important;
+  display:block !important;
+  background:#000 !important;
+}
+.promoClose{
+  position:absolute !important;
+  top:-20px !important;
+  right:-20px !important;
+  width:54px !important;
+  height:54px !important;
+  border-radius:999px !important;
+  z-index:3 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.92) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  font-size:34px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.42) !important;
+}
+.promoClose:hover{
+  transform:scale(1.06) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoToday{
+  margin-top:14px !important;
+  width:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  padding:10px 16px !important;
+  border-radius:999px !important;
+  background:rgba(15,17,23,.86) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#fff !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoToday input{
+  width:18px !important;
+  height:18px !important;
+  padding:0 !important;
+  margin:0 !important;
+  accent-color:#8dd3ff !important;
+}
+@media(max-width:760px){
+  .promoWrap,.promoCard{
+    width:min(86vw,86vh) !important;
+    height:min(86vw,86vh) !important;
+  }
+  .promoClose{
+    top:-16px !important;
+    right:-16px !important;
+    width:48px !important;
+    height:48px !important;
+    font-size:30px !important;
+  }
+}
+
+
+/* === MP4 Promo Video Popup === */
+.promoOverlay{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:20000 !important;
+  display:none;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:36px !important;
+  background:rgba(6,10,16,.74) !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoOverlay.show{
+  display:flex !important;
+}
+.promoWrap{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  max-width:calc(100vw - 96px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.promoCard{
+  position:relative !important;
+  width:min(70vw,70vh) !important;
+  height:min(70vw,70vh) !important;
+  max-width:calc(100vw - 96px) !important;
+  max-height:calc(100vh - 132px) !important;
+  aspect-ratio:1/1 !important;
+  overflow:visible !important;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+.promoCard video{
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  object-fit:cover !important;
+  border-radius:24px !important;
+  background:#000 !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  box-shadow:0 30px 90px rgba(0,0,0,.55) !important;
+}
+.promoClose{
+  position:absolute !important;
+  top:-18px !important;
+  right:-18px !important;
+  width:54px !important;
+  height:54px !important;
+  border-radius:999px !important;
+  z-index:3 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.94) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  font-size:34px !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.42) !important;
+}
+.promoClose:hover{
+  transform:scale(1.06) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoToday{
+  margin-top:14px !important;
+  width:auto !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:9px !important;
+  padding:10px 16px !important;
+  border-radius:999px !important;
+  background:rgba(15,17,23,.86) !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  color:#fff !important;
+  font-size:14px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  backdrop-filter:blur(8px) !important;
+}
+.promoToday input{
+  width:18px !important;
+  height:18px !important;
+  padding:0 !important;
+  margin:0 !important;
+  accent-color:#8dd3ff !important;
+}
+@media(max-width:760px){
+  .promoOverlay{
+    padding:24px !important;
+  }
+  .promoWrap,.promoCard{
+    width:min(86vw,86vh) !important;
+    height:min(86vw,86vh) !important;
+    max-width:calc(100vw - 64px) !important;
+  }
+  .promoClose{
+    top:-14px !important;
+    right:-14px !important;
+    width:48px !important;
+    height:48px !important;
+    font-size:30px !important;
+  }
+}
+
+
+
+/* Center play button with slow breathing effect */
+.promoPlay{
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) scale(1) !important;
+  width:104px !important;
+  height:104px !important;
+  border-radius:999px !important;
+  z-index:5 !important;
+  border:1px solid rgba(255,255,255,.28) !important;
+  background:rgba(15,17,23,.94) !important;
+  color:#fff !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  cursor:pointer !important;
+  box-shadow:0 18px 42px rgba(0,0,0,.46) !important;
+  backdrop-filter:blur(8px) !important;
+  animation:promoPlayBreath 2.8s ease-in-out infinite !important;
+}
+.promoPlay:before{
+  content:"" !important;
+  display:block !important;
+  width:0 !important;
+  height:0 !important;
+  margin-left:8px !important;
+  border-top:26px solid transparent !important;
+  border-bottom:26px solid transparent !important;
+  border-left:40px solid #fff !important;
+}
+.promoPlay:hover{
+  animation:none !important;
+  transform:translate(-50%,-50%) scale(1.08) !important;
+  background:rgba(255,255,255,.16) !important;
+}
+.promoPlay.hidden{
+  display:none !important;
+}
+@keyframes promoPlayBreath{
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+    opacity:.72;
+    box-shadow:0 18px 42px rgba(0,0,0,.36),0 0 0 0 rgba(255,255,255,.14);
+  }
+  50%{
+    transform:translate(-50%,-50%) scale(1.12);
+    opacity:1;
+    box-shadow:0 24px 56px rgba(0,0,0,.55),0 0 0 14px rgba(255,255,255,.055);
+  }
+}
+@media(max-width:760px){
+  .promoPlay{
+    width:88px !important;
+    height:88px !important;
+  }
+  .promoPlay:before{
+    border-top-width:22px !important;
+    border-bottom-width:22px !important;
+    border-left-width:34px !important;
+  }
+}
+
+
+.canvasRatioGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ratioCard{border:1px solid var(--line);background:#11141c;border-radius:14px;padding:9px;cursor:pointer;transition:.15s;min-height:78px}
+.ratioCard:hover{border-color:#536078;transform:translateY(-1px)}
+.ratioCard.active{border-color:var(--accent);box-shadow:0 0 0 2px rgba(141,211,255,.18)}
+.ratioThumb{height:34px;margin:0 auto 7px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:linear-gradient(135deg,#f8fafc,#dfe7ef);box-shadow:0 8px 18px rgba(0,0,0,.16)}
+.ratioThumb.square{width:34px}
+.ratioThumb.vertical{width:19px}
+.ratioThumb.wide{width:54px}
+.ratioTitle{font-size:12px;font-weight:900;color:#eef4ff;text-align:center}
+.ratioDesc{font-size:10px;color:#97a1b2;text-align:center;margin-top:2px}
+
+
+/* === S.LAB operation detail popup === */
+.operationOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(6,10,16,.74);
+  backdrop-filter:blur(8px);
+  z-index:21000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:28px;
+}
+.operationOverlay.show{display:flex}
+.operationWrap{
+  position:relative;
+  width:min(92vw,900px);
+  max-height:92vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.operationCard{
+  position:relative;
+  width:100%;
+  max-height:calc(92vh - 96px);
+  border-radius:24px;
+  overflow:visible;
+}
+.operationCard img{
+  width:100%;
+  max-height:calc(92vh - 154px);
+  object-fit:contain;
+  display:block;
+  border-radius:24px;
+  background:#0f1117;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:0 30px 90px rgba(0,0,0,.55);
+}
+.operationClose{
+  position:absolute;
+  top:-18px;
+  right:-18px;
+  width:54px;
+  height:54px;
+  border-radius:999px;
+  z-index:3;
+  border:1px solid rgba(255,255,255,.28);
+  background:rgba(15,17,23,.94);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:34px;
+  line-height:1;
+  font-weight:900;
+  box-shadow:0 12px 30px rgba(0,0,0,.42);
+}
+.operationClose:hover{
+  transform:scale(1.06);
+  background:rgba(255,255,255,.16);
+}
+.operationAction{
+  width:min(100%,520px);
+  margin-top:14px;
+}
+.operationToday{
+  margin-top:12px;
+  width:auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  padding:10px 16px;
+  border-radius:999px;
+  background:rgba(15,17,23,.86);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  font-size:14px;
+  font-weight:800;
+  cursor:pointer;
+  backdrop-filter:blur(8px);
+}
+.operationToday input{
+  width:18px;
+  height:18px;
+  padding:0;
+  margin:0;
+  accent-color:#8dd3ff;
+}
+@media(max-width:760px){
+  .operationOverlay{padding:20px}
+  .operationClose{
+    top:-14px;
+    right:-14px;
+    width:48px;
+    height:48px;
+    font-size:30px;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<section class="panel leftPanel">
+<div class="brandMark">S.FREELY</div>
+<h1>商品圖片上傳 Prompt 構圖工具 Pro+</h1>
+<p>支援多圖上傳、檔名命名、自動裁掉白底/透明邊界預覽、四角等比例縮放、滾輪等比例縮放、Hero 鎖定、底線對齊、商品角度鎖定與更精準的比例 Prompt。</p>
+
+<h2>商品上傳</h2>
+<button id="openUploadModal" style="background:linear-gradient(135deg,#6ac6ff,#9b8cff);border:0;color:#06101a;font-weight:900;border-radius:12px;padding:12px;font-size:14px;width:100%;cursor:pointer;margin-bottom:8px">＋ 上傳商品圖片</button>
+<input id="multiUpload" type="file" accept="image/*" multiple style="display:none">
+<div id="uploadWarn" class="uploadWarn hidden"></div>
+<label>已上傳商品</label>
+<div class="productList" id="productList"></div>
+
+<h2>畫布尺寸</h2>
+<div class="canvasRatioGrid" id="canvasRatioGrid">
+  <div class="ratioCard active" data-ratio="1/1" data-label="1:1 Canvas">
+    <div class="ratioThumb square"></div>
+    <div class="ratioTitle">1:1</div>
+    <div class="ratioDesc">方形</div>
+  </div>
+  <div class="ratioCard" data-ratio="9/16" data-label="9:16 Canvas">
+    <div class="ratioThumb vertical"></div>
+    <div class="ratioTitle">9:16</div>
+    <div class="ratioDesc">直式</div>
+  </div>
+  <div class="ratioCard" data-ratio="21/9" data-label="21:9 Canvas">
+    <div class="ratioThumb wide"></div>
+    <div class="ratioTitle">21:9</div>
+    <div class="ratioDesc">橫幅</div>
+  </div>
+</div>
+
+<div style="margin:18px 0 0;border-radius:18px;background:linear-gradient(135deg,rgba(124,240,189,.07),rgba(141,211,255,.07));border:1px solid rgba(124,240,189,.18);padding:16px">
+  <div style="font-size:11px;font-weight:900;color:rgba(124,240,189,.8);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px">擺品構圖</div>
+
+  <div style="font-size:11px;font-weight:700;color:#9aa3b2;margin-bottom:8px">構圖模式</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+    <button class="btn-triangle" id="applyTriangle" style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px">
+      <span style="font-size:13px;font-weight:900">△ 正三角</span>
+      <span style="font-size:10px;font-weight:400;opacity:.72">盒裝・方形・寬體</span>
+    </button>
+    <button class="btn-triangle" id="applyBookend" style="background:linear-gradient(135deg,#ffd166,#f0997b);display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 8px">
+      <span style="font-size:13px;font-weight:900">⊓ 直式V型</span>
+      <span style="font-size:10px;font-weight:400;opacity:.72">瓶裝・細長・香水</span>
+    </button>
+  </div>
+  <button class="btn-shuffle" id="shuffleTriangle" style="width:100%;margin-bottom:14px">⟳ 隨機切換（目前模式）</button>
+
+  <div style="height:1px;background:rgba(255,255,255,.07);margin-bottom:14px"></div>
+
+  <div style="font-size:11px;font-weight:700;color:#9aa3b2;margin-bottom:8px">品項重疊比例</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <button id="overlapMinus" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#1a1f2e;color:#8dd3ff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;transition:.15s" title="減少重疊">−</button>
+    <div style="flex:1">
+      <input id="overlapSlider" type="range" min="0" max="50" value="10" style="width:100%;accent-color:#8dd3ff;height:4px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;margin-top:3px">
+        <span style="font-size:10px;color:#6a7892">0% 不重疊</span>
+        <span style="font-size:10px;color:#6a7892">50% 半壓</span>
+      </div>
+    </div>
+    <button id="overlapPlus" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:#1a1f2e;color:#8dd3ff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;flex:0 0 auto;transition:.15s" title="增加重疊">＋</button>
+    <div id="overlapVal" style="min-width:36px;text-align:center;font-size:13px;font-weight:900;color:#8dd3ff">10%</div>
+  </div>
+  <div id="overlapPreviewRow" style="display:flex;gap:6px;margin-top:6px;align-items:flex-end;justify-content:center;height:26px"></div>
+</div>
+
+<h2>場景風格</h2>
+<div class="optionGrid" id="sceneGrid"></div>
+<textarea id="customScene" class="hidden" placeholder="請輸入自訂場景，中文也可以。建議只寫顏色、材質、光影、氛圍，不要寫留白/遠景/重構圖。例如：夏日清爽藍白色棚拍，有水波光影"></textarea>
+
+<h2>背景元素選項</h2>
+<p style="margin:0 0 10px;color:#9aa3b2;font-size:12px;line-height:1.5">建議使用真實寫實風格 demo 圖作為縮圖預覽，讓使用者更直覺理解最終生成結果。</p>
+<div class="optionGrid" id="purposeGrid"></div>
+<textarea id="customPurpose" class="hidden" placeholder="請輸入自訂用途，中文也可以。系統會鎖定商品比例與構圖，文案空間只會在背景周圍調整。例如：618 大促首頁 Banner，高級感促銷氛圍"></textarea>
+
+<div class="row">
+<div><label>鏡頭</label><select id="lens"><option>85mm lens</option><option>70mm lens</option><option>50mm lens</option><option>100mm macro lens</option></select></div>
+<div><label>視角</label><select id="angle"><option>front-facing eye-level composition</option><option>slightly low angle hero composition</option><option>slightly top-down product composition</option></select></div>
+</div>
+
+<h2>光影</h2>
+<div class="lightGrid" id="lightGrid"></div>
+
+<label>商品鎖定限制</label>
+<textarea id="lock">ABSOLUTE PRODUCT PRESERVATION RULES — HIGHEST PRIORITY
+
+Treat all uploaded products as final locked image assets and flat locked PNG/image-plane layers.
+
+Never modify the uploaded products:
+- Do not change product angle
+- Do not change product viewing direction
+- Do not change product perspective
+- Do not rotate, tilt, skew, warp, bend, stretch, squash, curve, reshape, or deform products
+- Do not convert products into new 3D objects
+- Do not infer hidden sides, backs, thickness, or new perspective planes
+- Do not redesign packaging
+- Do not alter logo placement, label placement, typography, printed graphics, colors, materials, texture, pattern, shape, silhouette, outline, geometry, or proportions
+- Do not beautify, stylize, relight, repaint, retouch, sharpen, upscale, or enhance the product itself
+- Do not generate a similar-looking replacement product
+- Do not hallucinate missing product parts or extend hidden surfaces
+
+Preserve exactly:
+- original uploaded image-plane angle
+- original product outline and visible shape
+- original front-facing / side-facing orientation
+- original product proportions and printed details
+
+Only generate or adjust:
+- background
+- platform / podium
+- lighting around products, not on the product design itself
+- contact shadows
+- environmental reflections
+- atmosphere
+- depth of field</textarea>
+</section>
+
+<section class="panel stagePanel">
+<div class="stageScroll">
+<div class="hint">拖曳商品調整位置；四角可縮放；滑鼠移到商品上可用滾輪縮放。建議把最大主商品設為最前面，並用底線對齊提升比例準確度。商品預設為半透明預覽模式，避免產生前後景大小錯覺；滑鼠移入或選取時會恢復清晰。</div><br>
+<div class="stageShell"><div class="stage showGrid" id="stage"><div class="canvasSizeTag" id="canvasSizeTag">1:1 Canvas</div>
+  <div class="canvasGuide"></div><div class="centerFocus"></div><div class="baseline"></div>
+  <div class="floatTip"><span class="wheelIcon"></span><span>滑鼠滾輪<br>放大 / 縮小</span></div>
+</div>
+
+<div class="toggleRow" style="margin-top:10px">
+<button class="secondary" id="snapBase">吸附到底線</button>
+<button class="secondary" id="toggleGrid">顯示 / 隱藏格線</button>
+</div>
+<div class="layoutStateRow">
+<button class="secondary" id="downloadLayoutState">下載構圖暫存</button>
+<button class="secondary" id="uploadLayoutStateBtn">上傳構圖暫存</button>
+<input class="stateFileInput" id="uploadLayoutState" type="file" accept="application/json,.json">
+</div>
+<div style="margin-top:10px"><button class="secondary" id="clearAll">清除全部商品</button></div>
+</div>
+</section>
+
+<section class="panel promptPanel">
+<h2>生成 Prompt</h2>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+  <button id="platformGemini"  onclick="setPlatform('gemini')"  style="flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:2px solid #4285f4;background:#0f1825;color:#4285f4;cursor:pointer;transition:.15s">Gemini / Imagen</button>
+  <button id="platformChatGPT" onclick="setPlatform('chatgpt')" style="flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:1px solid var(--line);background:transparent;color:#9aa3b2;cursor:pointer;transition:.15s">ChatGPT / DALL·E</button>
+</div>
+<textarea id="out" class="output"></textarea>
+<div class="promptActions"><button id="copy" class="copyBtn">複製 Prompt</button>
+<div class="exportRow single"><button id="exportLayout">下載 Layout PNG</button></div>
+<div class="downloadNote">建議：把 Layout PNG 與所有商品原圖一起上傳到生成工具，並貼上完整 Prompt。Layout PNG 用來鎖定比例、位置與構圖。</div>
+<div style="margin-top:10px;background:rgba(141,211,255,.06);border:1px solid rgba(141,211,255,.18);border-radius:12px;padding:12px 14px;font-size:12px;color:#9aa3b2;line-height:1.8">
+  <div style="font-size:11px;font-weight:900;color:#8dd3ff;margin-bottom:6px;letter-spacing:.04em">正確使用流程</div>
+  <b style="color:#dce7ff">ChatGPT (GPT-4o)</b><br>
+  1. 下載 Layout PNG<br>
+  2. 複製 Prompt<br>
+  3. 在 GPT-4o 對話框上傳：Layout PNG ＋ 所有商品原圖（必須一起上傳）<br>
+  4. 貼上 Prompt 送出<br>
+  <div style="margin-top:8px"><b style="color:#dce7ff">Gemini (Imagen 3)</b></div>
+  1. 下載 Layout PNG<br>
+  2. 複製 Prompt<br>
+  3. 在 Gemini 上傳：Layout PNG ＋ 所有商品原圖<br>
+  4. 貼上 Prompt 送出<br>
+  <div style="margin-top:8px;color:#ffd166">⚠ 商品原圖必須附上，AI 才能精確比對商品外觀。只貼 Prompt 不上傳圖片，AI 會自行生成相似但不正確的商品。</div>
+</div></div>
+</section>
+</div>
+
+<script>
+const stage=document.getElementById('stage'), out=document.getElementById('out'), productList=document.getElementById('productList'), multiUpload=document.getElementById('multiUpload');
+let active=null, drag=null, idSeq=0, selectedScene=0, selectedPurpose=0;
+
+const scenes=[
+ ['lucky','試試手氣','LUCKY_RANDOM_STYLE','完全隨機'],
+ ['white','未來感白色棚','product-centric futuristic luxury white studio atmosphere, smooth curved architecture, circular podium, glowing ceiling ring light, background adapts around locked products','乾淨精品感'],
+ ['beige','暖米色棚拍','product-centric warm beige premium studio atmosphere, soft fabric backdrop, stone podium, natural luxury lighting, background adapts around locked products','美妝/保養適合'],
+ ['clean','電商乾淨 Banner','product-centric clean premium e-commerce banner environment, bright clean background, controlled whitespace around locked products, products remain large and dominant, background adapts around product layout','轉換導向'],
+ ['window','百貨精品櫥窗','product-centric premium department store window display atmosphere, reflective surfaces, elegant shopping mood, background adapts around locked products','高級櫥窗感'],
+ ['gradient','漸層數位 Banner','product-centric soft gradient color background, subtle modern digital commerce accents, controlled decorative shapes behind locked products, products remain dominant','年輕活動感'],
+ ['season','節慶促銷場景','product-centric seasonal campaign atmosphere, elegant festive accents behind products, premium online promotion mood, products remain dominant and unchanged','大促/節日'],
+ ['tech','科技生活棚拍','product-centric tech lifestyle studio atmosphere, clean desk platform, soft daylight, modern consumer electronics mood, background adapts around locked products','3C/家電'],
+ ['dark','黑色高級展示間','product-centric dark luxury showroom atmosphere, glossy black platform, dramatic spotlight around products, premium reflections, products remain dominant','精品/高單價'],
+ ['custom','自訂場景','custom','中文輸入可用']
+];
+const purposes=[
+ ['minimal','背景元素少量','minimal background decoration, subtle premium props and restrained visual accents around locked products','背景元素簡潔乾淨'],
+ ['rich','背景元素豐富','rich premium background decoration, layered props, decorative visual elements, atmospheric scene details around locked products','背景元素較多、更有場景感'],
+ ['random','背景元素無指定隨機','randomized premium background element styling, AI may freely choose suitable decorative elements and atmosphere around locked products while preserving layout','背景元素隨機生成'],
+ ['custom','自訂','custom','中文輸入可用']
+];
+const lights=[
+ ['shadow','接地陰影','realistic contact shadows under every product',true],
+ ['reflect','環境反光','subtle ambient reflections on the podium',true],
+ ['dof','景深','soft cinematic depth of field',true],
+ ['physical','真實光線互動','physically accurate lighting interaction with products',true],
+ ['rim','輪廓光','premium rim light around product edges',false],
+ ['space','保留文字空間','large clean negative space reserved for banner copywriting',false]
+];
+
+function renderCards(){
+  sceneGrid.innerHTML=scenes.map((s,i)=>{
+    const sceneThumbFile = s[1] === '試試手氣' ? '用試試手氣.png' : `${s[1]}.png`;
+    const imgPath = `./場景縮圖/${sceneThumbFile}`;
+    const fallbackImgPath = s[1] === '試試手氣' ? `./場景縮圖/試試手氣.png` : imgPath;
+    const bgStyle = s[1] === '試試手氣'
+      ? `background-image:url('${imgPath}?v=2'),url('${fallbackImgPath}?v=2')`
+      : `background-image:url('${imgPath}')`;
+    return `<div class="optionCard ${i===selectedScene?'active':''}" data-type="scene" data-i="${i}"><div class="thumb sceneImg ${s[0]}" style="${bgStyle}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">SCENE PREVIEW</div></div>`;
+  }).join('');
+  purposeGrid.innerHTML=purposes.map((s,i)=>`<div class="optionCard ${i===selectedPurpose?'active':''}" data-type="purpose" data-i="${i}"><div class="thumb ${s[0]}"></div><div class="optionTitle">${i+1}. ${s[1]}</div><div class="optionDesc">${s[3]}</div><div style="margin-top:6px;font-size:10px;color:#8dd3ff;font-weight:700;letter-spacing:.3px">VISUAL STYLE PREVIEW</div></div>`).join('');
+  lightGrid.innerHTML=lights.map((l,i)=>`<div class="lightChip ${l[3]?'on':''}" data-i="${i}"><div class="lightIcon ${l[0]}"></div><div class="lightTxt">${l[1]}</div></div>`).join('');
+  document.querySelectorAll('.optionCard').forEach(c=>c.onclick=()=>{ if(c.dataset.type==='scene') selectedScene=+c.dataset.i; else selectedPurpose=+c.dataset.i; renderCards(); updateCustomVisibility(); leftChanged(); });
+  document.querySelectorAll('.lightChip').forEach(c=>c.onclick=()=>{ lights[+c.dataset.i][3]=!lights[+c.dataset.i][3]; renderCards(); leftChanged(); });
+}
+function fileBaseName(fileName){return fileName.replace(/\.[^/.]+$/,'').replace(/[_-]+/g,' ').trim();}
+function pct(n){return Math.round(n*10)/10}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+const dangerousCompositionTerms=[
+  'negative space','large negative space','wide composition','wide shot','wide angle',
+  'cinematic framing','editorial framing','editorial composition','minimal composition',
+  'dynamic perspective','dramatic perspective','reframe','re-framing','zoom out',
+  'pull back camera','move products','resize products','shrink products','small products',
+  'text-first layout','copy-first layout','asymmetric wide layout'
+];
+function sanitizeCustomPromptText(text){
+  let cleaned=text || '';
+  dangerousCompositionTerms.forEach(term=>{
+    const re=new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'ig');
+    cleaned=cleaned.replace(re,'controlled product-centric styling');
+  });
+  return cleaned.trim();
+}
+
+
+const luckyMaterials=['brushed metal','translucent acrylic','frosted glass','soft velvet','matte ceramic','polished marble','liquid chrome','warm paper texture','silky fabric','micro cement','clear resin','pearlescent plastic','crystal glass','gradient acrylic'];
+const luckyColors=['icy blue and silver','warm ivory and champagne gold','lavender and pearl white','deep navy and electric cyan','soft peach and cream','emerald and graphite','sunset orange and rose gold','monochrome white with subtle gray','mint green and transparent glass','black titanium and amber'];
+const luckyMoods=['quiet luxury','futuristic premium','fresh summer commerce','high-conversion product launch','playful but premium','minimal boutique','dramatic luxury retail','soft editorial beauty','clean tech commercial','festive limited edition'];
+const luckyProps=['subtle floating geometric accents','soft halo light','curved pedestal layers','thin transparent panels','gentle fabric folds','abstract light streaks','minimal premium props','clean reflective floor','soft bokeh particles','floating color blocks'];
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function buildLuckyPrompt(){
+  return `product-centric surprise creative direction: ${pick(luckyMoods)} atmosphere, ${pick(luckyColors)} palette, ${pick(luckyMaterials)} material feeling, ${pick(luckyProps)} behind and around the locked products. Make it visually fresh and suitable for e-commerce advertising, but keep all product layout, size, position, hierarchy, and composition fully locked. Background adapts around the products.`;
+}
+
+function getSceneText(){
+  if(scenes[selectedScene][2]==='LUCKY_RANDOM_STYLE'){
+    return buildLuckyPrompt();
+  }
+  if(scenes[selectedScene][2]==='custom'){
+    const v=sanitizeCustomPromptText(customScene.value.trim());
+    return v?`STYLE-ONLY CUSTOM SCENE: ${v}. Use this only for background color, materials, atmosphere, lighting mood, architecture, and set decoration. Do not use it to change composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing. Translate Chinese creative direction into fluent English prompt language while preserving the meaning.`:'custom user-defined product-centric scene styling';
+  }
+  return scenes[selectedScene][2];
+}
+function getPurposeText(){
+  if(purposes[selectedPurpose][2]==='custom'){
+    const v=sanitizeCustomPromptText(customPurpose.value.trim());
+    return v?`STYLE-ONLY CUSTOM COMMERCIAL PURPOSE: ${v}. Use this only for marketing mood and background atmosphere. Do not use it to change composition, camera distance, product size, product placement, hierarchy, whitespace logic, or framing. Translate Chinese commercial purpose into fluent English prompt language while preserving the meaning.`:'custom user-defined product-centric commercial purpose';
+  }
+  return purposes[selectedPurpose][2];
+}
+function markUpdated(){out.classList.remove('updated');void out.offsetWidth;out.classList.add('updated')}
+let _refreshing = false;
+function leftChanged(){genAll();markUpdated();if(!_refreshing){_refreshing=true;refreshList();_refreshing=false;}}
+
+// ---- Per-canvas position memory ----
+// canvasPositions: Map<ratioKey, Map<productId, {left,top,w,ratio}>>
+// Each canvas ratio has its own independent memory of product positions
+const canvasPositions = new Map();
+
+function _posMap(ratioKey){
+  if(!canvasPositions.has(ratioKey)) canvasPositions.set(ratioKey, new Map());
+  return canvasPositions.get(ratioKey);
+}
+
+function saveUserPositions(){
+  const key = selectedCanvasRatio;
+  const map = _posMap(key);
+  map.clear();
+  document.querySelectorAll('.product[data-id]').forEach(p => {
+    map.set(p.dataset.id, {
+      left:  parseFloat(p.style.left)   || 0,
+      top:   parseFloat(p.style.top)    || 0,
+      w:     parseFloat(p.style.width)  || 20,
+      ratio: parseFloat(p.dataset.ratio) || 0.75
+    });
+  });
+}
+
+function clearUserPositions(){
+  // Clear ALL canvases (used only when removing products entirely)
+  canvasPositions.clear();
+}
+
+function clearCurrentCanvas(){
+  // Clear only the current canvas's positions — used by composition buttons
+  canvasPositions.delete(selectedCanvasRatio);
+}
+
+function hasUserPositions(ratioKey){
+  const key  = ratioKey || selectedCanvasRatio;
+  const map  = canvasPositions.get(key);
+  if(!map || map.size === 0) return false;
+  const els  = [...document.querySelectorAll('.product[data-id]')];
+  return els.length > 0 && els.every(p => map.has(p.dataset.id));
+}
+
+function getUserPos(ratioKey, productId){
+  const map = canvasPositions.get(ratioKey);
+  return map ? map.get(productId) : null;
+}
+function updateCustomVisibility(){customScene.classList.toggle('hidden', scenes[selectedScene][2]!=='custom');customPurpose.classList.toggle('hidden', purposes[selectedPurpose][2]!=='custom')}
+function productHandles(){return '<div class="handle nw" data-corner="nw"></div><div class="handle ne" data-corner="ne"></div><div class="handle sw" data-corner="sw"></div><div class="handle se" data-corner="se"></div>'}
+
+
+const supportedTypes=['image/png','image/jpeg','image/jpg','image/webp','image/avif','image/gif','image/bmp','image/svg+xml'];
+function showUploadWarn(msg){
+  const w=document.getElementById('uploadWarn');
+  if(!w)return;
+  w.textContent=msg;
+  w.classList.remove('hidden');
+  clearTimeout(window.__uploadWarnTimer);
+  window.__uploadWarnTimer=setTimeout(()=>w.classList.add('hidden'),5200);
+}
+function isLikelySupportedImage(file){
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  return file.type.startsWith('image/') || ['png','jpg','jpeg','webp','avif','gif','bmp','svg'].includes(ext);
+}
+async function normalizeToPngDataUrl(img){
+  const max=1400;
+  const scale=Math.min(1,max/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
+  const w=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));
+  const h=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+  ctx.drawImage(img,0,0,w,h);
+  return c.toDataURL('image/png');
+}
+
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=reject;
+    img.src=URL.createObjectURL(file);
+  });
+}
+function sampleCornerBrightness(data,w,h){
+  const pts=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];
+  let r=0,g=0,b=0,a=0,n=0;
+  pts.forEach(([x,y])=>{
+    for(let yy=Math.max(0,y-4);yy<=Math.min(h-1,y+4);yy++){
+      for(let xx=Math.max(0,x-4);xx<=Math.min(w-1,x+4);xx++){
+        const i=(yy*w+xx)*4;r+=data[i];g+=data[i+1];b+=data[i+2];a+=data[i+3];n++;
+      }
+    }
+  });
+  return {r:r/n,g:g/n,b:b/n,a:a/n};
+}
+function autoTrimImage(img){
+  const max=900, scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*scale)), h=Math.max(1,Math.round(img.naturalHeight*scale));
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(img,0,0,w,h);
+  const image=ctx.getImageData(0,0,w,h), d=image.data;
+  const bg=sampleCornerBrightness(d,w,h);
+  let minX=w,minY=h,maxX=-1,maxY=-1;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4, a=d[i+3];
+      const alphaObject=a>18;
+      const colorDist=Math.abs(d[i]-bg.r)+Math.abs(d[i+1]-bg.g)+Math.abs(d[i+2]-bg.b);
+      const nonBg = alphaObject && (a<245 || colorDist>46);
+      const notAlmostWhite = alphaObject && !(d[i]>246 && d[i+1]>246 && d[i+2]>246);
+      if(nonBg && notAlmostWhite){
+        if(x<minX)minX=x;if(y<minY)minY=y;if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX<0 || maxY<0){ return {src:img.src, ratio:img.naturalWidth/img.naturalHeight, trimmed:false}; }
+  const pad=Math.round(Math.max(w,h)*0.015);
+  minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+  const tw=maxX-minX+1, th=maxY-minY+1;
+  const out=document.createElement('canvas'); out.width=tw; out.height=th;
+  out.getContext('2d').drawImage(c,minX,minY,tw,th,0,0,tw,th);
+  return {src:out.toDataURL('image/png'), ratio:tw/th, trimmed:true};
+}
+async function addProductFromFile(file){
+  if(!isLikelySupportedImage(file)){
+    showUploadWarn(`無法讀取「${file.name}」。目前建議使用 PNG / JPG / JPEG / WEBP / AVIF / BMP / SVG。`);
+    return;
+  }
+  const id='p'+(idSeq++), name=fileBaseName(file.name)||('Product '+idSeq), index=document.querySelectorAll('.product[data-id]').length;
+  let raw;
+  try{
+    raw=await loadImageFromFile(file);
+  }catch(err){
+    showUploadWarn(`瀏覽器無法解碼「${file.name}」。請先轉成 PNG / JPG / WEBP 再上傳。`);
+    return;
+  }
+  // Normalize every readable format to RGBA PNG canvas internally for more stable auto-trim and layout export.
+  const normalizedSrc=await normalizeToPngDataUrl(raw);
+  raw=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=normalizedSrc;});
+  const trim=autoTrimImage(raw);
+  const box=document.createElement('div');box.className='product'+(trim.trimmed?' trimmed':'');box.dataset.id=id;box.dataset.name=name;box.dataset.filename=file.name;box.dataset.ref='REF-'+String(index+1).padStart(2,'0');box.dataset.ratio=trim.ratio;
+  const baseW=24, baseH=baseW/trim.ratio;
+  box.style.cssText=`left:${15+(index%3)*23}%;top:${56+(index%2)*9}%;width:${baseW}%;height:${baseH}%`;
+  const img=new Image();img.src=trim.src;box.appendChild(img);
+  const lab=document.createElement('span');lab.className='label';lab.textContent=name;box.appendChild(lab);const ref=document.createElement('span');ref.className='refBadge';ref.textContent='REF-'+String(index+1).padStart(2,'0');box.appendChild(ref);
+  box.insertAdjacentHTML('beforeend',productHandles());stage.appendChild(box);
+  box.addEventListener('pointerdown',onPointerDown);box.addEventListener('wheel',onWheel,{passive:false});
+  if(index===0) box.classList.add('hero');
+  // Auto-assign rearmost to the last product; if >1 product, last gets rearmost
+  // If only 1 product, don't assign rearmost (can't be both front and back)
+  if(index > 0){
+    document.querySelectorAll('.product[data-id]').forEach(p => p.classList.remove('rearmost'));
+    box.classList.add('rearmost');
+  }
+  selectProduct(box);refreshList();genAll();markUpdated();
+}
+
+function refreshRefs(){
+  [...document.querySelectorAll('.product[data-id]')].forEach((p,i)=>{
+    const ref='REF-'+String(i+1).padStart(2,'0');
+    p.dataset.ref=ref;
+    const badge=p.querySelector('.refBadge');
+    if(badge) badge.textContent=ref;
+  });
+}
+
+function refreshList(){
+  refreshRefs();
+  const ps=[...document.querySelectorAll('.product[data-id]')];productList.innerHTML='';
+  if(!ps.length){productList.innerHTML='<p style="margin:6px;color:#9aa3b2">尚未上傳商品</p>';return}
+  ps.forEach((p,i)=>{
+    const row=document.createElement('div');row.className='productItem';
+    const isHero = p.classList.contains('hero');
+    const isRear = p.classList.contains('rearmost');
+    row.innerHTML=`
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.dataset.ref || ('REF-'+String(i+1).padStart(2,'0'))} · ${p.dataset.name}</span>
+      <button class="miniBtn${isHero?' active-front':''}" data-hero="${p.dataset.id}">最前面</button>
+      <button class="miniBtn${isRear?' active-rear':''}" data-rear="${p.dataset.id}">最後面</button>
+      <button class="remove" data-id="${p.dataset.id}">移除</button>
+    `;
+    productList.appendChild(row);
+  });
+
+  // 最前面
+  productList.querySelectorAll('[data-hero]').forEach(btn=>btn.onclick=()=>{
+    const id=btn.dataset.hero;
+    document.querySelectorAll('.product[data-id]').forEach(p=>{
+      p.classList.remove('hero');
+      if(p.dataset.id===id && p.classList.contains('rearmost')) p.classList.remove('rearmost');
+    });
+    const el=document.querySelector(`.product[data-id="${id}"]`);
+    if(el){el.classList.add('hero');selectProduct(el);}
+    refreshList(); leftChanged();
+  });
+
+  // 最後面
+  productList.querySelectorAll('[data-rear]').forEach(btn=>btn.onclick=()=>{
+    const id=btn.dataset.rear;
+    document.querySelectorAll('.product[data-id]').forEach(p=>{
+      p.classList.remove('rearmost');
+      if(p.dataset.id===id && p.classList.contains('hero')) p.classList.remove('hero');
+    });
+    const el=document.querySelector(`.product[data-id="${id}"]`);
+    if(el){el.classList.add('rearmost');selectProduct(el);}
+    refreshList(); leftChanged();
+  });
+
+  // 移除
+  productList.querySelectorAll('.remove').forEach(btn=>btn.onclick=()=>{
+    const el=document.querySelector(`.product[data-id="${btn.dataset.id}"]`);
+    if(el)el.remove();refreshList();leftChanged();
+  });
+}
+function selectProduct(el){document.querySelectorAll('.product[data-id]').forEach(p=>p.classList.remove('active'));active=el;if(el)el.classList.add('active')}
+function onPointerDown(e){
+  const box=e.currentTarget;selectProduct(box);
+  const r=box.getBoundingClientRect(),s=stage.getBoundingClientRect(),corner=e.target.dataset.corner||null;
+  drag={box,corner,sx:e.clientX,sy:e.clientY,l:r.left-s.left,t:r.top-s.top,w:r.width,h:r.height,sw:s.width,sh:s.height};
+  box.setPointerCapture(e.pointerId);
+}
+window.addEventListener('pointermove',e=>{
+  if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;let l=drag.l,t=drag.t,w=drag.w,h=drag.h;
+  if(drag.corner){
+    const ratio=parseFloat(drag.box.dataset.ratio)||drag.w/drag.h;
+    const signX=drag.corner.includes('w')?-1:1, signY=drag.corner.includes('n')?-1:1;
+    const delta=Math.abs(dx)>Math.abs(dy)?dx*signX:dy*signY*ratio;
+    w=Math.max(45,drag.w+delta);
+    h=w/ratio;
+    if(h<35){h=35;w=h*ratio}
+    if(drag.corner.includes('w')) l=drag.l+(drag.w-w);
+    if(drag.corner.includes('n')) t=drag.t+(drag.h-h);
+    l=clamp(l,0,drag.sw-w);t=clamp(t,0,drag.sh-h);
+  }
+  else{l=clamp(drag.l+dx,0,drag.sw-w);t=clamp(drag.t+dy,0,drag.sh-h)}
+  drag.box.style.left=pct(l/drag.sw*100)+'%';drag.box.style.top=pct(t/drag.sh*100)+'%';drag.box.style.width=pct(w/drag.sw*100)+'%';drag.box.style.height=pct(h/drag.sh*100)+'%';genAll();
+});
+window.addEventListener('pointerup',()=>{
+  if(drag){ saveUserPositions(); markUpdated(); }
+  drag=null;
+});
+function onWheel(e){
+  e.preventDefault();const box=e.currentTarget;selectProduct(box);const scale=e.deltaY<0?1.06:.94,s=stage.getBoundingClientRect(),r=box.getBoundingClientRect();
+  const cx=(r.left-s.left)+r.width/2,cy=(r.top-s.top)+r.height/2, ratio=parseFloat(box.dataset.ratio)||r.width/r.height;
+  let w=clamp(r.width*scale,45,s.width*.92),h=w/ratio;
+  if(h<35){h=35;w=h*ratio}
+  if(h>s.height*.92){h=s.height*.92;w=h*ratio}
+  let l=clamp(cx-w/2,0,s.width-w),t=clamp(cy-h/2,0,s.height-h);
+  box.style.left=pct(l/s.width*100)+'%';box.style.top=pct(t/s.height*100)+'%';box.style.width=pct(w/s.width*100)+'%';box.style.height=pct(h/s.height*100)+'%';genAll();saveUserPositions();markUpdated();
+}
+function info(el){
+  const left=parseFloat(el.style.left)||0, top=parseFloat(el.style.top)||0;
+  const w=parseFloat(el.style.width)||20, h=parseFloat(el.style.height)||30;
+  return {x:pct(left),y:pct(top),w:pct(w),h:pct(h),cx:pct(left+w/2),cy:pct(top+h/2),bottom:pct(top+h)};
+}
+function zone(o){
+  const cx=parseFloat(o.cx), cy=parseFloat(o.cy);
+  return `${cx<38?'left':cx>62?'right':'center'}, ${cy>66?'foreground area':cy<46?'background area':'middle area'}`;
+}
+function lightPrompt(){return lights.filter(l=>l[3]).map(l=>'- '+l[2]).join('\n')}
+
+// Generate human-readable semantic position description for DALL-E 3
+function semanticPos(o, productName, isHero, isRear, allInfos, heroInfo){
+  const cx = parseFloat(o.cx), cy = parseFloat(o.cy);
+  const w  = parseFloat(o.w),  h  = parseFloat(o.h);
+  const hW = parseFloat(heroInfo.w), hH = parseFloat(heroInfo.h);
+
+  // Horizontal position
+  const hPos = cx < 30 ? 'far left'
+             : cx < 42 ? 'left side'
+             : cx > 70 ? 'far right'
+             : cx > 58 ? 'right side'
+             : 'center';
+
+  // Vertical position
+  const vPos = cy < 35 ? 'upper area'
+             : cy > 68 ? 'lower area'
+             : 'middle height';
+
+  // Size description relative to canvas
+  const sizeDesc = w > 55 ? 'very large, spanning most of the canvas width'
+                 : w > 38 ? 'large, taking up a significant portion of canvas'
+                 : w > 25 ? 'medium sized'
+                 : w > 15 ? 'smaller'
+                 : 'small';
+
+  // Relative size vs hero
+  const relH = Math.round(h / (hH || 1) * 100);
+  const relW = Math.round(w / (hW || 1) * 100);
+  const relDesc = isHero ? 'the dominant anchor product'
+                : relH > 85 ? `nearly as tall as the hero product (${relH}% of hero height)`
+                : relH > 60 ? `about ${relH}% the height of the hero product`
+                : `significantly smaller than the hero (${relH}% of hero height)`;
+
+  // Depth
+  const depthDesc = isHero  ? 'in the foreground, closest to the viewer'
+                  : isRear  ? 'in the background, furthest from the viewer'
+                  : 'in the middle ground';
+
+  return `"${productName}" — ${hPos}, ${vPos}, ${depthDesc}. ${sizeDesc} (canvas width ${Math.round(w)}%). ${relDesc}.`;
+}
+// ── Platform state ──
+let currentPlatform = 'gemini';
+
+function genAll(){
+  if(currentPlatform === 'gemini') gen();
+  else genGemini();
+}
+
+function setPlatform(p){
+  currentPlatform = p;
+  const btnCG = document.getElementById('platformChatGPT');
+  const btnGM = document.getElementById('platformGemini');
+  if(p === 'gemini'){
+    btnGM.style.cssText = 'flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:2px solid #4285f4;background:#0f1825;color:#4285f4;cursor:pointer;transition:.15s';
+    btnCG.style.cssText = 'flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:1px solid var(--line);background:transparent;color:#9aa3b2;cursor:pointer;transition:.15s';
+  } else {
+    btnCG.style.cssText = 'flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:2px solid #10a37f;background:#0d1f18;color:#10a37f;cursor:pointer;transition:.15s';
+    btnGM.style.cssText = 'flex:1;padding:9px;border-radius:12px;font-size:13px;font-weight:900;border:1px solid var(--line);background:transparent;color:#9aa3b2;cursor:pointer;transition:.15s';
+  }
+  genAll();
+}
+
+// ── Gemini / Imagen 3 — default platform ──
+function gen(){
+  const ps=[...document.querySelectorAll('.product[data-id]')], infos=ps.map(info);
+  refreshRefs();
+  const heroEl=document.querySelector('.product.hero')||ps[0];
+  const rearmostEl=document.querySelector('.product.rearmost');
+  const heroIdx=ps.indexOf(heroEl);
+  const hero=heroIdx>=0?infos[heroIdx]:{h:'20',w:'20',bottom:'76',cx:'50',cy:'60'};
+  const ratioNum=ratioValue(selectedCanvasRatio);
+  const aspectDesc=ratioNum>1.2?'landscape':ratioNum<0.85?'portrait':'square';
+  const canvasLabel=document.getElementById('canvasSizeTag')?.textContent||selectedCanvasRatio;
+
+  const frontP=heroEl?`${heroEl.dataset.ref}`:' none';
+  const backP=rearmostEl?`${rearmostEl.dataset.ref}`:'none';
+  const midList=ps.filter(p=>!p.classList.contains('hero')&&!p.classList.contains('rearmost')).map(p=>p.dataset.ref).join(', ')||'none';
+
+  const prodLines=ps.length?ps.map((p,idx)=>{
+    const o=infos[idx];
+    const isHero=p.classList.contains('hero'),isRear=p.classList.contains('rearmost');
+    const scaleH=Math.round(parseFloat(o.h)/(parseFloat(hero.h)||1)*100);
+    const sem=semanticPos(o,p.dataset.name,isHero,isRear,infos,hero);
+    return `[${p.dataset.ref}] ${isHero?'★FOREGROUND':isRear?'●BACKGROUND':'○MIDDLE'} "${p.dataset.name}"
+  canvas position: left=${o.x}% top=${o.y}% width=${o.w}% height=${o.h}%
+  center: x=${o.cx}% y=${o.cy}% | bottom edge: ${o.bottom}%
+  scale vs foreground: ${scaleH}% | zone: ${zone(o)}
+  natural language: ${sem}
+  depth: ${isHero?'foreground — closest, sharpest, strongest shadow':isRear?'background — furthest, softest shadow, SAME SIZE as layout':'middle — moderate shadow'}
+  PLACEMENT LOCK: composite this product image at EXACTLY the pixel area defined above`;
+  }).join('\n\n'):'no products';
+
+  out.value=`TASK: Studio product photo — composite products onto generated background.
+
+OUTPUT: ${selectedCanvasRatio.replace('/',':')} ${aspectDesc} — MUST be exactly this ratio.
+
+UPLOADED PRODUCT IMAGES
+${ps.map(p=>`${p.dataset.ref} = "${p.dataset.filename||p.dataset.name}" — flat locked layer, use as-is`).join('\n')}
+
+═══════════════════════════════════════
+PRODUCT IMAGE RULES — NON-NEGOTIABLE
+═══════════════════════════════════════
+Every product image must be treated as a LOCKED FLAT LAYER:
+• composite as-is, do not redraw, regenerate, or replace
+• no rotation, no perspective change, no 3D rendering
+• no colour change, no logo change, no label change
+• no retouching, no sharpening, no beautifying
+• no resizing beyond exact specified dimensions
+• depth = shadow/lighting adjustment only, NEVER scale change
+
+═══════════════════════════════════════
+POSITION & SCALE — STRICT PIXEL LOCK
+═══════════════════════════════════════
+Canvas is divided into a percentage grid (0–100% horizontal, 0–100% vertical).
+Each product MUST occupy EXACTLY the specified grid area. No exceptions.
+
+${prodLines}
+
+FORBIDDEN POSITION CHANGES:
+• do not move any product for compositional balance
+• do not resize any product for aesthetic reasons
+• do not reframe for whitespace or text area
+• do not adjust scale due to perspective or depth
+• the background environment MUST adapt to products, not vice versa
+
+═══════════════════════════════════════
+DEPTH HIERARCHY — LIGHTING ONLY
+═══════════════════════════════════════
+Foreground ${frontP}: strongest defined shadow, highest contrast lighting
+Middle ${midList}: moderate shadow, clear lighting
+Background ${backP}: softest diffuse shadow, reduced contrast
+→ Size of each product is FIXED. Depth = shadow/atmosphere ONLY.
+
+SCENE
+${getSceneText()}
+
+PURPOSE
+${getPurposeText()}
+
+CAMERA
+${lens.value}, ${angle.value}, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')}
+
+LIGHTING
+${lightPrompt()||'soft studio lighting, warm consistent direction'}
+single light source | ${frontP}: strongest shadow | ${backP}: softest shadow
+
+DO NOT RENDER: bounding boxes, REF labels, grid lines, annotation text, layout guides
+
+QUALITY
+photorealistic studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, accurate product positions, accurate product scales, no product distortion, no product movement, no text overlays`;
+}
+
+// ── ChatGPT / DALL·E 3 ──
+function genGemini(){
+  const ps=[...document.querySelectorAll('.product[data-id]')], infos=ps.map(info);
+  refreshRefs();
+  const heroEl=document.querySelector('.product.hero')||ps[0];
+  const rearmostEl=document.querySelector('.product.rearmost');
+  const heroIdx=ps.indexOf(heroEl);
+  const hero=heroIdx>=0?infos[heroIdx]:{h:'20',w:'20',bottom:'76',cx:'50',cy:'60'};
+  const ratioNum=ratioValue(selectedCanvasRatio);
+  const aspectDesc=ratioNum>1.2?'landscape / horizontal':ratioNum<0.85?'portrait / vertical':'square';
+  const canvasLabel=document.getElementById('canvasSizeTag')?.textContent||selectedCanvasRatio;
+
+  const frontP=heroEl?`${heroEl.dataset.ref} (${heroEl.dataset.name})`:'none';
+  const backP=rearmostEl?`${rearmostEl.dataset.ref} (${rearmostEl.dataset.name})`:'none';
+  const midList=ps.filter(p=>!p.classList.contains('hero')&&!p.classList.contains('rearmost')).map(p=>`${p.dataset.ref} (${p.dataset.name})`).join(', ')||'none';
+
+  function depthLabel(p){
+    if(p.classList.contains('hero'))     return 'FOREGROUND — closest to camera, sharpest focus, strongest contact shadow';
+    if(p.classList.contains('rearmost')) return 'BACKGROUND — furthest from camera, softest shadow. Size is LOCKED — do NOT make smaller';
+    return 'MIDDLE GROUND — clear focus, moderate shadow';
+  }
+
+  const lines=ps.length?ps.map((p,idx)=>{
+    const o=infos[idx];
+    const isHero=p.classList.contains('hero'),isRear=p.classList.contains('rearmost');
+    const scaleH=Math.round(parseFloat(o.h)/(parseFloat(hero.h)||1)*100);
+    const scaleW=Math.round(parseFloat(o.w)/(parseFloat(hero.w)||1)*100);
+    const bdiff=pct(parseFloat(o.bottom)-parseFloat(hero.bottom));
+    const sem=semanticPos(o,p.dataset.name,isHero,isRear,infos,hero);
+    return `━━ ${p.dataset.ref} "${p.dataset.name}" ${isHero?'[★ FOREGROUND]':isRear?'[● BACKGROUND]':'[○ MIDDLE]'}
+Natural position: ${sem}
+Exact grid: left=${o.x}% top=${o.y}% width=${o.w}% height=${o.h}%
+Center point: x=${o.cx}% y=${o.cy}% | Bottom edge: ${o.bottom}%
+Size relative to foreground: height=${scaleH}% width=${scaleW}%
+Bottom alignment: ${parseFloat(bdiff)>=0?'+':''}${bdiff}% vs foreground bottom
+Depth role: ${depthLabel(p)}
+→ HARD LOCK: place this uploaded product image at this exact grid position, at this exact scale. Do not move, resize, rotate, recolour, or redraw for any reason.`;
+  }).join('\n\n'):'No products uploaded.';
+
+  out.value=`Create a premium commercial product image using my uploaded product images and layout reference.
+
+OUTPUT FORMAT — HIGHEST PRIORITY
+Canvas: ${selectedCanvasRatio.replace('/',':')} (${canvasLabel}) — ${aspectDesc}
+The final image MUST be exactly ${selectedCanvasRatio.replace('/',':')} aspect ratio.
+
+CORE INSTRUCTION
+Composite the uploaded product images into a realistic studio environment.
+Products are LOCKED FLAT LAYERS — only background, lighting, and shadows are generated.
+
+LAYOUT REFERENCE NOTE
+Layout PNG shows bounding boxes, REF labels, grid lines — GUIDES ONLY.
+✗ Do not render bounding boxes  ✗ Do not render REF labels  ✗ Do not render grid lines
+
+██████████████████████████████████████
+ABSOLUTE PRODUCT LOCK — MAXIMUM PRIORITY
+██████████████████████████████████████
+
+Every uploaded product image is a FINAL LOCKED ASSET:
+• PIXEL-FOR-PIXEL identical to upload — any change = CRITICAL FAILURE
+• No rotation, tilt, skew, warp, stretch, squash, or reshape
+• No 3D conversion, no hidden sides, no perspective inference
+• No logo, label, colour, texture, or proportion changes
+• No retouching, relighting, or beautifying product surfaces
+• Treat every product as a FLAT STICKER pasted at exact coordinates
+
+FAILURE CONDITIONS (retry until all pass):
+✗ Product position differs from specified grid → FAIL
+✗ Product scale differs from specified size → FAIL
+✗ Product angle or perspective changed → FAIL
+✗ Product redrawn or regenerated → FAIL
+✗ Any product label, logo, or text changed → FAIL
+✗ Output aspect ratio is not ${selectedCanvasRatio.replace('/',':')} → FAIL
+
+POSITION AND SCALE CONTRACT
+The canvas is a percentage grid: 0% = left/top edge, 100% = right/bottom edge.
+Each product's left, top, width, height define its EXACT pixel footprint.
+This is a CONTRACT — no artistic licence on position or scale.
+
+${lines}
+
+COMPOSITION CONTRACT
+• All product positions and sizes are FINAL — no exceptions
+• Background, platform, atmosphere adapt around products
+• Do not rebalance for whitespace, text space, or editorial aesthetics
+• Do not change perceived product scale for depth or perspective
+• Scale anchor: ${frontP}
+
+DEPTH HIERARCHY — LIGHTING AND SHADOW ONLY
+Products sizes are LOCKED. Express depth through shadow intensity only:
+• ${frontP} → strongest, most defined contact shadow + clearest highlight
+• ${midList} → moderate shadow
+• ${backP} → softest diffuse shadow — SIZE UNCHANGED, depth = light only
+
+SCENE
+${getSceneText()}
+
+COMMERCIAL PURPOSE
+${getPurposeText()}
+
+CAMERA
+- ${lens.value}
+- ${angle.value}
+- ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} output
+
+REFERENCE ASSET MAPPING
+${ps.map(p=>`${p.dataset.ref}: "${p.dataset.filename||p.dataset.name}" — use ONLY this uploaded image`).join('\n')}
+
+LIGHTING
+${lightPrompt()||'- soft studio lighting, consistent warm direction'}
+- ${frontP}: strongest shadow and highlight
+- ${backP}: softest shadow, depth via lighting NOT by resizing
+- Single consistent light source direction
+
+QUALITY
+Ultra realistic, premium studio photography, ${aspectDesc} ${selectedCanvasRatio.replace('/',':')} format, products at exact layout positions and scales, no product distortion, no annotation text, no bounding box lines, no REF labels visible`;
+}
+multiUpload.addEventListener('change',e=>{[...e.target.files].forEach(file=>addProductFromFile(file));multiUpload.value='';markUpdated()});
+document.querySelectorAll('select,textarea').forEach(x=>{x.addEventListener('input',leftChanged);x.addEventListener('change',leftChanged)});
+async function performCopyPrompt(){
+  await navigator.clipboard.writeText(out.value);
+  copy.textContent='已複製';
+  setTimeout(()=>copy.textContent='複製 Prompt',900);
+}
+document.getElementById('copy').onclick=()=>openOperationGuide('copy');
+document.getElementById('clearAll').onclick=()=>{document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());refreshList();leftChanged()}
+document.getElementById('toggleGrid').onclick=()=>stage.classList.toggle('showGrid');
+document.getElementById('snapBase').onclick=()=>{
+  const s=stage.getBoundingClientRect(), base=s.height*.76;
+  document.querySelectorAll('.product[data-id]').forEach(p=>{
+    const r=p.getBoundingClientRect(); const h=r.height; p.style.top=pct((base-h)/s.height*100)+'%';
+  });
+  leftChanged();
+}
+
+// Fixed preview opacity (no slider)
+(function(){
+  const styleTag = document.createElement('style');
+  styleTag.textContent = '.product img{opacity:.35} .product.active img,.product:hover img{opacity:.92}';
+  document.head.appendChild(styleTag);
+})();
+
+
+async function exportLayoutPNG(){
+  const s=stage.getBoundingClientRect();
+  const OUTPUT_W = 1200;
+  const OUTPUT_H = Math.round(OUTPUT_W / (s.width / s.height));
+  const canvas=document.createElement('canvas');
+  canvas.width=OUTPUT_W;
+  canvas.height=OUTPUT_H;
+  const ctx=canvas.getContext('2d');
+
+  // Background
+  const bg=ctx.createLinearGradient(0,0,0,OUTPUT_H);
+  bg.addColorStop(0,'#f7f9fc');
+  bg.addColorStop(.55,'#ffffff');
+  bg.addColorStop(1,'#eef2f7');
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,OUTPUT_W,OUTPUT_H);
+
+  // Floor ellipse
+  ctx.fillStyle='rgba(255,255,255,.94)';
+  ctx.beginPath();
+  ctx.ellipse(OUTPUT_W*.5,OUTPUT_H*.82,OUTPUT_W*.32,OUTPUT_H*.095,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.10)';
+  ctx.lineWidth=2;
+  ctx.stroke();
+
+  // Guides
+  ctx.setLineDash([8,6]);
+  ctx.strokeStyle='rgba(255,160,0,.7)';
+  ctx.beginPath();ctx.moveTo(OUTPUT_W*.06,OUTPUT_H*.76);ctx.lineTo(OUTPUT_W*.94,OUTPUT_H*.76);ctx.stroke();
+  ctx.strokeStyle='rgba(0,0,0,.16)';
+  ctx.beginPath();ctx.moveTo(OUTPUT_W*.5,0);ctx.lineTo(OUTPUT_W*.5,OUTPUT_H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,OUTPUT_H*.5);ctx.lineTo(OUTPUT_W,OUTPUT_H*.5);ctx.stroke();
+  ctx.setLineDash([]);
+
+  const ps=[...document.querySelectorAll('.product[data-id]')];
+  for(const p of ps){
+    // Use style% to compute position — matches exactly what the canvas shows
+    const leftPct  = parseFloat(p.style.left)   || 0;
+    const topPct   = parseFloat(p.style.top)    || 0;
+    const wPct     = parseFloat(p.style.width)  || 20;
+    const hPct     = parseFloat(p.style.height) || 30;
+    const x = leftPct / 100 * OUTPUT_W;
+    const y = topPct  / 100 * OUTPUT_H;
+    const w = wPct    / 100 * OUTPUT_W;
+    const h = hPct    / 100 * OUTPUT_H;
+
+    const img=p.querySelector('img');
+    ctx.save();
+    ctx.globalAlpha=.78;
+    if(img && img.complete && img.naturalWidth>0) ctx.drawImage(img,x,y,w,h);
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=p.classList.contains('hero')?'#7cf0bd':'#8dd3ff';
+    ctx.lineWidth=3;
+    ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle=p.classList.contains('hero')?'#7cf0bd':'#8dd3ff';
+    ctx.font='bold 15px Arial';
+    const tag=(p.dataset.ref||'REF')+(p.classList.contains('hero')?' HERO':'');
+    ctx.fillRect(x,y-26,ctx.measureText(tag).width+14,22);
+    ctx.fillStyle='#06101a';
+    ctx.fillText(tag,x+7,y-10);
+    ctx.restore();
+  }
+
+  const a=document.createElement('a');
+  a.download='layout-reference-'+selectedCanvasRatio.replace('/','x')+'.png';
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+}
+
+document.getElementById('exportLayout').onclick=()=>openOperationGuide('export');
+
+let selectedCanvasRatio='1/1';
+
+function ratioValue(ratio){
+  const parts=String(ratio).split('/').map(Number);
+  if(parts.length!==2 || !parts[0] || !parts[1]) return 1;
+  return parts[0]/parts[1];
+}
+
+function applyCanvasRatio(ratio,label){
+  // Save current canvas positions before switching
+  saveUserPositions();
+  const prevRatio = selectedCanvasRatio;
+
+  // Snapshot current style% for layout fallback
+  const snapshots = [];
+  document.querySelectorAll('.product[data-id]').forEach(p => {
+    snapshots.push({
+      el:    p,
+      id:    p.dataset.id,
+      left:  parseFloat(p.style.left)   || 0,
+      top:   parseFloat(p.style.top)    || 0,
+      w:     parseFloat(p.style.width)  || 20,
+      h:     parseFloat(p.style.height) || 30,
+      ratio: parseFloat(p.dataset.ratio) || 0.75
+    });
+  });
+
+  selectedCanvasRatio = ratio || '1/1';
+  const shell   = document.querySelector('.stageShell');
+  const stageEl = document.getElementById('stage');
+  const tag     = document.getElementById('canvasSizeTag');
+  if(shell)   shell.style.aspectRatio   = selectedCanvasRatio;
+  if(stageEl) stageEl.style.aspectRatio = selectedCanvasRatio;
+  if(tag)     tag.textContent = label || selectedCanvasRatio + ' Canvas';
+  document.querySelectorAll('.ratioCard').forEach(card => {
+    card.classList.toggle('active', card.dataset.ratio === selectedCanvasRatio);
+  });
+  enforceSquareCanvas();
+
+  if(!snapshots.length){ genAll(); markUpdated(); return; }
+
+  requestAnimationFrame(() => {
+    const sr2    = document.getElementById('stage').getBoundingClientRect();
+    const PAD    = 8;
+    const newKey = selectedCanvasRatio;
+    const hasSaved = hasUserPositions(newKey);
+
+    const boxes = snapshots.map(s => {
+      if(hasSaved){
+        // Target canvas has its own saved positions — restore them directly
+        const saved = getUserPos(newKey, s.id);
+        if(saved){
+          const hPct = (saved.w / 100 * sr2.width / saved.ratio) / sr2.height * 100;
+          return { s, leftPct: saved.left, topPct: saved.top, wPct: saved.w, hPct };
+        }
+      }
+      // No saved positions for this canvas — derive from current style%
+      const wPct = s.w;
+      const hPct = (s.w / 100 * sr2.width / s.ratio) / sr2.height * 100;
+      const cx   = s.left + s.w / 2;
+      const cy   = s.top  + s.h  / 2;
+      return { s, leftPct: cx - wPct/2, topPct: cy - hPct/2, wPct, hPct };
+    });
+
+    // If restoring saved positions, apply directly without scaling
+    if(hasSaved){
+      boxes.forEach(b => {
+        b.s.el.style.width  = pct(b.wPct) + '%';
+        b.s.el.style.height = pct(b.hPct) + '%';
+        b.s.el.style.left   = pct(Math.max(PAD, Math.min(b.leftPct, 100-PAD-b.wPct))) + '%';
+        b.s.el.style.top    = pct(Math.max(PAD, Math.min(b.topPct,  100-PAD-b.hPct))) + '%';
+      });
+      genAll(); markUpdated(); return;
+    }
+
+    // No saved positions — fit group in new canvas
+    const gL = Math.min(...boxes.map(b => b.leftPct));
+    const gR = Math.max(...boxes.map(b => b.leftPct + b.wPct));
+    const gT = Math.min(...boxes.map(b => b.topPct));
+    const gB = Math.max(...boxes.map(b => b.topPct  + b.hPct));
+    const gW = gR-gL, gH = gB-gT;
+    const scale = Math.min(1, (100-PAD*2)/gW, (100-PAD*2)/gH);
+    const shiftX = 50 - (gL + gW/2)*scale;
+    const shiftY = 50 - (gT + gH/2)*scale;
+
+    boxes.forEach(b => {
+      const fW = b.wPct * scale;
+      const fH = b.hPct * scale;
+      const fL = b.leftPct * scale + shiftX;
+      const fT = b.topPct  * scale + shiftY;
+      b.s.el.style.width  = pct(fW) + '%';
+      b.s.el.style.height = pct(fH) + '%';
+      b.s.el.style.left   = pct(Math.max(PAD, Math.min(fL, 100-PAD-fW))) + '%';
+      b.s.el.style.top    = pct(Math.max(PAD, Math.min(fT, 100-PAD-fH))) + '%';
+    });
+
+    // Run layout engine only if no user positions exist for this canvas
+    if(!hasUserPositions(newKey)){
+      const allEls = [...document.querySelectorAll('.product[data-id]')];
+      if(allEls.length){
+        if(currentLayoutMode === 'bookend') applyBookendLayout(allEls, currentShuffleVariant, true);
+        else applyTriangleLayout(allEls, currentShuffleVariant, true);
+      }
+    }
+    genAll(); markUpdated();
+  });
+}
+function enforceSquareCanvas(){
+  const shell=document.querySelector('.stageShell');
+  const stageEl=document.getElementById('stage');
+  if(!shell)return;
+
+  const scroll=document.querySelector('.stageScroll');
+  const availableW=Math.max(260, (scroll?scroll.clientWidth:shell.parentElement.clientWidth) - 8);
+  const availableH=Math.max(260, (window.innerHeight || 900) - 190);
+  const r=ratioValue(selectedCanvasRatio);
+
+  let w=Math.min(availableW, 760);
+  let h=w/r;
+  if(h>availableH){
+    h=availableH;
+    w=h*r;
+  }
+
+  shell.style.width=Math.round(w)+'px';
+  shell.style.height=Math.round(h)+'px';
+  if(stageEl){
+    stageEl.style.width='100%';
+    stageEl.style.height='100%';
+  }
+}
+window.addEventListener('resize',enforceSquareCanvas);
+setTimeout(enforceSquareCanvas,0);
+
+
+function getLayoutState(){
+  refreshRefs();
+  const ps=[...document.querySelectorAll('.product[data-id]')].map(p=>({
+    id:p.dataset.id, ref:p.dataset.ref, name:p.dataset.name, filename:p.dataset.filename,
+    ratio:p.dataset.ratio, hero:p.classList.contains('hero'),
+    style:{left:p.style.left,top:p.style.top,width:p.style.width,height:p.style.height},
+    imgSrc:p.querySelector('img')?.src || ''
+  }));
+  return {version:'1.1',savedAt:new Date().toISOString(),selectedCanvasRatio,selectedScene,selectedPurpose,
+    customScene:customScene.value,customPurpose:customPurpose.value,lens:lens.value,angle:angle.value,lock:lock.value,
+    lights:lights.map(l=>l[3]),products:ps};
+}
+function downloadLayoutStateFile(){
+  const data=getLayoutState();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='product-layout-state.json'; a.click(); URL.revokeObjectURL(a.href);
+}
+function restoreLayoutState(data){
+  if(!data || !Array.isArray(data.products)){alert('這不是有效的構圖暫存檔');return;}
+  document.querySelectorAll('.product[data-id]').forEach(p=>p.remove());
+  selectedCanvasRatio=data.selectedCanvasRatio || '1/1';
+  selectedScene=Number.isInteger(data.selectedScene)?data.selectedScene:0;
+  selectedPurpose=Number.isInteger(data.selectedPurpose)?data.selectedPurpose:0;
+  customScene.value=data.customScene||''; customPurpose.value=data.customPurpose||'';
+  lens.value=data.lens||lens.value; angle.value=data.angle||angle.value; lock.value=data.lock||lock.value;
+  if(Array.isArray(data.lights)){data.lights.forEach((v,i)=>{ if(lights[i]) lights[i][3]=!!v; });}
+  idSeq=0;
+  data.products.forEach((item,idx)=>{
+    const box=document.createElement('div'); box.className='product trimmed'+(item.hero?' hero':'');
+    box.dataset.id=item.id || ('p'+idx); box.dataset.name=item.name || ('Product '+(idx+1));
+    box.dataset.filename=item.filename || box.dataset.name; box.dataset.ratio=item.ratio || 1; box.dataset.ref=item.ref || ('REF-'+String(idx+1).padStart(2,'0'));
+    box.style.left=item.style?.left || '20%'; box.style.top=item.style?.top || '55%'; box.style.width=item.style?.width || '24%'; box.style.height=item.style?.height || '18%';
+    const img=new Image(); img.src=item.imgSrc || ''; box.appendChild(img);
+    const lab=document.createElement('span'); lab.className='label'; lab.textContent=box.dataset.name; box.appendChild(lab);
+    const ref=document.createElement('span'); ref.className='refBadge'; ref.textContent=box.dataset.ref; box.appendChild(ref);
+    box.insertAdjacentHTML('beforeend',productHandles()); stage.appendChild(box);
+    box.addEventListener('pointerdown',onPointerDown); box.addEventListener('wheel',onWheel,{passive:false}); idSeq=Math.max(idSeq,idx+1);
+  });
+  renderCards(); updateCustomVisibility(); applyCanvasRatio(selectedCanvasRatio, selectedCanvasRatio+' Canvas'); refreshList(); genAll(); markUpdated();
+}
+if(document.getElementById('downloadLayoutState')) document.getElementById('downloadLayoutState').onclick=downloadLayoutStateFile;
+if(document.getElementById('uploadLayoutStateBtn')) document.getElementById('uploadLayoutStateBtn').onclick=()=>document.getElementById('uploadLayoutState').click();
+if(document.getElementById('uploadLayoutState')) document.getElementById('uploadLayoutState').onchange=async(e)=>{
+  const file=e.target.files[0]; if(!file)return;
+  try{restoreLayoutState(JSON.parse(await file.text()));}catch(err){alert('構圖暫存檔讀取失敗，請確認是 JSON 檔');}
+  e.target.value='';
+};
+
+document.querySelectorAll('.ratioCard').forEach(card=>{
+  card.addEventListener('click',()=>applyCanvasRatio(card.dataset.ratio, card.dataset.label));
+});
+applyCanvasRatio('1/1','1:1 Canvas');
+renderCards();updateCustomVisibility();refreshList();genAll();
+setTimeout(()=>{
+  const t=document.getElementById('applyTriangle');
+  if(t) t.style.outline='2px solid rgba(124,240,189,.6)';
+},0);
+</script>
+
+<!-- Upload Modal -->
+<style>
+.uploadSlotGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}
+.uploadSlot{position:relative;border:2px dashed rgba(141,211,255,.25);border-radius:16px;background:#11141c;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:.18s;overflow:hidden}
+.uploadSlot:hover{border-color:#8dd3ff;background:rgba(141,211,255,.07)}
+.uploadSlot.filled{border-style:solid;border-color:rgba(141,211,255,.4);cursor:default}
+.uploadSlot.hero-slot{border-color:#7cf0bd;box-shadow:0 0 0 1px rgba(124,240,189,.2)}
+.uploadSlot img{width:100%;height:110px;object-fit:contain;padding:8px;display:block}
+.slot-label{font-size:11px;font-weight:700;padding:4px 8px 8px;text-align:center;color:#9aa3b2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.slot-badge{position:absolute;top:6px;left:6px;background:#7cf0bd;color:#06101a;border-radius:999px;font-size:10px;font-weight:900;padding:2px 7px}
+.slot-num{position:absolute;top:6px;left:8px;background:rgba(141,211,255,.18);color:#8dd3ff;border-radius:999px;font-size:10px;font-weight:900;padding:2px 7px}
+.slot-remove{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:rgba(15,17,23,.85);border:1px solid rgba(255,255,255,.18);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;line-height:1;z-index:2}
+.slot-add-icon{font-size:28px;color:rgba(141,211,255,.4);margin-bottom:6px}
+.slot-add-text{font-size:11px;color:#6a7892}
+.rankRow{display:flex;align-items:center;justify-content:center;gap:32px;margin:18px 0 10px;flex-wrap:wrap}
+.rankCard{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;cursor:grab;user-select:none;transition:transform .15s,opacity .15s}
+.rankCard:active{cursor:grabbing}
+.rankCard.dragging{opacity:.38;transform:scale(.93)}
+.rankCard .rank-img-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.rankCard img{object-fit:contain;border-radius:10px;border:2px solid rgba(255,255,255,.14);background:#181c28;display:block;pointer-events:none}
+.rankCard.rank-hero img{border-color:#7cf0bd}
+.rankCard .rank-name{font-size:11px;color:#9aa3b2;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.rankCard .rank-tag{font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px;text-align:center}
+.rank-arrow-l,.rank-arrow-r{position:absolute;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:rgba(15,17,23,.88);border:1.5px solid rgba(141,211,255,.5);color:#8dd3ff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;line-height:1;z-index:3;transition:.15s;backdrop-filter:blur(4px)}
+.rank-arrow-l{left:-12px}
+.rank-arrow-r{right:-12px}
+.rank-arrow-l:hover,.rank-arrow-r:hover{background:#252b39;border-color:#8dd3ff;transform:translateY(-50%) scale(1.14)}
+.rankArrowWrap{display:none}
+.rank-tag.hero{background:rgba(124,240,189,.15);color:#7cf0bd}
+.rank-tag.left{background:rgba(141,211,255,.12);color:#8dd3ff}
+.rank-tag.right{background:rgba(255,180,100,.10);color:#ffd166}
+.rank-drop-line{position:absolute;top:0;bottom:0;width:3px;background:#8dd3ff;border-radius:3px;box-shadow:0 0 8px #8dd3ff;pointer-events:none;z-index:10;display:none}
+.rankRow.drop-left  .rank-drop-line-left {display:block}
+.rankRow.drop-right .rank-drop-line-right{display:block}
+</style>
+
+<div class="uploadModal" id="uploadModal">
+  <div class="uploadModalBox">
+    <div class="uploadModalHeader">
+      <h3>上傳商品圖片</h3>
+      <button class="uploadModalClose" id="uploadModalClose">×</button>
+    </div>
+    <div class="uploadModalBody">
+      <div class="stepTabs">
+        <button class="stepTab on" id="stepTab1">① 選取圖片</button>
+        <button class="stepTab" id="stepTab2">② 確認大小比例</button>
+      </div>
+      <div id="stepContent1">
+        <div id="modalDropZone" class="uploadDropZone" style="margin-bottom:14px">
+          <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+          <div style="font-size:14px;font-weight:900;color:#dce7ff">拖拉圖片到這裡</div>
+          <p style="margin:6px 0 0">或點擊選取（最多 3 張，PNG / JPG / WEBP / AVIF）</p>
+          <input id="modalFileInput" type="file" accept="image/*" multiple style="display:none">
+        </div>
+        <div id="modalPreviewGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px"></div>
+        <div id="modalNoFiles" style="text-align:center;color:#9aa3b2;padding:8px;font-size:12px">尚未選取圖片</div>
+        <div id="modalLimitWarn" style="display:none;text-align:center;color:#ffd166;font-size:12px;padding:6px 0">最多只能上傳 3 張，已自動忽略多餘的圖片</div>
+      </div>
+      <div id="stepContent2" style="display:none">
+        <div style="font-size:12px;color:#8dd3ff;background:rgba(141,211,255,.08);border:1px solid rgba(141,211,255,.2);border-radius:10px;padding:8px 12px;margin-bottom:14px;line-height:1.7">
+          ・<b style="color:#dce7ff">最前面 = 主品，放畫布正中間最大</b><br>
+          ・左側配品第二大，右側配品最小<br>
+          ・用 ← → 箭頭調整順序
+        </div>
+        <div class="rankRow" id="rankRow"></div>
+        <div style="font-size:11px;color:#6a7892;text-align:center;margin-top:2px">圖片高度反映構圖時的相對大小</div>
+      </div>
+    </div>
+    <div class="uploadModalFooter">
+      <button class="btn-skip" id="modalBack" style="display:none">← 上一步</button>
+      <button class="btn-skip" id="modalSkip">跳過，直接套用</button>
+      <button class="btn-confirm" id="modalNext">下一步 →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const MAX_UPLOAD = 3;   // max images per upload session
+  const MAX_APPLY  = 3;   // must be ≤ this to proceed
+  const modal       = document.getElementById('uploadModal');
+  const openBtn     = document.getElementById('openUploadModal');
+  const closeBtn    = document.getElementById('uploadModalClose');
+  const dropZone    = document.getElementById('modalDropZone');
+  const fileInput   = document.getElementById('modalFileInput');
+  const previewGrid = document.getElementById('modalPreviewGrid');
+  const noFiles     = document.getElementById('modalNoFiles');
+  const limitWarn   = document.getElementById('modalLimitWarn');
+  const stepTab1    = document.getElementById('stepTab1');
+  const stepTab2    = document.getElementById('stepTab2');
+  const stepContent1= document.getElementById('stepContent1');
+  const stepContent2= document.getElementById('stepContent2');
+  const modalNext   = document.getElementById('modalNext');
+  const modalBack   = document.getElementById('modalBack');
+  const modalSkip   = document.getElementById('modalSkip');
+  const rankRowEl   = document.getElementById('rankRow');
+
+  let stagedFiles = [];
+  let heroIndex   = 0;
+  let rankOrder   = null;
+  let currentStep = 1;
+
+  // Load existing canvas products as staged files on open
+  function loadExistingProducts(){
+    const existing = [];
+    document.querySelectorAll('.product[data-id]').forEach(p => {
+      const img = p.querySelector('img');
+      if(!img || !img.src) return;
+      existing.push({
+        src:  img.src,
+        name: p.dataset.name || p.dataset.filename || 'product',
+        file: null,
+        fromCanvas: true,
+        canvasId: p.dataset.id,
+        isHero: p.classList.contains('hero')
+      });
+    });
+    return existing;
+  }
+
+  function openModal(){
+    stagedFiles = [];   // always start fresh — don't pre-load canvas products
+    heroIndex   = 0;
+    rankOrder   = null;
+    currentStep = 1;
+    renderPreviewGrid(); updateLimitWarn(); showStep(1);
+    modal.classList.add('show');
+  }
+  function closeModal(){ modal.classList.remove('show'); }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+
+  dropZone.addEventListener('click', e=>{ if(e.target === fileInput) return; fileInput.click(); });
+  dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('over'); });
+  dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop', e=>{
+    e.preventDefault(); dropZone.classList.remove('over');
+    const files = [...e.dataTransfer.files];
+    if(files.length) handleFiles(files);
+  });
+  fileInput.addEventListener('change', e=>{
+    const files = [...e.target.files];
+    fileInput.value = '';
+    if(!files.length) return;
+    handleFiles(files);
+  });
+
+  async function handleFiles(files){
+    // Filter to images only, cap at MAX_UPLOAD
+    const imageFiles = files.filter(f => f.type.startsWith('image/') || /\.(png|jpg|jpeg|webp|avif|gif|bmp|svg)$/i.test(f.name));
+    const toAdd = imageFiles.slice(0, Math.max(0, MAX_UPLOAD - stagedFiles.length));
+    if(!toAdd.length){ updateLimitWarn(); renderPreviewGrid(); return; }
+
+    // Read all files in parallel for speed
+    const results = await Promise.all(toAdd.map(f =>
+      readFileSrc(f).then(src => ({ file:f, src, name: fileBaseName(f.name)||f.name, fromCanvas: false }))
+    ));
+    results.forEach(r => stagedFiles.push(r));
+    updateLimitWarn();
+    renderPreviewGrid();
+  }
+
+  function updateLimitWarn(){
+    const n = stagedFiles.length;
+    if(n > MAX_APPLY){
+      limitWarn.style.display = '';
+      limitWarn.textContent   = `最多只能上傳 ${MAX_APPLY} 張，請移除多餘的圖片`;
+      limitWarn.style.color   = n > MAX_APPLY ? '#ffd166' : '#7cf0bd';
+    } else {
+      limitWarn.style.display = 'none';
+    }
+    // update next button state
+    if(currentStep === 1){
+      const canProceed = n > 0 && n <= MAX_APPLY;
+      modalNext.style.opacity = canProceed ? '1' : '0.4';
+      modalNext.style.pointerEvents = canProceed ? '' : 'none';
+    }
+  }
+
+  function readFileSrc(file){
+    return new Promise(res=>{ const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(file); });
+  }
+
+  function renderPreviewGrid(){
+    previewGrid.innerHTML = '';
+    noFiles.style.display = stagedFiles.length ? 'none' : '';
+    // auto columns: 3 per row
+    previewGrid.style.gridTemplateColumns = 'repeat(3, 1fr)';
+    stagedFiles.forEach((item, i)=>{
+      const isHero = (i === heroIndex);
+      const overLimit = stagedFiles.length > MAX_APPLY;
+      const div = document.createElement('div');
+      div.style.cssText = `position:relative;border:1.5px solid ${isHero?'#7cf0bd':overLimit?'rgba(255,209,102,.35)':'rgba(141,211,255,.3)'};border-radius:14px;background:#11141c;overflow:hidden;cursor:pointer`;
+      div.innerHTML = `
+        ${isHero?'<div style="position:absolute;top:6px;left:6px;background:#7cf0bd;color:#06101a;border-radius:999px;font-size:10px;font-weight:900;padding:2px 7px;z-index:2">最前面</div>':''}
+        ${item.fromCanvas&&!isHero?'<div style="position:absolute;top:6px;left:6px;background:rgba(141,211,255,.18);color:#8dd3ff;border-radius:999px;font-size:9px;font-weight:900;padding:2px 6px;z-index:2">畫布</div>':''}
+        <img src="${item.src}" style="width:100%;height:90px;object-fit:contain;padding:8px;display:block">
+        <div style="font-size:10px;color:#9aa3b2;padding:0 8px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${item.name}</div>
+        <div data-ri="${i}" style="position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:rgba(15,17,23,.85);border:1px solid rgba(255,255,255,.18);color:white;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;z-index:2;line-height:1">×</div>
+      `;
+      div.addEventListener('click', e=>{
+        if(e.target.dataset.ri !== undefined) return;
+        heroIndex = i; renderPreviewGrid();
+      });
+      div.querySelector('[data-ri]').addEventListener('click', e=>{
+        e.stopPropagation();
+        stagedFiles.splice(+e.target.dataset.ri, 1);
+        if(heroIndex >= stagedFiles.length) heroIndex = Math.max(0, stagedFiles.length-1);
+        updateLimitWarn(); renderPreviewGrid();
+      });
+      previewGrid.appendChild(div);
+    });
+  }
+
+  // ---- Step 2 ----
+  function initRankOrder(){
+    rankOrder = stagedFiles.map((_,i)=> i===heroIndex ? -1 : i).filter(i=>i>=0);
+    rankOrder.unshift(heroIndex);
+    rankOrder = [...new Set(rankOrder)].filter(i=> i < stagedFiles.length);
+  }
+
+  function renderRankRow(){
+    const posLabels  = ['最前面（中間）','左側配品','右側配品'];
+    const posClasses = ['hero','left','right'];
+    const heights    = [116, 90, 74];
+    rankRowEl.innerHTML = '';
+    rankRowEl.className = 'rankRow';
+    let dragSrc = null;
+
+    // Build cards
+    rankOrder.forEach((itemIdx, pos) => {
+      const item = stagedFiles[itemIdx];
+      if(!item) return;
+      const h = heights[pos] || 74;
+
+      const card = document.createElement('div');
+      card.className = 'rankCard' + (pos===0 ? ' rank-hero' : '');
+      card.dataset.pos = pos;
+      card.draggable = true;
+
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'rank-img-wrap';
+      imgWrap.style.cssText = `width:${Math.round(h*0.85)}px;height:${h}px`;
+
+      const img = document.createElement('img');
+      img.src = item.src;
+      img.style.cssText = `height:${h}px;width:auto;max-width:${Math.round(h*0.85)}px`;
+      imgWrap.appendChild(img);
+
+      if(pos > 0){
+        const al = document.createElement('button');
+        al.className = 'rank-arrow-l'; al.textContent = '‹'; al.title = '往左移';
+        al.addEventListener('click', e => {
+          e.stopPropagation();
+          const t = rankOrder[pos]; rankOrder[pos] = rankOrder[pos-1]; rankOrder[pos-1] = t;
+          renderRankRow();
+        });
+        imgWrap.appendChild(al);
+      }
+      if(pos < rankOrder.length - 1){
+        const ar = document.createElement('button');
+        ar.className = 'rank-arrow-r'; ar.textContent = '›'; ar.title = '往右移';
+        ar.addEventListener('click', e => {
+          e.stopPropagation();
+          const t = rankOrder[pos]; rankOrder[pos] = rankOrder[pos+1]; rankOrder[pos+1] = t;
+          renderRankRow();
+        });
+        imgWrap.appendChild(ar);
+      }
+
+      card.appendChild(imgWrap);
+      const nameEl = document.createElement('div');
+      nameEl.className = 'rank-name'; nameEl.textContent = item.name;
+      card.appendChild(nameEl);
+      const tagEl = document.createElement('div');
+      tagEl.className = `rank-tag ${posClasses[pos]}`;
+      tagEl.textContent = posLabels[pos] || '配品';
+      card.appendChild(tagEl);
+
+      card.addEventListener('dragstart', e => {
+        dragSrc = +card.dataset.pos;
+        e.dataTransfer.effectAllowed = 'move';
+        setTimeout(() => card.classList.add('dragging'), 0);
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        clearDropLine();
+        dragSrc = null;
+      });
+
+      rankRowEl.appendChild(card);
+    });
+
+    // ── Drop line element ──
+    const dropLine = document.createElement('div');
+    dropLine.className = 'rank-drop-indicator';
+    dropLine.style.cssText = `
+      position:absolute;top:8px;bottom:8px;width:3px;
+      background:#8dd3ff;border-radius:3px;
+      box-shadow:0 0 10px rgba(141,211,255,.8);
+      pointer-events:none;display:none;z-index:20;
+    `;
+    rankRowEl.style.position = 'relative';
+    rankRowEl.appendChild(dropLine);
+
+    function clearDropLine(){ dropLine.style.display = 'none'; }
+
+    // Compute insert index (0 = before first, n = after last) from mouse X
+    function getInsertIdx(clientX){
+      const rowCards = [...rankRowEl.querySelectorAll('.rankCard')];
+      if(!rowCards.length) return 0;
+      for(let i = 0; i < rowCards.length; i++){
+        const r = rowCards[i].getBoundingClientRect();
+        if(clientX < r.left + r.width * 0.5) return i;
+      }
+      return rowCards.length;
+    }
+
+    // Show drop line at gap corresponding to insertIdx
+    function showDropLine(clientX, insertIdx){
+      const rowCards = [...rankRowEl.querySelectorAll('.rankCard')];
+      const rowRect  = rankRowEl.getBoundingClientRect();
+      let lineX;
+      if(insertIdx === 0){
+        lineX = rowCards[0].getBoundingClientRect().left - rowRect.left - 8;
+      } else if(insertIdx >= rowCards.length){
+        const last = rowCards[rowCards.length-1].getBoundingClientRect();
+        lineX = last.right - rowRect.left + 8;
+      } else {
+        const prev = rowCards[insertIdx-1].getBoundingClientRect();
+        const next = rowCards[insertIdx].getBoundingClientRect();
+        lineX = ((prev.right + next.left) / 2) - rowRect.left;
+      }
+      dropLine.style.left  = Math.round(lineX) + 'px';
+      dropLine.style.display = 'block';
+    }
+
+    // Bind to entire row for wide drop zone
+    rankRowEl.addEventListener('dragover', e => {
+      if(dragSrc === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const idx = getInsertIdx(e.clientX);
+      showDropLine(e.clientX, idx);
+    });
+
+    rankRowEl.addEventListener('dragleave', e => {
+      if(!rankRowEl.contains(e.relatedTarget)) clearDropLine();
+    });
+
+    rankRowEl.addEventListener('drop', e => {
+      e.preventDefault();
+      clearDropLine();
+      if(dragSrc === null) return;
+      let insertIdx = getInsertIdx(e.clientX);
+      const moved = rankOrder.splice(dragSrc, 1)[0];
+      if(insertIdx > dragSrc) insertIdx--;
+      rankOrder.splice(insertIdx, 0, moved);
+      dragSrc = null;
+      renderRankRow();
+    });
+  }
+
+  function showStep(n){
+    currentStep = n;
+    stepContent1.style.display = n===1 ? '' : 'none';
+    stepContent2.style.display = n===2 ? '' : 'none';
+    stepTab1.classList.toggle('on', n===1);
+    stepTab2.classList.toggle('on', n===2);
+    modalBack.style.display = n===2 ? '' : 'none';
+    modalNext.textContent   = n===1 ? '下一步 →' : '確認並套用構圖';
+    modalSkip.textContent   = n===1 ? '跳過，直接套用' : '跳過比例，直接套用';
+    modalNext.style.opacity = '1';
+    modalNext.style.pointerEvents = '';
+    if(n===1) updateLimitWarn();
+    if(n===2){ initRankOrder(); renderRankRow(); }
+  }
+
+  stepTab1.addEventListener('click', ()=>{ if(currentStep!==1) showStep(1); });
+  stepTab2.addEventListener('click', ()=>{
+    if(currentStep!==2 && stagedFiles.length && stagedFiles.length <= MAX_APPLY) showStep(2);
+  });
+
+  modalNext.addEventListener('click', ()=>{
+    if(currentStep===1){
+      if(!stagedFiles.length) return;
+      if(stagedFiles.length > MAX_APPLY){ updateLimitWarn(); return; }
+      showStep(2);
+    } else {
+      applyWithOrder(rankOrder.map(i=> stagedFiles[i])); closeModal();
+    }
+  });
+  modalBack.addEventListener('click', ()=> showStep(1));
+  modalSkip.addEventListener('click', ()=>{
+    if(!stagedFiles.length){ closeModal(); return; }
+    const toApply = stagedFiles.slice(0, MAX_APPLY);
+    applyWithOrder(toApply, true); closeModal();
+  });
+
+  async function applyWithOrder(orderedFiles, skipRatio){
+    if(!orderedFiles.length) return;
+    // Clear existing canvas products first
+    document.querySelectorAll('.product[data-id]').forEach(p=> p.remove());
+    const added = [];
+    for(const item of orderedFiles){
+      let file;
+      if(item.file){
+        file = item.file;
+      } else {
+        // fromCanvas: re-fetch from img src (data URL or blob URL)
+        const blob = await (await fetch(item.src)).blob();
+        file = new File([blob], item.name+'.png', {type:'image/png'});
+      }
+      await addProductFromFile(file);
+      const els = [...document.querySelectorAll('.product[data-id]')];
+      added.push(els[els.length-1]);
+    }
+    document.querySelectorAll('.product[data-id]').forEach(p=> p.classList.remove('hero'));
+    if(added[0]) added[0].classList.add('hero');
+    // Auto-assign rearmost to last product if more than 1
+    if(added.length > 1){
+      document.querySelectorAll('.product[data-id]').forEach(p=> p.classList.remove('rearmost'));
+      added[added.length-1].classList.add('rearmost');
+    }
+    // Wait one frame so DOM dimensions are available for keepSize reads
+    requestAnimationFrame(() => {
+      applyInvertedTriangle(added, skipRatio ? null : orderedFiles);
+      refreshList(); genAll(); markUpdated();
+    });
+  }
+})();
+</script>
+
+<script>
+// ===================== TRIANGLE LAYOUT ENGINE =====================
+// Layout philosophy:
+//   - HERO: center-top, tallest, ~44% canvas width
+//   - Left product: left side, ~85% of hero height, bottom aligned to hero bottom
+//   - Right product: right side, ~75% of hero height, bottom slightly above left
+//   - Whole group horizontally centered, top margin ~20%, bottom margin ~18%
+//   - Left/right canvas margin ~8% each
+
+let currentShuffleVariant = 0;
+let currentLayoutMode = 'triangle'; // 'triangle' | 'bookend'
+let overlapPct = 0.10;
+
+// Overlap control wiring
+(function(){
+  const slider   = document.getElementById('overlapSlider');
+  const valLabel = document.getElementById('overlapVal');
+  const minusBtn = document.getElementById('overlapMinus');
+  const plusBtn  = document.getElementById('overlapPlus');
+  const preview  = document.getElementById('overlapPreviewRow');
+
+  function setOverlap(v){
+    v = Math.max(0, Math.min(50, Math.round(v)));
+    overlapPct = v / 100;
+    slider.value = v;
+    valLabel.textContent = v + '%';
+    drawPreview(v);
+    // Always re-apply immediately to canvas
+    const els = [...document.querySelectorAll('.product[data-id]')];
+    if(els.length){
+      clearCurrentCanvas();
+      if(currentLayoutMode === 'bookend') applyBookendLayout(els, currentShuffleVariant, true);
+      else applyTriangleLayout(els, currentShuffleVariant, true);
+      genAll();
+      markUpdated();
+    }
+  }
+
+  function drawPreview(v){
+    const overlap = Math.round(v * 0.4);
+    const bW = 40, bH = 22, gap = bW - overlap;
+    const totalW = gap * 2 + bW;
+    preview.innerHTML = `
+      <svg width="${totalW}" height="${bH + 6}" style="overflow:visible">
+        <rect x="0"        y="3" width="${bW}" height="${bH}" rx="4" fill="#ED93B1" opacity=".85"/>
+        <rect x="${gap}"   y="0" width="${bW}" height="${bH+6}" rx="4" fill="#8dd3ff" opacity=".9"/>
+        <rect x="${gap*2}" y="3" width="${bW}" height="${bH}" rx="4" fill="#7cf0bd" opacity=".85"/>
+      </svg>
+    `;
+  }
+
+  slider.addEventListener('input', () => setOverlap(+slider.value));
+  minusBtn.addEventListener('click', () => setOverlap(overlapPct * 100 - 5));
+  plusBtn.addEventListener('click',  () => setOverlap(overlapPct * 100 + 5));
+  minusBtn.addEventListener('mouseenter', () => minusBtn.style.background='#252b39');
+  minusBtn.addEventListener('mouseleave', () => minusBtn.style.background='#1a1f2e');
+  plusBtn.addEventListener('mouseenter',  () => plusBtn.style.background='#252b39');
+  plusBtn.addEventListener('mouseleave',  () => plusBtn.style.background='#1a1f2e');
+
+  // Init display
+  valLabel.textContent = '10%';
+  drawPreview(10);
+})();
+
+// Shuffle variants: vertical positions & companion height scales only
+// Horizontal positions are computed dynamically from overlapPct
+function getShuffleVariants(n){
+  if(n === 1) return [{botH:78}];
+  if(n === 2) return [
+    {botH:80, botC:84, wsC:0.82},
+    {botH:78, botC:82, wsC:0.80},
+    {botH:76, botC:80, wsC:0.84},
+    {botH:80, botC:83, wsC:0.78},
+  ];
+  return [
+    {botH:80, botL:84, wsL:0.88, botR:82, wsR:0.76},
+    {botH:79, botL:83, wsL:0.86, botR:81, wsR:0.74},
+    {botH:78, botL:82, wsL:0.84, botR:80, wsR:0.78},
+    {botH:80, botL:85, wsL:0.90, botR:83, wsR:0.72},
+    {botH:77, botL:81, wsL:0.85, botR:79, wsR:0.75},
+    {botH:81, botL:85, wsL:0.87, botR:83, wsR:0.73},
+  ];
+}
+
+function applyTriangleLayout(productEls, variantIdx, keepSize){
+  const n = productEls.length;
+  if(!n) return;
+
+  const PAD   = 6;
+  const AVAIL = 100 - PAD * 2;
+  const s     = document.getElementById('stage').getBoundingClientRect();
+  const ov    = overlapPct;
+
+  const variants = getShuffleVariants(n);
+  const v = variants[variantIdx % variants.length];
+
+  // Read current sizes from DOM if keepSize, else compute fresh
+  let heroW, heroH, compLW, compLH, compRW, compRH;
+
+  if(keepSize){
+    const getWH = el => {
+      const r = el.getBoundingClientRect();
+      const w = r.width  > 0 ? r.width /s.width *100 : parseFloat(el.style.width)  || 20;
+      const h = r.height > 0 ? r.height/s.height*100 : parseFloat(el.style.height) || 30;
+      return { w, h };
+    };
+    const d0 = getWH(productEls[0]);
+    heroW = d0.w; heroH = d0.h;
+    if(n >= 2){ const d1=getWH(productEls[1]); compLW=d1.w; compLH=d1.h; }
+    if(n >= 3){ const d2=getWH(productEls[2]); compRW=d2.w; compRH=d2.h; }
+  } else {
+    const sr     = document.getElementById('stage').getBoundingClientRect();
+    const aspect = sr.width / sr.height; // canvas aspect ratio
+    const ratios = productEls.map(el => Math.max(0.1, parseFloat(el?.dataset?.ratio)||0.75));
+    const r0=ratios[0], r1=n>=2?ratios[1]:0, r2=n>=3?ratios[2]:0;
+    const wsL=n>=2?(v.wsL||v.wsC||0.85):0, wsR=n>=3?(v.wsR||0.75):0;
+
+    // Calculate based on width%: total group width must fit in AVAIL%
+    // heroW + compLW*(1-ov) + compRW*(1-ov) <= AVAIL
+    // heroH = heroW / r0 * aspect  (convert w% to h% via canvas aspect ratio)
+    // compLH = heroH * wsL, compLW = compLH * r1 / aspect
+    // So: heroW + wsL*(heroW/r0*aspect)*r1/aspect*(1-ov) + wsR*(heroW/r0*aspect)*r2/aspect*(1-ov)
+    //   = heroW * (1 + wsL*r1/r0*(1-ov) + wsR*r2/r0*(1-ov))
+    const spanPerW = 1 + wsL*r1/r0*(1-ov) + wsR*r2/r0*(1-ov);
+    // Cap heroW so it doesn't exceed 42% of canvas width
+    heroW = Math.min(AVAIL / spanPerW, 42);
+    heroH = heroW / r0 * aspect;
+    // Also cap heroH at 58% of canvas height
+    if(heroH > 58){ heroH = 58; heroW = heroH * r0 / aspect; }
+
+    compLH = heroH * wsL; compLW = compLH * r1 / aspect;
+    compRH = heroH * wsR; compRW = compRH * r2 / aspect;
+  }
+
+  const heroCX   = 50;
+  const heroBot  = v.botH;
+  const heroLeft = heroCX - heroW/2;
+  const heroRight= heroCX + heroW/2;
+
+  const compLRight = heroLeft + (compLW||0)*ov;
+  const compLCX    = compLRight - (compLW||0)/2;
+  const compLBot   = v.botL || v.botC || heroBot+4;
+  const compRLeft  = heroRight - (compRW||0)*ov;
+  const compRCX    = compRLeft + (compRW||0)/2;
+  const compRBot   = v.botR || v.botC || heroBot+2;
+
+  const applyEl = (el, cx, bot, w, h) => {
+    const left = Math.max(PAD, Math.min(cx-w/2, 100-PAD-w));
+    const top  = Math.max(2, bot-h);
+    el.style.left  = pct(left) +'%';
+    el.style.top   = pct(top)  +'%';
+    if(!keepSize){ el.style.width=pct(w)+'%'; el.style.height=pct(h)+'%'; }
+  };
+
+  applyEl(productEls[0], heroCX,  heroBot,  heroW,  heroH);
+  if(n>=2) applyEl(productEls[1], compLCX, compLBot, compLW, compLH);
+  if(n>=3) applyEl(productEls[2], compRCX, compRBot, compRW, compRH);
+}
+
+// ---- Bookend (V-type) layout: two tall flanks, small focal centre ----
+function getBookendVariants(n){
+  if(n === 1) return [{botH:80}];
+  if(n === 2) return [
+    {botL:82, wsL:1.0, botR:82, wsR:0.84},
+    {botL:80, wsL:1.0, botR:80, wsR:0.82},
+    {botL:83, wsL:1.0, botR:83, wsR:0.86},
+    {botL:81, wsL:1.0, botR:81, wsR:0.80},
+  ];
+  return [
+    {botL:82, wsL:0.90, botC:84, wsC:0.74, botR:82, wsR:0.84},
+    {botL:81, wsL:0.88, botC:83, wsC:0.72, botR:81, wsR:0.82},
+    {botL:83, wsL:0.92, botC:85, wsC:0.76, botR:83, wsR:0.86},
+    {botL:82, wsL:0.90, botC:84, wsC:0.73, botR:82, wsR:0.88},
+    {botL:80, wsL:0.88, botC:82, wsC:0.75, botR:80, wsR:0.84},
+    {botL:83, wsL:0.92, botC:85, wsC:0.74, botR:83, wsR:0.86},
+  ];
+}
+
+function applyBookendLayout(productEls, variantIdx, keepSize){
+  const n = productEls.length;
+  if(!n) return;
+
+  const MARGIN = 7;
+  const ov = overlapPct;
+  const stageEl = document.getElementById('stage');
+  const s = stageEl.getBoundingClientRect();
+
+  const variants = getBookendVariants(n);
+  const v = variants[variantIdx % variants.length];
+  const ratios = productEls.map(el => Math.max(0.1, parseFloat(el?.dataset?.ratio)||0.75));
+
+  // Read current DOM size as % of canvas
+  const domWH = el => {
+    const r = el.getBoundingClientRect();
+    const w = r.width  > 0 ? r.width /s.width *100 : parseFloat(el.style.width)  || 20;
+    const h = r.height > 0 ? r.height/s.height*100 : parseFloat(el.style.height) || 30;
+    return { w, h };
+  };
+
+  // Apply only position (and size if !keepSize)
+  const place = (el, left, top, w, h) => {
+    const PAD = 6;
+    el.style.left = pct(Math.max(PAD, Math.min(left, 100-PAD-w))) +'%';
+    el.style.top  = pct(Math.max(2, top)) +'%';
+    if(!keepSize){
+      el.style.width  = pct(w) +'%';
+      el.style.height = pct(h) +'%';
+    }
+  };
+
+  // --- Compute sizes ---
+  let lW, lH, cW, cH, rW, rH;
+  const sr2b   = document.getElementById('stage').getBoundingClientRect();
+  const aspect = sr2b.width / sr2b.height; // canvas aspect ratio
+
+  if(keepSize){
+    if(n >= 1){ const d=domWH(productEls[0]); lW=d.w; lH=d.h; }
+    if(n >= 2){ const d=domWH(productEls[1]); cW=d.w; cH=d.h; }
+    if(n >= 3){ const d=domWH(productEls[2]); rW=d.w; rH=d.h; }
+  } else {
+    // w% = canvas-width-relative; h% = w%/ratio*aspect (height in canvas-height units)
+    const toH = (wPct, ratio) => wPct / ratio * aspect;
+    const toW = (hPct, ratio) => hPct * ratio / aspect;
+    if(n === 1){
+      const r0=ratios[0];
+      lW=Math.min(42, 100-MARGIN*2); lH=toH(lW,r0);
+      if(lH>58){lH=58; lW=toW(lH,r0);}
+    } else if(n === 2){
+      const r0=ratios[0], r1=ratios[1], wsR=v.wsR||0.82;
+      lW=Math.min(38,(100-MARGIN*2)/(1+wsR*r1/r0));
+      lH=toH(lW,r0); if(lH>58){lH=58;lW=toW(lH,r0);}
+      rH=lH*wsR; rW=toW(rH,r1);
+    } else {
+      const r0=ratios[0],r1=ratios[1],r2=ratios[2];
+      const wsL=v.wsL||0.90,wsC=v.wsC||0.74,wsR=v.wsR||0.84;
+      lW=Math.min(34,100-MARGIN*2); lH=toH(lW,r0);
+      if(lH>52){lH=52;lW=toW(lH,r0);}
+      cH=lH*(wsC/wsL); cW=toW(cH,r1);
+      rH=lH*(wsR/wsL); rW=toW(rH,r2);
+      const gW=lW*(1-ov)+MARGIN*(1-ov)+cW+MARGIN*(1-ov)+rW*(1-ov);
+      if(gW>100-MARGIN*2){
+        const sc=(100-MARGIN*2)/gW;
+        lW*=sc;lH*=sc;cW*=sc;cH*=sc;rW*=sc;rH*=sc;
+      }
+    }
+  }
+
+
+  // --- Compute positions ---
+  if(n === 1){
+    place(productEls[0], 50-lW/2, (v.botH||80)-lH, lW, lH);
+    return;
+  }
+
+  if(n === 2){
+    const gap=MARGIN;
+    const totalW = lW + gap*(1-ov) + rW - (lW+rW)*ov + lW*ov + rW*ov - lW*ov - rW*ov;
+    // Simpler: lLeft + lW*(1-ov) + gap*(1-ov) = rLeft
+    const groupW2 = lW + gap*(1-ov) + rW - lW*ov - rW*ov + lW*ov;
+    // Just: total occupied = lW*(1-ov) + gap + rW*(1-ov) when treating overlap as inset
+    const occupied = lW*(1-ov) + gap + rW*(1-ov) + lW*ov + rW*ov - lW*ov - rW*ov;
+    // Simplest formula: group left edge to right edge
+    // lLeft, lLeft+lW = lRight, rLeft = lLeft+lW-lW*ov+gap*(1-ov), rRight = rLeft+rW
+    // total = rRight - lLeft = lW - lW*ov + gap*(1-ov) + rW
+    const total = lW*(1-ov) + gap*(1-ov) + rW;
+    const lLeft = 50 - total/2;
+    const rLeft = lLeft + lW*(1-ov) + gap*(1-ov);
+    place(productEls[0], lLeft,  (v.botL||82)-lH, lW, lH);
+    place(productEls[1], rLeft,  (v.botR||82)-rH, rW, rH);
+    return;
+  }
+
+  // n===3: centre at 50%, flanks spread outward
+  const gap = MARGIN;
+  const cLeft  = 50 - cW/2;
+  const lRight = cLeft - gap*(1-ov) + lW*ov;
+  const lLeft  = lRight - lW;
+  const rLeft2 = cLeft + cW + gap*(1-ov) - rW*ov;
+  // Re-centre the whole group
+  const groupCX = (lLeft + rLeft2 + rW) / 2;
+  const shift   = 50 - groupCX;
+
+  place(productEls[0], lLeft+shift,  (v.botL||82)-lH, lW, lH);
+  place(productEls[1], cLeft+shift,  (v.botC||84)-cH, cW, cH);
+  place(productEls[2], rLeft2+shift, (v.botR||82)-rH, rW, rH);
+}
+
+function applyBox(el, left, top, w, h){
+  const PAD = 6;
+  el.style.left   = pct(Math.max(PAD, Math.min(left, 100-PAD-w))) +'%';
+  el.style.top    = pct(Math.max(2, top)) +'%';
+  el.style.width  = pct(w) +'%';
+  el.style.height = pct(h) +'%';
+}
+
+function applyInvertedTriangle(productEls, sizeHints){
+  currentShuffleVariant = 0;
+  if(currentLayoutMode === 'bookend') applyBookendLayout(productEls, 0, false);
+  else applyTriangleLayout(productEls, 0, false);
+}
+
+
+document.getElementById('applyTriangle').addEventListener('click', () => {
+  const els = [...document.querySelectorAll('.product[data-id]')];
+  if(!els.length) return;
+  currentLayoutMode = 'triangle';
+  currentShuffleVariant = 0;
+  clearCurrentCanvas();
+  document.getElementById('applyTriangle').style.outline = '2px solid rgba(124,240,189,.6)';
+  document.getElementById('applyBookend').style.outline  = 'none';
+  applyTriangleLayout(els, 0, true);
+  genAll(); markUpdated();
+});
+
+document.getElementById('applyBookend').addEventListener('click', () => {
+  const els = [...document.querySelectorAll('.product[data-id]')];
+  if(!els.length) return;
+  currentLayoutMode = 'bookend';
+  currentShuffleVariant = 0;
+  clearCurrentCanvas();
+  document.getElementById('applyBookend').style.outline  = '2px solid rgba(255,209,102,.6)';
+  document.getElementById('applyTriangle').style.outline = 'none';
+  applyBookendLayout(els, 0, true);
+  genAll(); markUpdated();
+});
+
+document.getElementById('shuffleTriangle').addEventListener('click', () => {
+  const els = [...document.querySelectorAll('.product[data-id]')];
+  if(!els.length) return;
+  currentShuffleVariant++;
+  clearCurrentCanvas();
+  if(currentLayoutMode === 'bookend') applyBookendLayout(els, currentShuffleVariant, true);
+  else applyTriangleLayout(els, currentShuffleVariant, true);
+  genAll(); markUpdated();
+});
+</script>
+
+
+<div class="helpFloating" id="manualBtn" title="開啟說明書">
+  <div class="helpIconCircle">
+    <svg viewBox="0 0 24 24">
+      <path d="M6 4.5h9.5a2 2 0 0 1 2 2V19a0 0 0 0 1 0 0H8a2 2 0 0 0-2 2V4.5z"/>
+      <path d="M8 21V6.5a2 2 0 0 1 2-2"/>
+      <path d="M11 9h4"/>
+      <path d="M11 12h4"/>
+      <path d="M11 15h3"/>
+    </svg>
+  </div>
+  <div class="helpTooltip">開啟說明書</div>
+</div>
+
+<div class="manualOverlay" id="manualOverlay">
+  <div class="manualCard">
+    <button class="manualClose" id="manualClose">×</button>
+    <img src="./程式檔案/freelancer.png" alt="說明書">
+  </div>
+</div>
+
+<script>
+const manualBtn=document.getElementById('manualBtn');
+const manualOverlay=document.getElementById('manualOverlay');
+const manualClose=document.getElementById('manualClose');
+
+manualBtn.addEventListener('click',()=>{
+  manualOverlay.classList.add('show');
+});
+
+manualClose.addEventListener('click',()=>{
+  manualOverlay.classList.remove('show');
+});
+
+manualOverlay.addEventListener('click',(e)=>{
+  if(e.target===manualOverlay){
+    manualOverlay.classList.remove('show');
+  }
+});
+</script>
+
+
+
+
+
+
+<div class="operationOverlay" id="operationOverlay" aria-modal="true" role="dialog">
+  <div class="operationWrap">
+    <div class="operationCard">
+      <button class="operationClose" id="operationClose" type="button" aria-label="關閉說明">×</button>
+      <img src="./程式檔案/S.LAB操作細節.jpg" alt="S.LAB 操作細節">
+    </div>
+    <button class="operationAction" id="operationActionBtn" type="button">繼續</button>
+    <label class="operationToday">
+      <input type="checkbox" id="operationHideToday">
+      <span>今日不再顯示</span>
+    </label>
+  </div>
+</div>
+
+<div class="promoOverlay" id="promoOverlay" aria-modal="true" role="dialog">
+  <div class="promoWrap">
+    <div class="promoCard">
+      <button class="promoClose" id="promoClose" type="button" aria-label="關閉影片">×</button>
+      <video id="promoVideo" controls playsinline preload="auto">
+        <source src="./freely.mp4" type="video/mp4">
+        您的瀏覽器不支援影片播放。
+      </video>
+      <button class="promoPlay" id="promoPlay" type="button" aria-label="播放影片"></button>
+    </div>
+    <label class="promoToday">
+      <input type="checkbox" id="hideToday">
+      <span>今日不再顯示</span>
+    </label>
+  </div>
+</div>
+
+
+
+
+
+<script>
+(function(){
+  const promoOverlay = document.getElementById('promoOverlay');
+  const promoClose = document.getElementById('promoClose');
+  const hideToday = document.getElementById('hideToday');
+  const promoVideo = document.getElementById('promoVideo');
+  const promoPlay = document.getElementById('promoPlay');
+
+  const todayKey = new Date().toISOString().slice(0,10);
+  const storageKey = 'promoVideoHideDate_click_to_play_v2';
+
+  function openPromo(){
+    if(!promoOverlay) return;
+    if(localStorage.getItem(storageKey) === todayKey) return;
+
+    promoOverlay.classList.add('show');
+
+    if(promoVideo){
+      promoVideo.muted = false;
+      promoVideo.currentTime = 0;
+      promoVideo.pause();
+    }
+    if(promoPlay){
+      promoPlay.classList.remove('hidden');
+    }
+  }
+
+  function startVideo(){
+    if(!promoVideo) return;
+    promoVideo.muted = false;
+    const playPromise = promoVideo.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(function(){});
+    }
+    if(promoPlay){
+      promoPlay.classList.add('hidden');
+    }
+  }
+
+  function closePromo(){
+    if(hideToday && hideToday.checked){
+      localStorage.setItem(storageKey, todayKey);
+    }
+    if(promoVideo){
+      promoVideo.pause();
+      promoVideo.currentTime = 0;
+    }
+    if(promoPlay){
+      promoPlay.classList.remove('hidden');
+    }
+    if(promoOverlay) promoOverlay.classList.remove('show');
+  }
+
+  if(promoPlay) promoPlay.addEventListener('click', function(e){
+    e.stopPropagation();
+    startVideo();
+  });
+  if(promoClose) promoClose.addEventListener('click', closePromo);
+  if(promoOverlay) promoOverlay.addEventListener('click', function(e){
+    if(e.target === promoOverlay) closePromo();
+  });
+
+  if(promoVideo){
+    promoVideo.addEventListener('click', function(e){
+      e.stopPropagation();
+      if(promoVideo.paused){
+        startVideo();
+      }
+    });
+    promoVideo.addEventListener('play', function(){
+      if(promoPlay) promoPlay.classList.add('hidden');
+    });
+    promoVideo.addEventListener('pause', function(){
+      if(promoOverlay && promoOverlay.classList.contains('show') && promoVideo.currentTime > 0 && !promoVideo.ended){
+        if(promoPlay) promoPlay.classList.remove('hidden');
+      }
+    });
+    promoVideo.addEventListener('ended', function(){
+      closePromo();
+    });
+  }
+
+  window.addEventListener('load', function(){
+    setTimeout(openPromo, 350);
+  });
+})();
+</script>
+
+
+
+
+
+<script>
+(function(){
+  const overlay=document.getElementById('operationOverlay');
+  const closeBtn=document.getElementById('operationClose');
+  const actionBtn=document.getElementById('operationActionBtn');
+  const hideToday=document.getElementById('operationHideToday');
+  const todayKey=new Date().toISOString().slice(0,10);
+  const storageKey='slabOperationDetailHideDate_v1';
+  let pendingAction=null;
+
+  function shouldSkipGuide(){
+    return localStorage.getItem(storageKey)===todayKey;
+  }
+
+  async function runPendingAction(){
+    const action=pendingAction;
+    pendingAction=null;
+    if(action==='copy'){
+      await performCopyPrompt();
+    }else if(action==='export'){
+      await exportLayoutPNG();
+    }
+  }
+
+  function closeGuide(){
+    if(hideToday && hideToday.checked){
+      localStorage.setItem(storageKey,todayKey);
+    }
+    if(overlay) overlay.classList.remove('show');
+  }
+
+  window.openOperationGuide=async function(action){
+    pendingAction=action;
+    if(actionBtn){
+      actionBtn.textContent=action==='copy'?'複製 Prompt':'下載 Layout PNG';
+    }
+    if(shouldSkipGuide()){
+      await runPendingAction();
+      return;
+    }
+    if(overlay) overlay.classList.add('show');
+  };
+
+  if(actionBtn) actionBtn.addEventListener('click',async function(){
+    closeGuide();
+    await runPendingAction();
+  });
+  if(closeBtn) closeBtn.addEventListener('click',closeGuide);
+  if(overlay) overlay.addEventListener('click',function(e){
+    if(e.target===overlay) closeGuide();
+  });
+})();
+</script>
+
+</body></html>
