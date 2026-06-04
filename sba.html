@@ -49,11 +49,7 @@ function wrapEnUp(el){
   if(counter) el.appendChild(counter);
 }
 
-document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
-  el.addEventListener('blur', ()=>{
-    wrapEnUp(el);
-  });
-});
+// wrapEnUp 只在匯出的 onclone 中對 clone 呼叫，不動原始 DOM
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="./banwords-engine-hbn.js?v=sba-empty-float-fix-20260529"></script>
@@ -2516,15 +2512,18 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     });
 
     el.addEventListener('blur', ()=>{
-      processBanwordElement(el);
+      // 延遲確保 activeElement 已離開，banwords engine 的 activeElement 防護才有效
+      setTimeout(()=>{
+        processBanwordElement(el);
 
-      if(role==='h1') el.style.lineHeight='53px';
-      if(role==='h2') el.style.lineHeight='40px';
-      if(role==='date') el.style.lineHeight='49px';
+        if(role==='h1') el.style.lineHeight='53px';
+        if(role==='h2') el.style.lineHeight='40px';
+        if(role==='date') el.style.lineHeight='49px';
 
-      updateCounter(el);
-      syncPcText();
-      syncPcSText();
+        updateCounter(el);
+        syncPcText();
+        syncPcSText();
+      }, 0);
     });
   });
 
@@ -4511,6 +4510,11 @@ backBtn.addEventListener('click', ()=>{
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove());
         doc.body.classList.add('export-clone');
 
+        // 匯出時對 clone 套 en-up/dollar-sign span（不動原始 DOM）
+        doc.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+          wrapEnUp(el);
+        });
+
         const clonedNode = doc.getElementById(canvasId);
         if(clonedNode){
           // overflow hidden 只裁掉超出畫布右/下邊的背景，不裁文字 descender
@@ -4737,6 +4741,10 @@ backBtn.addEventListener('click', ()=>{
                el.classList.contains('ui-only');
       },
       onclone: (doc)=>{
+        // 匯出時對 clone 套 en-up/dollar-sign span（不動原始 DOM）
+        doc.querySelectorAll('[contenteditable="true"]').forEach(el=>{
+          wrapEnUp(el);
+        });
         const cloned = doc.getElementById(pcId);
         if(cloned) cloned.style.overflow = 'hidden';
         // PC logo: clear all JS-injected inline styles so CSS max-width/max-height takes effect
@@ -7151,6 +7159,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('mall-tag');
       },
       onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode) clonedNode.style.overflow = 'hidden';
@@ -7312,6 +7323,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       await exportNodeExact(node, bgColorInputId, filename, {
         onclone: function(doc, clonedNode){
+          // 匯出時對 clone 套 en-up/dollar-sign span
+          doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
           if(isHbn){
             applyHbnCloneOverlay(clonedNode, locks);
           }
@@ -7520,6 +7533,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('mall-tag');
       },
       onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode){
@@ -7716,6 +7732,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(canvasId);
           if(clonedNode){
@@ -9799,6 +9818,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(node.id);
           if(clonedNode){
@@ -10072,6 +10094,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
           const clonedNode = doc.getElementById(node.id);
           if(!clonedNode) return;
@@ -14211,6 +14236,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnore,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           var clonedNode = doc.getElementById(node.id);
           if(clonedNode){
             clonedNode.classList.add('is-exporting');
@@ -15983,6 +16011,9 @@ window.addEventListener('load', function(){
         scrollY: 0,
         ignoreElements: exportIgnore,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           var clonedNode = doc.getElementById(node.id);
           if(clonedNode){
             clonedNode.classList.add('is-exporting');
@@ -16233,6 +16264,9 @@ body.is-exporting .cta{
         scrollY: 0,
         ignoreElements: exportIgnore,
         onclone: function(doc){
+        // 匯出時對 clone 套 en-up/dollar-sign span
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.body.classList.add('export-clone');
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.pc-center-guide,.pc-guide-warning,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
         }
