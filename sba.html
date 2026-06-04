@@ -339,7 +339,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcH .brand img{ width:100%; height:100%; max-width:80px; max-height:80px; object-fit:contain; }
+  #pcH .brand img{ width:auto; height:auto; max-width:80px; max-height:80px; object-fit:contain; display:block; }
   #pcH .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcH #ph1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -373,7 +373,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial; font-weight:400; font-size:14.24px;
     padding:0 6px; white-space:nowrap; z-index:6;
   }
-  #pcH .cta .text{ display:inline-block; position:static !important; top:auto !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
+  #pcH .cta .text{ display:inline-block; position:relative !important; top:-2px !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
   #pcH .cta .triangle{
     position:static !important; flex:0 0 auto; transform:none !important;
     width:0; height:0;
@@ -397,7 +397,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcS .brand img{width:100%;height:100%;max-width:80px;max-height:80px;object-fit:contain}
+  #pcS .brand img{width:auto;height:auto;max-width:80px;max-height:80px;object-fit:contain;display:block}
   #pcS .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcS #ps1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -431,7 +431,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial; font-weight:400; font-size:14.24px;
     padding:0 6px; white-space:nowrap; z-index:6;
   }
-  #pcS .cta .text{ display:inline-block; position:static !important; top:auto !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
+  #pcS .cta .text{ display:inline-block; position:relative !important; top:-2px !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
   /* ── PC 方式：英數 / $ 字體大小 ── */
   #pcS #ps1 .en-up   { font-size:32px !important; position:relative; top:0; display:inline-block; }
   #pcS #ps1 .dollar-sign { font-size:30px !important; position:relative; top:0; display:inline-block; }
@@ -3328,11 +3328,14 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       imgEl.style.removeProperty('vertical-align');
       imgEl.style.removeProperty('object-fit');
       imgEl.style.removeProperty('flex');
-      // PC preview: always constrain logo within 80x80 container
+      // PC preview: always constrain logo within 80x80 container, preserve aspect ratio
       if(imgEl.closest('#pcH, #pcS')){
+        imgEl.style.width = 'auto';
+        imgEl.style.height = 'auto';
         imgEl.style.maxWidth = '80px';
         imgEl.style.maxHeight = '80px';
         imgEl.style.objectFit = 'contain';
+        imgEl.style.display = 'block';
       }
     }
   }
@@ -4736,6 +4739,32 @@ backBtn.addEventListener('click', ()=>{
       onclone: (doc)=>{
         const cloned = doc.getElementById(pcId);
         if(cloned) cloned.style.overflow = 'hidden';
+        // PC logo: clear all JS-injected inline styles so CSS max-width/max-height takes effect
+        const brandImgs = cloned ? cloned.querySelectorAll('.brand img') : [];
+        brandImgs.forEach(img => {
+          img.style.removeProperty('width');
+          img.style.removeProperty('height');
+          img.style.removeProperty('max-width');
+          img.style.removeProperty('max-height');
+          img.style.removeProperty('flex');
+          img.style.removeProperty('display');
+          img.style.removeProperty('vertical-align');
+          img.style.removeProperty('object-fit');
+          // enforce hard cap via inline style (highest specificity)
+          img.style.maxWidth  = '80px';
+          img.style.maxHeight = '80px';
+          img.style.width     = 'auto';
+          img.style.height    = 'auto';
+          img.style.objectFit = 'contain';
+          img.style.display   = 'block';
+        });
+        // also lock the brand container itself
+        const brands = cloned ? cloned.querySelectorAll('.brand') : [];
+        brands.forEach(b => {
+          b.style.overflow = 'hidden';
+          b.style.width    = '80px';
+          b.style.height   = '80px';
+        });
       }
     });
 
@@ -8439,6 +8468,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     let h = parseFloat(img.dataset.logoVisualHeight || '');
     let w = parseFloat(img.dataset.logoVisualWidth || '');
     const wrap = img.closest('.logo-item, .logo-box, .brand');
+    const isHorizApp = !isPcPreview && !!img.closest('#horiz');
+    const HORIZ_MAX_H = 50;
+
     // PC preview: hard-clamp to 80x80
     if(isPcPreview && h > 0 && w > 0){
       const scale = Math.min(PC_MAX / w, PC_MAX / h, 1);
@@ -8448,6 +8480,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const ratio = w > 0 ? w / h : 1;
       h = PC_MAX;
       w = Math.round(PC_MAX * ratio);
+    } else if(isHorizApp && h > HORIZ_MAX_H){
+      // App horiz: height fixed at 50px, width scales proportionally
+      const ratio = w > 0 ? w / h : 1;
+      h = HORIZ_MAX_H;
+      w = Math.round(HORIZ_MAX_H * ratio);
     }
     if(h > 0){
       img.style.height = h + 'px';
@@ -8455,6 +8492,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(isPcPreview){
         img.style.width = w > 0 ? w + 'px' : 'auto';
         img.style.maxWidth = (w > 0 ? w : PC_MAX) + 'px';
+      } else if(isHorizApp){
+        img.style.width = w > 0 ? w + 'px' : 'auto';
+        img.style.maxWidth = 'none';
       } else {
         img.style.width = 'auto';
         img.style.maxWidth = 'none';
@@ -8710,18 +8750,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const isPcPreview = !!img.closest('#pcH, #pcS');
     const PC_MAX = 80;
 
+    const isHorizApp = !isPcPreview && !!img.closest('#horiz');
+    const HORIZ_MAX_H = 50;
+
     // PC preview: hard-clamp remembered size to 80x80 container
     if(isPcPreview){
       const scale = Math.min(PC_MAX / w, PC_MAX / h, 1);
       w = Math.round(w * scale);
       h = Math.round(h * scale);
+    } else if(isHorizApp && h > HORIZ_MAX_H){
+      // App horiz: height fixed at 50px, width scales proportionally
+      const ratio = w / h;
+      h = HORIZ_MAX_H;
+      w = Math.round(HORIZ_MAX_H * ratio);
     }
 
     const wrap = img.closest('.logo-item, .logo-box, .brand');
 
-    img.style.width = w + 'px';
+    img.style.width = isHorizApp ? (w > 0 ? w + 'px' : 'auto') : w + 'px';
     img.style.height = h + 'px';
-    img.style.maxWidth = w + 'px';
+    img.style.maxWidth = isHorizApp ? 'none' : w + 'px';
     img.style.maxHeight = h + 'px';
     img.style.objectFit = 'contain';
     img.style.display = 'block';
@@ -15293,11 +15341,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   object-fit: contain !important;
   display: block !important;
   flex: 0 0 auto !important;
+  min-height: unset !important;
 }
 #horiz .brand .logo-item {
   height: 50px !important;
   width:  auto !important;
   max-height: 50px !important;
+  min-height: unset !important;
   overflow: visible !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -15519,9 +15569,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   height: 80px !important;
 }
 #pcH .brand img, #pcS .brand img {
+  width: auto !important;
+  height: auto !important;
   max-width: 80px !important;
   max-height: 80px !important;
   object-fit: contain !important;
+  display: block !important;
 }
 /* 各文字元素：直接相對畫布定位，覆蓋 .h1/.h2/.date 的全域規則 */
 #pcH #ph1, #pcS #ps1 {
@@ -15564,8 +15617,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
   gap: 4px !important;
 }
 #pcH .cta .text, #pcS .cta .text {
-  position: static !important;
-  top: auto !important; transform: none !important;
+  position: relative !important;
+  top: -2px !important; transform: none !important;
   display: inline-block !important; line-height: 1 !important;
   vertical-align: middle !important;
 }
