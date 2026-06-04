@@ -271,50 +271,6 @@
 
     const protectedMap = [];
 
-
-    function isActivityWhitelistNumber(digits){
-      const clean = String(digits || '').replace(/,/g, '').replace(/^0+(?=\d)/, '');
-      if (!/^\d+$/.test(clean)) return false;
-
-      const fixedWhitelist = {
-        '111': true,
-        '22': true,
-        '33': true,
-        '44': true,
-        '55': true,
-        '66': true,
-        '618': true,
-        '77': true,
-        '88': true,
-        '99': true,
-        '1010': true,
-        '1111': true,
-        '1212': true
-      };
-
-      if (fixedWhitelist[clean]) return true;
-
-      // 1.18、2.18 ... 12.18，以及 1.25、2.25 ... 12.25
-      // 因為「.」在輸入清理階段會被移除，所以這裡用 118、218、1018、1225 這類形式判斷。
-      for (let month = 1; month <= 12; month++) {
-        if (clean === String(month) + '18') return true;
-        if (clean === String(month) + '25') return true;
-      }
-
-      return false;
-    }
-
-    // 保護檔期活動數字白名單：忽略原本中間的「.」，不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d[\d,]*)(?=$|[^\d,])/g, function(match, prefix, digits){
-      if (!isActivityWhitelistNumber(digits)) return match;
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: prefix + String(digits || '').replace(/,/g, '').replace(/^0+(?=\d)/, '')
-      });
-      return key;
-    });
-
     // 保護「數字+折」「數字+件/組/個」：個位數或雙位數後接「折、件、組、個」，不強加 $ 符號
     out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件組個])/g, function(match, prefix, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
