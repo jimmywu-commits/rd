@@ -18,20 +18,35 @@
 // 英文數字額外上移（安全版）
 function wrapEnUp(el){
   if(!el) return;
+
+  const counter = el.querySelector('.counter');
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove());
+  const text = (clone.textContent || '').replace(/​/g,'').trim();
+
+  // Empty editable fields must stay truly empty so CSS :empty placeholder and
+  // baseline remain stable. Do not insert <br> or wrapped spans here.
+  if(!text){
+    el.innerHTML = '';
+    if(counter) el.appendChild(counter);
+    return;
+  }
+
   const role = el.dataset && el.dataset.role;
-  const text = el.textContent;
+  const esc = s => String(s).replace(/[&<>]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   let wrapped;
   if (role === 'h1' || role === 'h2') {
     // $ → dollar-sign class; other EN/NUM → en-up
-    wrapped = text.replace(/([$])|([A-Za-z0-9!@#%^&*()\-_=+\[\]{};:'".,<>/?]+)/g, function(m, dollar, rest){
+    wrapped = esc(text).replace(/([$])|([A-Za-z0-9!@#%^&*()\-_=+\[\]{};:'".,<>/?]+)/g, function(m, dollar, rest){
       if (dollar) return '<span class="dollar-sign">' + dollar + '</span>';
       return '<span class="en-up">' + rest + '</span>';
     });
   } else {
-    wrapped = text.replace(/([A-Za-z0-9!@#$%^&*()\-_=+\[\]{};:'".,<>/?]+)/g,
+    wrapped = esc(text).replace(/([A-Za-z0-9!@#$%^&*()\-_=+\[\]{};:'".,<>/?]+)/g,
       '<span class="en-up">$1</span>');
   }
   el.innerHTML = wrapped;
+  if(counter) el.appendChild(counter);
 }
 
 document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
@@ -41,7 +56,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
 });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="./banwords-engine-hbn.js"></script>
+<script src="./banwords-engine-hbn.js?v=sba-empty-float-fix-20260529"></script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
   @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
@@ -324,7 +339,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcH .brand img{ width:100%; height:100%; object-fit:contain; }
+  #pcH .brand img{ width:100%; height:100%; max-width:80px; max-height:80px; object-fit:contain; }
   #pcH .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcH #ph1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -358,7 +373,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial; font-weight:400; font-size:14.24px;
     padding:0 6px; white-space:nowrap; z-index:6;
   }
-  #pcH .cta .text{ display:inline-block; position:relative !important; top:1px !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
+  #pcH .cta .text{ display:inline-block; position:static !important; top:auto !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
   #pcH .cta .triangle{
     position:static !important; flex:0 0 auto; transform:none !important;
     width:0; height:0;
@@ -382,7 +397,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     position:absolute; left:127.7px; top:38.3px;
     width:80px; height:80px; display:flex; align-items:center; justify-content:center; z-index:5; margin:0;
   }
-  #pcS .brand img{width:100%;height:100%;object-fit:contain}
+  #pcS .brand img{width:100%;height:100%;max-width:80px;max-height:80px;object-fit:contain}
   #pcS .stack{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
   #pcS #ps1{
     position:absolute !important; left:229.4px; top:37.3px;
@@ -416,7 +431,7 @@ document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial; font-weight:400; font-size:14.24px;
     padding:0 6px; white-space:nowrap; z-index:6;
   }
-  #pcS .cta .text{ display:inline-block; position:relative !important; top:1px !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
+  #pcS .cta .text{ display:inline-block; position:static !important; top:auto !important; transform:none !important; white-space:nowrap; line-height:1; vertical-align:middle; }
   /* ── PC 方式：英數 / $ 字體大小 ── */
   #pcS #ps1 .en-up   { font-size:32px !important; position:relative; top:0; display:inline-block; }
   #pcS #ps1 .dollar-sign { font-size:30px !important; position:relative; top:0; display:inline-block; }
@@ -861,7 +876,7 @@ label:has(#editZoom){
   #square #cta-s .text{
     display:inline-block !important;
     position:relative !important;
-    top:-1px !important;
+    top:-2px !important;
     transform:none !important;
     white-space:nowrap !important;
   }
@@ -921,21 +936,31 @@ label:has(#editZoom){
   /* White-base logo display fix: canvas result should match editor preview */
   #horiz .brand img[data-logo-white-base-enabled="1"],
   #pcH .brand img[data-logo-white-base-enabled="1"]{
-    height:50px !important;
-    max-height:50px !important;
+    height:auto !important;
+    max-height:80px !important;
     width:auto !important;
-    max-width:none !important;
+    max-width:80px !important;
     vertical-align:middle !important;
     display:block !important;
+    object-fit:contain !important;
   }
-  #square .brand img[data-logo-white-base-enabled="1"],
-  #pcS .brand img[data-logo-white-base-enabled="1"]{
+  #square .brand img[data-logo-white-base-enabled="1"]{
     height:auto !important;
     max-height:106px !important;
     width:auto !important;
     max-width:106px !important;
     vertical-align:middle !important;
     display:block !important;
+    object-fit:contain !important;
+  }
+  #pcS .brand img[data-logo-white-base-enabled="1"]{
+    height:auto !important;
+    max-height:80px !important;
+    width:auto !important;
+    max-width:80px !important;
+    vertical-align:middle !important;
+    display:block !important;
+    object-fit:contain !important;
   }
   /* (merged below, original block removed) */
 
@@ -1533,46 +1558,13 @@ label:has(#editZoom){
 </style>
 
 
-<!-- Assistant patch: safe descender overflow fix, CSS only -->
-<style id="assistant-contenteditable-descender-fix">
-  /* 只解除裁切，不改變副標/文字欄位原本 XY 座標 */
-  .h1,
-  .h2,
-  .date,
-  #ph1,
-  #ph2,
-  #pdate,
-  #ps1,
-  #ps2,
-  #psdate,
-  [contenteditable="true"][data-role="h1"],
-  [contenteditable="true"][data-role="h2"],
-  [contenteditable="true"][data-role="date"]{
-    overflow: visible !important;
-    text-overflow: clip !important;
+<style id="sba-empty-edit-stability-fix">
+  [contenteditable="true"]:empty{
+    min-height:1em !important;
+    transform:none !important;
   }
-
-  [contenteditable="true"]{
-    overflow: visible !important;
-    white-space: nowrap !important;
-  }
-
-  /* h2 保持原本座標，不加 padding/margin，避免視覺上移 */
-  .h2,
-  #ph2,
-  #ps2,
-  [contenteditable="true"][data-role="h2"]{
-    overflow: visible !important;
-  }
-
-  .is-exporting .h1,
-  .is-exporting .h2,
-  .is-exporting .date,
-  .export-clone .h1,
-  .export-clone .h2,
-  .export-clone .date{
-    overflow: visible !important;
-    text-overflow: clip !important;
+  [contenteditable="true"] br:only-child{
+    display:none !important;
   }
 </style>
 </head>
@@ -2444,7 +2436,8 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     if(!window.banwordEngine || typeof window.banwordEngine.applyToElement !== 'function') return;
     const result = window.banwordEngine.applyToElement(el, {
       role: el?.dataset?.role || '',
-      getText: getRawText
+      getText: getRawText,
+      force: true
     });
     ensureCounter(el);
     updateCounter(el);
@@ -3335,6 +3328,12 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       imgEl.style.removeProperty('vertical-align');
       imgEl.style.removeProperty('object-fit');
       imgEl.style.removeProperty('flex');
+      // PC preview: always constrain logo within 80x80 container
+      if(imgEl.closest('#pcH, #pcS')){
+        imgEl.style.maxWidth = '80px';
+        imgEl.style.maxHeight = '80px';
+        imgEl.style.objectFit = 'contain';
+      }
     }
   }
 
@@ -7392,69 +7391,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 <script id="contenteditable-empty-caret-fix-script">
 (function(){
-  function isVisuallyEmpty(el){
-    if(!el) return true;
-    const html = (el.innerHTML || '')
-      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
-      .replace(/&nbsp;/gi, ' ')
-      .trim();
-    const text = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
-    return text === '' && (html === '' || html === '<br>' || html === '<div><br></div>');
-  }
-
-  function placeCaretAtStart(el){
-    const range = document.createRange();
-    const sel = window.getSelection();
-    range.selectNodeContents(el);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  function ensureEditablePlaceholder(el){
-    if(!el || !isVisuallyEmpty(el)) return;
-    const counter = el.querySelector('.counter');
-    if(counter){
-      el.insertBefore(document.createElement('br'), counter);
-    }else{
-      el.innerHTML = '<br>';
-    }
-    placeCaretAtStart(el);
-  }
-
-  function cleanupEditablePlaceholder(el){
+  // SBA empty editable stability fix:
+  // Do not inject <br> into empty contenteditable fields. The inserted <br>
+  // changes the inline line box after blur/focus and makes text appear to float upward.
+  function normalizeEmptyEditable(el){
     if(!el) return;
-    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
-    if(raw !== '') return;
-    el.querySelectorAll('br').forEach(function(br){ br.remove(); });
-    const html = (el.innerHTML || '')
-      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
-      .replace(/&nbsp;/gi, ' ')
-      .trim();
-    if(html === ''){
-      el.innerHTML = '';
-      const counter = el.querySelector('.counter');
-      if(counter) el.appendChild(counter);
-    }
+    const counter = el.querySelector('.counter');
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove());
+    const raw = (clone.textContent || '').replace(/ /g,' ').replace(/​/g,'').trim();
+    if(raw) return;
+    el.innerHTML = '';
+    if(counter) el.appendChild(counter);
   }
 
   function bindEmptyCaretFix(el){
     if(!el || el.dataset.emptyCaretFixBound === '1') return;
     el.dataset.emptyCaretFixBound = '1';
-
-    el.addEventListener('focus', function(){
-      ensureEditablePlaceholder(el);
-    });
-
-    el.addEventListener('mousedown', function(){
-      if(isVisuallyEmpty(el)){
-        requestAnimationFrame(function(){ ensureEditablePlaceholder(el); });
-      }
-    });
-
-    el.addEventListener('blur', function(){
-      cleanupEditablePlaceholder(el);
-    });
+    el.addEventListener('focus', function(){ normalizeEmptyEditable(el); });
+    el.addEventListener('blur', function(){ normalizeEmptyEditable(el); });
   }
 
   function init(){
@@ -7719,7 +7674,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
       const snap = await html2canvas(node, {
         backgroundColor: null,
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
@@ -8479,19 +8434,36 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function applyRememberedLogoVisualSize(img){
     if(!img) return;
-    const h = parseFloat(img.dataset.logoVisualHeight || '');
-    const w = parseFloat(img.dataset.logoVisualWidth || '');
+    const isPcPreview = !!img.closest('#pcH, #pcS');
+    const PC_MAX = 80;
+    let h = parseFloat(img.dataset.logoVisualHeight || '');
+    let w = parseFloat(img.dataset.logoVisualWidth || '');
     const wrap = img.closest('.logo-item, .logo-box, .brand');
+    // PC preview: hard-clamp to 80x80
+    if(isPcPreview && h > 0 && w > 0){
+      const scale = Math.min(PC_MAX / w, PC_MAX / h, 1);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    } else if(isPcPreview && h > PC_MAX){
+      const ratio = w > 0 ? w / h : 1;
+      h = PC_MAX;
+      w = Math.round(PC_MAX * ratio);
+    }
     if(h > 0){
       img.style.height = h + 'px';
       img.style.maxHeight = h + 'px';
-      img.style.width = 'auto';
-      img.style.maxWidth = 'none';
+      if(isPcPreview){
+        img.style.width = w > 0 ? w + 'px' : 'auto';
+        img.style.maxWidth = (w > 0 ? w : PC_MAX) + 'px';
+      } else {
+        img.style.width = 'auto';
+        img.style.maxWidth = 'none';
+      }
       img.style.objectFit = 'contain';
       img.style.display = 'block';
       if(wrap && wrap.classList.contains('logo-item')){
         wrap.style.height = h + 'px';
-        wrap.style.width = 'auto';
+        wrap.style.width = (w > 0 ? w : 'auto') + (w > 0 ? 'px' : '');
         wrap.style.display = 'flex';
         wrap.style.alignItems = 'center';
         wrap.style.justifyContent = 'center';
@@ -8731,16 +8703,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function applyLockedLogoBox(img){
     if(!img) return;
-    const w = parseFloat(img.dataset.logoVisualWidth || '');
-    const h = parseFloat(img.dataset.logoVisualHeight || '');
+    let w = parseFloat(img.dataset.logoVisualWidth || '');
+    let h = parseFloat(img.dataset.logoVisualHeight || '');
     if(!(w > 0 && h > 0)) return;
+
+    const isPcPreview = !!img.closest('#pcH, #pcS');
+    const PC_MAX = 80;
+
+    // PC preview: hard-clamp remembered size to 80x80 container
+    if(isPcPreview){
+      const scale = Math.min(PC_MAX / w, PC_MAX / h, 1);
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+    }
 
     const wrap = img.closest('.logo-item, .logo-box, .brand');
 
-    // KEY FIX:
-    // lock BOTH width and height to the exact pre-edit rendered box.
-    // Previously only height was preserved, so after smart-select trimming,
-    // width was recalculated from the new natural ratio and appeared smaller.
     img.style.width = w + 'px';
     img.style.height = h + 'px';
     img.style.maxWidth = w + 'px';
@@ -8755,7 +8733,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
       wrap.style.display = 'flex';
       wrap.style.alignItems = 'center';
       wrap.style.justifyContent = 'center';
-      wrap.style.overflow = 'visible';
+      // PC preview: must NOT overflow the brand container
+      wrap.style.overflow = isPcPreview ? 'hidden' : 'visible';
       wrap.dataset.logoVisualWidth = String(w);
       wrap.dataset.logoVisualHeight = String(h);
     }
@@ -9759,12 +9738,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       const snap = await html2canvas(node, {
         backgroundColor: null,
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
         logging: false,
-        letterRendering: true,
         width: exportW,
         height: exportH,
         x: 0,
@@ -10033,12 +10011,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       const snap = await html2canvas(node, {
         backgroundColor: null,
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
         logging: false,
-        letterRendering: true,
         width: exportW,
         height: exportH,
         x: 0,
@@ -14173,13 +14150,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       var snap = await html2canvas(c.clone, {
         backgroundColor: null,
-        // 先用高倍率取樣，再回縮到原尺寸；避免 CSS 預覽尺寸導致文字邊緣取樣不足。
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
         logging: false,
-        letterRendering: true,
         width: c.width,
         height: c.height,
         x: 0,
@@ -14205,19 +14180,26 @@ document.addEventListener('DOMContentLoaded', ()=>{
       var rgb = hexToRgbSafe(bgHex);
       ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
       ctx.fillRect(0, 0, c.width, c.height);
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(snap, 0, 0, c.width, c.height);
-      sharpenCanvas(out, 0.16);
 
       var base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var encoded = await encodeUnderLimit(out, maxKb || 200);
-      if(!encoded.blob) throw new Error('產生圖片失敗');
-      triggerDownload(encoded.blob, base + '.' + encoded.ext);
-      if(typeof showToast === 'function'){
-        var qtxt = encoded.quality === 'lossless' ? 'PNG 無損' : ('JPG q=' + encoded.quality);
-        showToast('已下載（原尺寸 ' + c.width + '×' + c.height + '，≤' + (maxKb || 200) + 'KB，' + encoded.kb + 'KB，' + qtxt + '）', 'ok', 3000);
+      var limit = (maxKb || 200) * 1024;
+      var pngBlob = await toBlobAsync(out, 'image/png');
+      if(pngBlob && pngBlob.size <= limit){
+        triggerDownload(pngBlob, base + '.png');
+        if(typeof showToast === 'function') showToast('已下載（PNG，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        return;
       }
+
+      var quality = 0.98;
+      var jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > limit && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載（JPG，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
     } finally {
       host.remove();
     }
@@ -14249,790 +14231,244 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
 
 <!-- Jimmy final patch: floating.html-style isolated canvas download -->
-<!-- Assistant final fix: PC CTA export is drawn by Canvas, not html2canvas text baseline -->
-<script id="assistant-pc-cta-canvas-export-final-fix">
+<script id="jimmy-final-floating-style-download">
 (function(){
-  var FILE_LIMIT_BYTES = 200 * 1024;
-  var EXPORT_SCALE = 2;
+  if(window.__JIMMY_FINAL_FLOATING_STYLE_DOWNLOAD__) return;
+  window.__JIMMY_FINAL_FLOATING_STYLE_DOWNLOAD__ = true;
 
-  function hexToRgbAny(value){
-    var s = String(value || '#ffffff').trim();
-    if(/^rgb/.test(s)){
-      var m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-      if(m) return {r:+m[1], g:+m[2], b:+m[3]};
-    }
-    var h = s.replace('#','');
-    if(h.length === 3) h = h.split('').map(function(c){return c+c;}).join('');
-    return {
-      r: parseInt(h.slice(0,2),16) || 255,
-      g: parseInt(h.slice(2,4),16) || 255,
-      b: parseInt(h.slice(4,6),16) || 255
-    };
-  }
-
-  function toBlobAsync(canvas, type, quality){
-    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
-  }
-
-  function triggerDownload(blob, name){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    if(/iPad|iPhone|iPod/.test(navigator.userAgent)) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  async function makeLimitedBlob(canvas){
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= FILE_LIMIT_BYTES) return {blob: png, ext: '.png', label: 'PNG'};
-    var low = 0.35, high = 0.98, best = null, bestQ = low;
-    for(var i=0; i<10; i++){
-      var q = (low + high) / 2;
-      var b = await toBlobAsync(canvas, 'image/jpeg', q);
-      if(b && b.size <= FILE_LIMIT_BYTES){ best = b; bestQ = q; low = q; }
-      else high = q;
-    }
-    if(best) return {blob: best, ext: '.jpg', label: 'JPG q' + bestQ.toFixed(2)};
-    var q2 = 0.34;
-    var last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    while(last && last.size > FILE_LIMIT_BYTES && q2 > 0.18){
-      q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-      last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    }
-    return {blob: last, ext: '.jpg', label: 'JPG q' + q2.toFixed(2)};
-  }
-
-  function exportIgnore(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    if(!el.classList) return false;
-    return el.classList.contains('ctrl') ||
-      el.classList.contains('logo-edit-btn') ||
-      el.classList.contains('logo-swap-btn') ||
-      el.classList.contains('logo-delete-btn') ||
-      el.classList.contains('logo-white-btn') ||
-      el.classList.contains('toggle-tag') ||
-      el.classList.contains('panel') ||
-      el.classList.contains('bg-scale-panel') ||
-      el.classList.contains('dd-bg-scale-panel') ||
-      el.classList.contains('guide-line') ||
-      el.classList.contains('guide-warning') ||
-      el.classList.contains('guide-doc-overlay') ||
-      el.classList.contains('dd-guide-line') ||
-      el.classList.contains('dd-guide-warning') ||
-      el.classList.contains('float-meter') ||
-      el.classList.contains('modal') ||
-      el.classList.contains('nudge') ||
-      el.classList.contains('json-toolbar') ||
-      el.classList.contains('manual-icon') ||
-      el.classList.contains('brush-cursor') ||
-      el.classList.contains('ui-only');
-  }
-
-  function normalizeClone(clonedNode, canvasId){
-    if(!clonedNode) return;
-    clonedNode.style.overflow = 'hidden';
-    clonedNode.classList.add('hide-dd-icons');
-    clonedNode.querySelectorAll('.editor-item:not(.editor-bg) img, .dd-product img').forEach(function(img){
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.minWidth = '0';
-      img.style.minHeight = '0';
-      img.style.objectFit = 'contain';
-      img.style.display = 'block';
-      img.style.position = 'static';
-      img.style.left = 'auto';
-      img.style.top = 'auto';
-      img.style.transform = 'none';
-      img.style.imageRendering = 'auto';
-    });
-    clonedNode.querySelectorAll('.h1,.h2,.date,.dd-h1,.dd-h2,.dd-date,.cta,.dd-cta').forEach(function(el){
-      el.style.webkitFontSmoothing = 'antialiased';
-      el.style.textRendering = 'geometricPrecision';
-    });
-
-    // Critical: hide only PC CTA text/arrow in the html2canvas clone.
-    // The blue CTA block stays rendered by DOM; the text and arrow are redrawn with Canvas after snapshot.
-    if(canvasId === 'pcH' || canvasId === 'pcS'){
-      clonedNode.querySelectorAll('.cta .text, .cta .triangle').forEach(function(el){
-        el.style.setProperty('visibility', 'hidden', 'important');
-        el.style.setProperty('opacity', '0', 'important');
-      });
-    }
-  }
-
-  function getPcCtaInfo(node){
-    if(!node || !(node.id === 'pcH' || node.id === 'pcS')) return null;
-    var cta = node.querySelector('.cta');
-    if(!cta) return null;
-    var textEl = cta.querySelector('.text');
-    var tri = cta.querySelector('.triangle');
-    var nr = node.getBoundingClientRect();
-    var cr = cta.getBoundingClientRect();
-    var cs = getComputedStyle(cta);
-    var ts = getComputedStyle(textEl || cta);
-    var text = textEl ? (textEl.textContent || '').trim() : '';
-    if(!text) return null;
-    return {
-      text: text,
-      x: cr.left - nr.left,
-      y: cr.top - nr.top,
-      w: cr.width,
-      h: cr.height,
-      color: cs.color,
-      fontSize: parseFloat(ts.fontSize) || 11,
-      fontWeight: ts.fontWeight || '400',
-      fontFamily: ts.fontFamily || 'Arial, sans-serif',
-      gap: parseFloat(cs.gap) || 3,
-      triColor: cs.color,
-      triW: tri ? Math.max(3, tri.getBoundingClientRect().width || 4) : 4,
-      triH: tri ? Math.max(5, tri.getBoundingClientRect().height || 7) : 7
-    };
-  }
-
-  function drawPcCtaText(ctx, info){
-    if(!info) return;
-    ctx.save();
-    ctx.fillStyle = info.color;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.font = info.fontWeight + ' ' + info.fontSize + 'px ' + info.fontFamily;
-
-    var textW = ctx.measureText(info.text).width;
-    var triW = Math.max(4, info.triW || 4);
-    var triH = Math.max(7, info.triH || 7);
-    var gap = Math.max(3, info.gap || 3);
-    var groupW = textW + gap + triW;
-    var startX = info.x + (info.w - groupW) / 2;
-
-    // Canvas textBaseline='middle' uses actual font metrics, avoiding html2canvas baseline drift.
-    // This small optical correction matches the browser preview for Shopee/Noto CJK glyphs.
-    var centerY = info.y + info.h / 2 - 0.5;
-    ctx.fillText(info.text, startX, centerY);
-
-    var ax = startX + textW + gap;
-    var ay = info.y + info.h / 2;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay - triH / 2);
-    ctx.lineTo(ax, ay + triH / 2);
-    ctx.lineTo(ax + triW, ay);
-    ctx.closePath();
-    ctx.fillStyle = info.triColor || info.color;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__assistantDownloadInFlight) return;
-    window.__assistantDownloadInFlight = true;
-
-    var node = document.getElementById(canvasId);
-    if(!node){
-      window.__assistantDownloadInFlight = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1600);
-      return;
-    }
-
-    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
-
-    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
-    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
-    var bgValue = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || getComputedStyle(node).backgroundColor || '#ffffff';
-    var pcCtaInfo = getPcCtaInfo(node);
-
-    try{
-      var snap = await html2canvas(node, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        allowTaint: false,
-        removeContainer: true,
-        logging: false,
-        letterRendering: true,
-        width: exportW,
-        height: exportH,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        ignoreElements: exportIgnore,
-        onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
-          normalizeClone(doc.getElementById(canvasId), canvasId);
-        }
-      });
-
-      var out = document.createElement('canvas');
-      out.width = exportW;
-      out.height = exportH;
-      var ctx = out.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
-      var rgb = hexToRgbAny(bgValue);
-      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-      ctx.fillRect(0, 0, exportW, exportH);
-      ctx.drawImage(snap, 0, 0, exportW, exportH);
-
-      // Draw PC CTA text after html2canvas so vertical centering is controlled by Canvas API.
-      drawPcCtaText(ctx, pcCtaInfo);
-
-      var base = String(filename || canvasId || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var packed = await makeLimitedBlob(out);
-      if(!packed || !packed.blob) throw new Error('產生圖檔失敗');
-      triggerDownload(packed.blob, base + packed.ext);
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(packed.blob.size / 1024) + 'KB（≤200KB，' + packed.label + '，原尺寸 ' + exportW + '×' + exportH + '）', 'ok', 2600);
-      }
-    }catch(err){
-      console.error(err);
-      if(typeof showToast === 'function') showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 3200);
-    }finally{
-      window.__assistantDownloadInFlight = false;
-    }
+  var MAP = {
+    'dl-h':    {canvasId:'horiz',  bgId:'bg-color-h', file:'horiz.jpg'},
+    'dl-s':    {canvasId:'square', bgId:'bg-color-s', file:'square.jpg'},
+    'dl-h-pc': {canvasId:'pcH',    bgId:'bg-color-h', file:'pc-horiz.jpg'},
+    'dl-s-pc': {canvasId:'pcS',    bgId:'bg-color-s', file:'pc-square.jpg'}
   };
-})();
-</script>
 
+  function show(msg,type,ms){
+    if(typeof showToast === 'function') showToast(msg,type||'ok',ms||2200);
+    else console.log(msg);
+  }
 
-
-<!-- Assistant update: original-size sharp export; high-sampling render + sharpen + <=200KB encoder. -->
-
-
-<!-- Assistant final patch: HBN-style sharp export + unlimited mouse-wheel scaling -->
-<script id="assistant-hbn-tech-sharp-export-unlimited-zoom">
-(function(){
-  if(window.__assistantHbnSharpExportUnlimitedZoom) return;
-  window.__assistantHbnSharpExportUnlimitedZoom = true;
-
-  var FILE_LIMIT_BYTES = 200 * 1024;
-  var EXPORT_SCALE = 1; // text-sharp export: keep original pixel grid, do not downsample text
-
-  function clampByte(v){ return Math.max(0, Math.min(255, Math.round(v || 0))); }
   function hexToRgb(hex){
-    var s = String(hex || '').trim();
-    if(!s) return {r:255,g:255,b:255};
-    var m = s.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if(m){
-      var h = m[1];
-      if(h.length === 3) h = h.split('').map(function(c){ return c+c; }).join('');
-      return { r:parseInt(h.slice(0,2),16)||0, g:parseInt(h.slice(2,4),16)||0, b:parseInt(h.slice(4,6),16)||0 };
-    }
-    m = s.match(/rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
-    if(m){ return {r:clampByte(m[1]), g:clampByte(m[2]), b:clampByte(m[3])}; }
-    return {r:255,g:255,b:255};
+    var h=String(hex||'#ffffff').replace('#','').trim();
+    if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
+    var r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+    return {r:isNaN(r)?255:r,g:isNaN(g)?255:g,b:isNaN(b)?255:b};
   }
 
-  function toBlobAsync(canvas, type, quality){
-    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
+  function toBlob(canvas,type,quality){
+    return new Promise(function(resolve,reject){
+      try{ canvas.toBlob(function(b){ b?resolve(b):reject(new Error('canvas.toBlob failed')); },type,quality); }
+      catch(e){ reject(e); }
+    });
   }
 
-  function triggerDownload(blob, filename){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
+  function copyCanvas(canvas){
+    var c=document.createElement('canvas');
+    c.width=canvas.width;
+    c.height=canvas.height;
+    c.getContext('2d').drawImage(canvas,0,0);
+    return c;
+  }
+
+  function downloadBlob(blob,filename){
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url;
+    a.download=filename;
+    a.style.position='fixed';
+    a.style.left='-9999px';
+    a.style.top='-9999px';
     document.body.appendChild(a);
-    if(/iPad|iPhone|iPod/.test(navigator.userAgent)) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
+    var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS) window.open(url,'_blank');
+    else a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true,view:window}));
+    setTimeout(function(){ a.remove(); URL.revokeObjectURL(url); },60000);
   }
 
-  function exportIgnore(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    if(!el.classList) return false;
-    return el.classList.contains('ctrl') ||
-      el.classList.contains('logo-edit-btn') ||
-      el.classList.contains('logo-swap-btn') ||
-      el.classList.contains('logo-delete-btn') ||
-      el.classList.contains('logo-white-btn') ||
-      el.classList.contains('toggle-tag') ||
-      el.classList.contains('panel') ||
-      el.classList.contains('bg-scale-panel') ||
-      el.classList.contains('dd-bg-scale-panel') ||
-      el.classList.contains('guide-line') ||
-      el.classList.contains('guide-warning') ||
-      el.classList.contains('guide-doc-overlay') ||
-      el.classList.contains('dd-guide-line') ||
-      el.classList.contains('dd-guide-warning') ||
-      el.classList.contains('float-meter') ||
-      el.classList.contains('modal') ||
-      el.classList.contains('nudge') ||
-      el.classList.contains('json-toolbar') ||
-      el.classList.contains('manual-icon') ||
-      el.classList.contains('brush-cursor') ||
-      el.classList.contains('ui-only');
-  }
-
-  function normalizeClone(clonedNode){
-    if(!clonedNode) return;
-    clonedNode.style.overflow = 'hidden';
-    clonedNode.classList.add('hide-dd-icons');
-    clonedNode.querySelectorAll('.editor-item:not(.editor-bg) img, .dd-product img').forEach(function(img){
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.minWidth = '0';
-      img.style.minHeight = '0';
-      img.style.objectFit = 'contain';
-      img.style.display = 'block';
-      img.style.position = 'static';
-      img.style.left = 'auto';
-      img.style.top = 'auto';
-      img.style.transform = 'none';
-      img.style.imageRendering = 'auto';
+  function cleanClone(root){
+    root.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.logo-v14-trigger,#logoMenuV14,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.pc-center-guide,.pc-guide-warning,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only,#excelManualLoader').forEach(function(el){ el.remove(); });
+    root.querySelectorAll('.editor-item:not(.editor-bg),.dd-product').forEach(function(box){
+      box.style.overflow='visible';
+      box.classList.remove('active','selected','editing');
     });
-    clonedNode.querySelectorAll('.h1,.h2,.date,.dd-h1,.dd-h2,.dd-date,.cta,.dd-cta').forEach(function(el){
-      el.style.webkitFontSmoothing = 'antialiased';
-      el.style.textRendering = 'geometricPrecision';
+    root.querySelectorAll('.editor-item:not(.editor-bg) img,.dd-product img').forEach(function(img){
+      img.style.width='100%';
+      img.style.height='100%';
+      img.style.maxWidth='100%';
+      img.style.maxHeight='100%';
+      img.style.minWidth='0';
+      img.style.minHeight='0';
+      img.style.objectFit='contain';
+      img.style.display='block';
+      img.style.position='static';
+      img.style.left='auto';
+      img.style.top='auto';
+      img.style.transform='none';
     });
   }
 
-  async function makeLimitedBlob(canvas){
-    // PNG is sharpest; use it when already under 200KB.
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= FILE_LIMIT_BYTES){ return {blob: png, ext: '.png', label: 'PNG'}; }
-
-    // Otherwise use JPEG and keep quality as high as possible under 200KB.
-    var low = 0.35, high = 0.98, best = null, bestQ = low;
-    for(var i=0; i<9; i++){
-      var q = (low + high) / 2;
-      var b = await toBlobAsync(canvas, 'image/jpeg', q);
-      if(b && b.size <= FILE_LIMIT_BYTES){ best = b; bestQ = q; low = q; }
-      else { high = q; }
-    }
-    if(best) return {blob: best, ext: '.jpg', label: 'JPG q' + bestQ.toFixed(2)};
-
-    // Last fallback: keep 200KB rule even for complex images.
-    var q2 = 0.34;
-    var last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    while(last && last.size > FILE_LIMIT_BYTES && q2 > 0.18){
-      q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-      last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    }
-    return {blob: last, ext: '.jpg', label: 'JPG q' + q2.toFixed(2)};
+  function copyHeadStyles(doc){
+    var base=doc.createElement('base');
+    base.href=location.href;
+    doc.head.appendChild(base);
+    document.querySelectorAll('style,link[rel="stylesheet"]').forEach(function(el){
+      try{ doc.head.appendChild(el.cloneNode(true)); }catch(_){ }
+    });
+    var s=doc.createElement('style');
+    s.textContent = 'html,body{margin:0!important;padding:0!important;background:transparent!important;overflow:hidden!important;} body{display:block!important;} .wrap{display:block!important;} [data-export-root]{margin:0!important;box-shadow:none!important;} .ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.logo-v14-trigger,#logoMenuV14,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.pc-center-guide,.pc-guide-warning,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only,#excelManualLoader{display:none!important;visibility:hidden!important;}';
+    doc.head.appendChild(s);
   }
 
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__assistantDownloadInFlight) return;
-    window.__assistantDownloadInFlight = true;
+  function loadIframeHtml2Canvas(win,doc){
+    return new Promise(function(resolve,reject){
+      if(win.html2canvas) return resolve(win.html2canvas);
+      var sc=doc.createElement('script');
+      sc.src='https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      sc.onload=function(){ win.html2canvas ? resolve(win.html2canvas) : reject(new Error('html2canvas 載入失敗')); };
+      sc.onerror=function(){ reject(new Error('html2canvas 載入失敗')); };
+      doc.head.appendChild(sc);
+    });
+  }
 
-    var node = document.getElementById(canvasId);
-    if(!node){
-      window.__assistantDownloadInFlight = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1600);
-      return;
-    }
-
+  async function isolatedSnapshot(node){
+    var w=Math.max(1,Math.round(node.clientWidth||node.offsetWidth||1));
+    var h=Math.max(1,Math.round(node.clientHeight||node.offsetHeight||1));
+    var iframe=document.createElement('iframe');
+    iframe.setAttribute('aria-hidden','true');
+    iframe.tabIndex=-1;
+    iframe.style.cssText='position:fixed;left:-120000px;top:0;width:'+w+'px;height:'+h+'px;border:0;opacity:0;pointer-events:none;z-index:-1;';
+    document.body.appendChild(iframe);
     try{
-      if(document.fonts && document.fonts.ready) await document.fonts.ready;
-    }catch(_){ }
-
-    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
-    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
-    var bgHex = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || getComputedStyle(node).backgroundColor || '#ffffff';
-
-    try{
-      var snap = await html2canvas(node, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        allowTaint: false,
-        removeContainer: true,
-        logging: false,
-        letterRendering: true,
-        width: exportW,
-        height: exportH,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        ignoreElements: exportIgnore,
-        onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
-          normalizeClone(doc.getElementById(canvasId));
+      var win=iframe.contentWindow;
+      var doc=iframe.contentDocument;
+      doc.open();
+      doc.write('<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>');
+      doc.close();
+      copyHeadStyles(doc);
+      var clone=node.cloneNode(true);
+      clone.id=node.id;
+      clone.setAttribute('data-export-root','1');
+      clone.style.width=w+'px';
+      clone.style.height=h+'px';
+      clone.style.margin='0';
+      clone.style.position='relative';
+      clone.style.overflow='hidden';
+      cleanClone(clone);
+      doc.body.appendChild(clone);
+      await new Promise(function(r){ setTimeout(r,50); });
+      try{ if(doc.fonts && doc.fonts.ready) await doc.fonts.ready; }catch(_){ }
+      var h2c=await loadIframeHtml2Canvas(win,doc);
+      return await h2c(clone,{
+        backgroundColor:null,
+        scale:2,
+        useCORS:true,
+        allowTaint:false,
+        removeContainer:true,
+        logging:false,
+        width:w,
+        height:h,
+        x:0,
+        y:0,
+        scrollX:0,
+        scrollY:0,
+        ignoreElements:function(el){
+          return !!(el && el.classList && (
+            el.classList.contains('ctrl') || el.classList.contains('toggle-tag') ||
+            el.classList.contains('panel') || el.classList.contains('bg-scale-panel') ||
+            el.classList.contains('guide-line') || el.classList.contains('guide-warning') ||
+            el.classList.contains('guide-doc-overlay') || el.classList.contains('pc-center-guide') ||
+            el.classList.contains('pc-guide-warning') || el.classList.contains('ui-only')
+          ));
         }
       });
-
-      var out = document.createElement('canvas');
-      out.width = exportW;
-      out.height = exportH;
-      var ctx = out.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
-      var rgb = hexToRgb(bgHex);
-      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-      ctx.fillRect(0, 0, exportW, exportH);
-      ctx.drawImage(snap, 0, 0, exportW, exportH);
-
-      var base = String(filename || canvasId || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var packed = await makeLimitedBlob(out);
-      if(!packed || !packed.blob) throw new Error('產生圖檔失敗');
-      triggerDownload(packed.blob, base + packed.ext);
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(packed.blob.size / 1024) + 'KB（≤200KB，' + packed.label + '，原尺寸 ' + exportW + '×' + exportH + '）', 'ok', 2600);
-      }
-    }catch(err){
-      console.error(err);
-      if(typeof showToast === 'function') showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 3200);
-    }finally{
-      window.__assistantDownloadInFlight = false;
-    }
-  };
-
-  function resizeBoxFromWheel(box, deltaY, clientX, clientY){
-    if(!box) return;
-    var oldW = parseFloat(box.style.width) || box.offsetWidth || 1;
-    var oldH = parseFloat(box.style.height) || box.offsetHeight || 1;
-    var oldL = parseFloat(box.style.left) || 0;
-    var oldT = parseFloat(box.style.top) || 0;
-    var rect = box.getBoundingClientRect();
-    var anchorX = rect.width ? (clientX - rect.left) / rect.width : 0.5;
-    var anchorY = rect.height ? (clientY - rect.top) / rect.height : 0.5;
-    anchorX = Math.max(0, Math.min(1, anchorX));
-    anchorY = Math.max(0, Math.min(1, anchorY));
-
-    var factor = deltaY < 0 ? 1.08 : 0.925;
-    var newW = Math.max(1, oldW * factor);
-    var newH = Math.max(1, oldH * factor);
-    var newL = oldL - (newW - oldW) * anchorX;
-    var newT = oldT - (newH - oldH) * anchorY;
-
-    box.style.width = newW + 'px';
-    box.style.height = newH + 'px';
-    box.style.left = newL + 'px';
-    box.style.top = newT + 'px';
-    if(box.dataset){
-      box.dataset.fixedW = String(Math.round(newW));
-      box.dataset.fixedH = String(Math.round(newH));
-    }
-
-    // keep DDCard state in sync if applicable
-    var dd = box.closest && box.closest('.dd-canvas');
-    if(dd && window.ddEditState){
-      var prefix = dd.id === 'ddSquareCanvas' ? 'ddSquare' : (dd.id === 'ddHorizCanvas' ? 'ddHoriz' : '');
-      var key = box.dataset && box.dataset.key;
-      if(prefix && key && window.ddEditState[prefix] && window.ddEditState[prefix].products){
-        window.ddEditState[prefix].products[key] = { left:newL, top:newT, width:newW, height:newH };
-      }
+    } finally {
+      setTimeout(function(){ iframe.remove(); },0);
     }
   }
 
-  // Capture-phase wheel override: removes old max-width / safe-zone scale limits.
-  document.addEventListener('wheel', function(e){
-    var box = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg), .dd-product');
-    if(!box) return;
-    if(e.target.closest && e.target.closest('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn')) return;
-    resizeBoxFromWheel(box, e.deltaY, e.clientX, e.clientY);
-    if(typeof showGuideWarningFor === 'function' && box.classList.contains('editor-item')){
-      try{ showGuideWarningFor(box); }catch(_){ }
-    }
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, {capture:true, passive:false});
-
-  // Capture-phase resize-handle override: also no upper limit.
-  var activeResize = null;
-  document.addEventListener('mousedown', function(e){
-    var handle = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg) .ctrl.resize, .dd-product::after');
-    var box = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg)');
-    if(!box || !(e.target.classList && e.target.classList.contains('resize'))) return;
-    activeResize = {
-      box: box,
-      sx: e.clientX,
-      sy: e.clientY,
-      w: parseFloat(box.style.width) || box.offsetWidth || 1,
-      h: parseFloat(box.style.height) || box.offsetHeight || 1
-    };
-    activeResize.ratio = activeResize.w / Math.max(1, activeResize.h);
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-
-  window.addEventListener('mousemove', function(e){
-    if(!activeResize) return;
-    var delta = Math.max(e.clientX - activeResize.sx, e.clientY - activeResize.sy);
-    var nw = Math.max(1, activeResize.w + delta);
-    var nh = Math.max(1, nw / Math.max(0.0001, activeResize.ratio));
-    activeResize.box.style.width = nw + 'px';
-    activeResize.box.style.height = nh + 'px';
-    if(activeResize.box.dataset){
-      activeResize.box.dataset.fixedW = String(Math.round(nw));
-      activeResize.box.dataset.fixedH = String(Math.round(nh));
-    }
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-
-  window.addEventListener('mouseup', function(e){
-    if(!activeResize) return;
-    activeResize = null;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-})();
-</script>
-
-
-
-<!-- Assistant final fix: PC CTA export is drawn by Canvas, not html2canvas text baseline -->
-<script id="assistant-pc-cta-canvas-export-final-fix">
-(function(){
-  var FILE_LIMIT_BYTES = 200 * 1024;
-  var EXPORT_SCALE = 2;
-
-  function hexToRgbAny(value){
-    var s = String(value || '#ffffff').trim();
-    if(/^rgb/.test(s)){
-      var m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-      if(m) return {r:+m[1], g:+m[2], b:+m[3]};
-    }
-    var h = s.replace('#','');
-    if(h.length === 3) h = h.split('').map(function(c){return c+c;}).join('');
-    return {
-      r: parseInt(h.slice(0,2),16) || 255,
-      g: parseInt(h.slice(2,4),16) || 255,
-      b: parseInt(h.slice(4,6),16) || 255
-    };
-  }
-
-  function toBlobAsync(canvas, type, quality){
-    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
-  }
-
-  function triggerDownload(blob, name){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    if(/iPad|iPhone|iPod/.test(navigator.userAgent)) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  async function makeLimitedBlob(canvas){
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= FILE_LIMIT_BYTES) return {blob: png, ext: '.png', label: 'PNG'};
-    var low = 0.35, high = 0.98, best = null, bestQ = low;
-    for(var i=0; i<10; i++){
-      var q = (low + high) / 2;
-      var b = await toBlobAsync(canvas, 'image/jpeg', q);
-      if(b && b.size <= FILE_LIMIT_BYTES){ best = b; bestQ = q; low = q; }
-      else high = q;
-    }
-    if(best) return {blob: best, ext: '.jpg', label: 'JPG q' + bestQ.toFixed(2)};
-    var q2 = 0.34;
-    var last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    while(last && last.size > FILE_LIMIT_BYTES && q2 > 0.18){
-      q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-      last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    }
-    return {blob: last, ext: '.jpg', label: 'JPG q' + q2.toFixed(2)};
-  }
-
-  function exportIgnore(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    if(!el.classList) return false;
-    return el.classList.contains('ctrl') ||
-      el.classList.contains('logo-edit-btn') ||
-      el.classList.contains('logo-swap-btn') ||
-      el.classList.contains('logo-delete-btn') ||
-      el.classList.contains('logo-white-btn') ||
-      el.classList.contains('toggle-tag') ||
-      el.classList.contains('panel') ||
-      el.classList.contains('bg-scale-panel') ||
-      el.classList.contains('dd-bg-scale-panel') ||
-      el.classList.contains('guide-line') ||
-      el.classList.contains('guide-warning') ||
-      el.classList.contains('guide-doc-overlay') ||
-      el.classList.contains('dd-guide-line') ||
-      el.classList.contains('dd-guide-warning') ||
-      el.classList.contains('float-meter') ||
-      el.classList.contains('modal') ||
-      el.classList.contains('nudge') ||
-      el.classList.contains('json-toolbar') ||
-      el.classList.contains('manual-icon') ||
-      el.classList.contains('brush-cursor') ||
-      el.classList.contains('ui-only');
-  }
-
-  function normalizeClone(clonedNode, canvasId){
-    if(!clonedNode) return;
-    clonedNode.style.overflow = 'hidden';
-    clonedNode.classList.add('hide-dd-icons');
-    clonedNode.querySelectorAll('.editor-item:not(.editor-bg) img, .dd-product img').forEach(function(img){
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.minWidth = '0';
-      img.style.minHeight = '0';
-      img.style.objectFit = 'contain';
-      img.style.display = 'block';
-      img.style.position = 'static';
-      img.style.left = 'auto';
-      img.style.top = 'auto';
-      img.style.transform = 'none';
-      img.style.imageRendering = 'auto';
-    });
-    clonedNode.querySelectorAll('.h1,.h2,.date,.dd-h1,.dd-h2,.dd-date,.cta,.dd-cta').forEach(function(el){
-      el.style.webkitFontSmoothing = 'antialiased';
-      el.style.textRendering = 'geometricPrecision';
-    });
-
-    // Critical: hide only PC CTA text/arrow in the html2canvas clone.
-    // The blue CTA block stays rendered by DOM; the text and arrow are redrawn with Canvas after snapshot.
-    if(canvasId === 'pcH' || canvasId === 'pcS'){
-      clonedNode.querySelectorAll('.cta .text, .cta .triangle').forEach(function(el){
-        el.style.setProperty('visibility', 'hidden', 'important');
-        el.style.setProperty('opacity', '0', 'important');
-      });
-    }
-  }
-
-  function getPcCtaInfo(node){
-    if(!node || !(node.id === 'pcH' || node.id === 'pcS')) return null;
-    var cta = node.querySelector('.cta');
-    if(!cta) return null;
-    var textEl = cta.querySelector('.text');
-    var tri = cta.querySelector('.triangle');
-    var nr = node.getBoundingClientRect();
-    var cr = cta.getBoundingClientRect();
-    var cs = getComputedStyle(cta);
-    var ts = getComputedStyle(textEl || cta);
-    var text = textEl ? (textEl.textContent || '').trim() : '';
-    if(!text) return null;
-    return {
-      text: text,
-      x: cr.left - nr.left,
-      y: cr.top - nr.top,
-      w: cr.width,
-      h: cr.height,
-      color: cs.color,
-      fontSize: parseFloat(ts.fontSize) || 11,
-      fontWeight: ts.fontWeight || '400',
-      fontFamily: ts.fontFamily || 'Arial, sans-serif',
-      gap: parseFloat(cs.gap) || 3,
-      triColor: cs.color,
-      triW: tri ? Math.max(3, tri.getBoundingClientRect().width || 4) : 4,
-      triH: tri ? Math.max(5, tri.getBoundingClientRect().height || 7) : 7
-    };
-  }
-
-  function drawPcCtaText(ctx, info){
-    if(!info) return;
-    ctx.save();
-    ctx.fillStyle = info.color;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.font = info.fontWeight + ' ' + info.fontSize + 'px ' + info.fontFamily;
-
-    var textW = ctx.measureText(info.text).width;
-    var triW = Math.max(4, info.triW || 4);
-    var triH = Math.max(7, info.triH || 7);
-    var gap = Math.max(3, info.gap || 3);
-    var groupW = textW + gap + triW;
-    var startX = info.x + (info.w - groupW) / 2;
-
-    // Canvas textBaseline='middle' uses actual font metrics, avoiding html2canvas baseline drift.
-    // This small optical correction matches the browser preview for Shopee/Noto CJK glyphs.
-    var centerY = info.y + info.h / 2 - 0.5;
-    ctx.fillText(info.text, startX, centerY);
-
-    var ax = startX + textW + gap;
-    var ay = info.y + info.h / 2;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay - triH / 2);
-    ctx.lineTo(ax, ay + triH / 2);
-    ctx.lineTo(ax + triW, ay);
-    ctx.closePath();
-    ctx.fillStyle = info.triColor || info.color;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__assistantDownloadInFlight) return;
-    window.__assistantDownloadInFlight = true;
-
-    var node = document.getElementById(canvasId);
-    if(!node){
-      window.__assistantDownloadInFlight = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1600);
-      return;
-    }
-
-    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
-
-    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
-    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
-    var bgValue = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || getComputedStyle(node).backgroundColor || '#ffffff';
-    var pcCtaInfo = getPcCtaInfo(node);
-
+  async function floatingStyleDownload(canvasId,bgColorInputId,filename){
+    if(window.__JIMMY_FINAL_DOWNLOAD_BUSY__) return false;
+    window.__JIMMY_FINAL_DOWNLOAD_BUSY__=true;
     try{
-      var snap = await html2canvas(node, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        allowTaint: false,
-        removeContainer: true,
-        logging: false,
-        letterRendering: true,
-        width: exportW,
-        height: exportH,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        ignoreElements: exportIgnore,
-        onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
-          normalizeClone(doc.getElementById(canvasId), canvasId);
+      var node=document.getElementById(canvasId);
+      if(!node) throw new Error('找不到畫布：'+canvasId);
+      try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
+
+      // 只在隔離 iframe 產生 snapshot；不對真實編輯畫面加 class、不 hide、不 remove。
+      var snap=await isolatedSnapshot(node);
+      var exportCanvas=document.createElement('canvas');
+      exportCanvas.width=Math.max(1,Math.round(node.clientWidth||node.offsetWidth||snap.width));
+      exportCanvas.height=Math.max(1,Math.round(node.clientHeight||node.offsetHeight||snap.height));
+      var ctx=exportCanvas.getContext('2d');
+      var bg=document.getElementById(bgColorInputId);
+      var rgb=hexToRgb(bg && bg.value);
+      ctx.fillStyle='rgb('+rgb.r+','+rgb.g+','+rgb.b+')';
+      ctx.fillRect(0,0,exportCanvas.width,exportCanvas.height);
+      ctx.drawImage(snap,0,0,exportCanvas.width,exportCanvas.height);
+
+      // floating.html 的關鍵：下載前先 copy bitmap，再從 copy toBlob，避免後續 render 影響下載。
+      var copy=copyCanvas(exportCanvas);
+      var base=String(filename||canvasId||'sba').replace(/\.(png|jpe?g)$/i,'');
+      var limit=200*1024;
+      var blob=await toBlob(copy,'image/png');
+      var outName=base+'.png';
+      if(!blob || blob.size>limit){
+        var q=0.98;
+        blob=await toBlob(copy,'image/jpeg',q);
+        while(blob && blob.size>limit && q>0.4){
+          q=Math.max(0.4,+(q-0.04).toFixed(2));
+          blob=await toBlob(copy,'image/jpeg',q);
         }
-      });
-
-      var out = document.createElement('canvas');
-      out.width = exportW;
-      out.height = exportH;
-      var ctx = out.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
-      var rgb = hexToRgbAny(bgValue);
-      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-      ctx.fillRect(0, 0, exportW, exportH);
-      ctx.drawImage(snap, 0, 0, exportW, exportH);
-
-      // Draw PC CTA text after html2canvas so vertical centering is controlled by Canvas API.
-      drawPcCtaText(ctx, pcCtaInfo);
-
-      var base = String(filename || canvasId || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var packed = await makeLimitedBlob(out);
-      if(!packed || !packed.blob) throw new Error('產生圖檔失敗');
-      triggerDownload(packed.blob, base + packed.ext);
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(packed.blob.size / 1024) + 'KB（≤200KB，' + packed.label + '，原尺寸 ' + exportW + '×' + exportH + '）', 'ok', 2600);
+        outName=base+'.jpg';
       }
+      if(!blob) throw new Error('產生圖檔失敗');
+      downloadBlob(blob,outName);
+      show('已下載（'+Math.round(blob.size/1024)+'KB）','ok',2200);
     }catch(err){
       console.error(err);
-      if(typeof showToast === 'function') showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 3200);
+      show('下載失敗：'+(err && err.message ? err.message : err),'err',3600);
     }finally{
-      window.__assistantDownloadInFlight = false;
+      window.__JIMMY_FINAL_DOWNLOAD_BUSY__=false;
     }
+    return false;
+  }
+
+  window.downloadJpgFor=function(canvasId,bgColorInputId,filename){
+    return floatingStyleDownload(canvasId,bgColorInputId,filename);
   };
+  window.downloadPcJpg=function(pcId,bgColorInputId,filename){
+    return floatingStyleDownload(pcId,bgColorInputId,filename);
+  };
+
+  function bindButtons(){
+    Object.keys(MAP).forEach(function(id){
+      var btn=document.getElementById(id);
+      if(!btn) return;
+      btn.onclick=null;
+      btn.setAttribute('data-jimmy-final-download-bound','1');
+    });
+  }
+
+  // 最重要：capture phase 直接截掉舊 listener / inline handler，保證只跑這個單一下載流程。
+  document.addEventListener('click',function(e){
+    var btn=e.target && e.target.closest && e.target.closest('#dl-h,#dl-s,#dl-h-pc,#dl-s-pc');
+    if(!btn) return;
+    var cfg=MAP[btn.id];
+    if(!cfg) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    floatingStyleDownload(cfg.canvasId,cfg.bgId,cfg.file);
+    return false;
+  },true);
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',bindButtons);
+  else bindButtons();
+  setTimeout(bindButtons,200);
+  setTimeout(bindButtons,1000);
 })();
 </script>
-
+<!-- /Jimmy final patch: floating.html-style isolated canvas download -->
 </body>
 </html>
 
@@ -16078,6 +15514,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
 }
 #pcH .brand, #pcS .brand {
   z-index: 6 !important;
+  overflow: hidden !important;
+  width: 80px !important;
+  height: 80px !important;
+}
+#pcH .brand img, #pcS .brand img {
+  max-width: 80px !important;
+  max-height: 80px !important;
+  object-fit: contain !important;
 }
 /* 各文字元素：直接相對畫布定位，覆蓋 .h1/.h2/.date 的全域規則 */
 #pcH #ph1, #pcS #ps1 {
@@ -16473,12 +15917,11 @@ window.addEventListener('load', function(){
     try{
       var snap = await html2canvas(c.clone, {
         backgroundColor: null,
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
         logging: false,
-        letterRendering: true,
         width: c.width,
         height: c.height,
         x: 0,
@@ -16507,34 +15950,23 @@ window.addEventListener('load', function(){
       ctx.drawImage(snap, 0, 0, c.width, c.height);
 
       var base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      // 文字清晰版：不做高倍截圖後回縮，避免文字邊緣被平均成糊狀。
-      // 先嘗試 PNG（文字最銳利）；超過限制才改用 JPG，以最高可用品質壓到限制內。
-      var limitBytes = (maxKb || 200) * 1024;
+      var limit = (maxKb || 200) * 1024;
       var pngBlob = await toBlobAsync(out, 'image/png');
-      if(pngBlob && pngBlob.size <= limitBytes){
+      if(pngBlob && pngBlob.size <= limit){
         triggerDownload(pngBlob, base + '.png');
-        if(typeof showToast === 'function') showToast('已下載：' + Math.round(pngBlob.size/1024) + 'KB（PNG，文字銳利，原尺寸 ' + c.width + '×' + c.height + '）', 'ok', 2600);
-      }else{
-        var low = 0.35, high = 1.0, best = null, bestQ = 0.35;
-        for(var bi=0; bi<10; bi++){
-          var q = (low + high) / 2;
-          var jb = await toBlobAsync(out, 'image/jpeg', q);
-          if(jb && jb.size <= limitBytes){ best = jb; bestQ = q; low = q; }
-          else { high = q; }
-        }
-        if(!best){
-          var q2 = 0.34;
-          best = await toBlobAsync(out, 'image/jpeg', q2);
-          while(best && best.size > limitBytes && q2 > 0.18){
-            q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-            best = await toBlobAsync(out, 'image/jpeg', q2);
-          }
-          bestQ = q2;
-        }
-        if(!best) throw new Error('產生 JPG 失敗');
-        triggerDownload(best, base + '.jpg');
-        if(typeof showToast === 'function') showToast('已下載：' + Math.round(best.size/1024) + 'KB（JPG q' + bestQ.toFixed(2) + '，≤' + (maxKb||200) + 'KB，原尺寸 ' + c.width + '×' + c.height + '）', 'ok', 2600);
+        if(typeof showToast === 'function') showToast('已下載（PNG，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        return;
       }
+
+      var quality = 0.98;
+      var jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > limit && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載（JPG，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
     } finally {
       host.remove();
     }
@@ -16607,63 +16039,6 @@ body.is-exporting .cta{
     else a.click();
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  function sharpenCanvas(canvas, amount){
-    // 輕微銳化：下載尺寸不變，但改善文字/邊緣在 JPEG 壓縮後的糊感。
-    // amount 建議 0.10~0.25，太高會產生白邊或雜訊。
-    amount = Math.max(0, Math.min(0.35, amount || 0.16));
-    var ctx = canvas.getContext('2d');
-    var w = canvas.width, h = canvas.height;
-    if(!w || !h) return;
-    var img;
-    try{ img = ctx.getImageData(0, 0, w, h); }catch(_){ return; }
-    var src = img.data;
-    var out = new Uint8ClampedArray(src.length);
-    out.set(src);
-    var a = amount;
-    var center = 1 + 4 * a;
-    var side = -a;
-    for(var y=1; y<h-1; y++){
-      for(var x=1; x<w-1; x++){
-        var i = (y*w + x) * 4;
-        var up = i - w*4;
-        var dn = i + w*4;
-        var lf = i - 4;
-        var rt = i + 4;
-        for(var c=0; c<3; c++){
-          out[i+c] = Math.max(0, Math.min(255,
-            src[i+c] * center +
-            src[up+c] * side + src[dn+c] * side + src[lf+c] * side + src[rt+c] * side
-          ));
-        }
-      }
-    }
-    img.data.set(out);
-    ctx.putImageData(img, 0, 0);
-  }
-
-  async function encodeUnderLimit(canvas, maxKb){
-    var maxBytes = Math.max(50, maxKb || 200) * 1024;
-    // PNG 無損、文字最清楚；若剛好小於限制就優先用 PNG。
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= maxBytes) return {blob: png, ext: 'png', kb: Math.round(png.size/1024), quality: 'lossless'};
-
-    // 超過限制時改用 JPEG，但只壓品質，不縮尺寸，確保輸出像素尺寸維持原本規格。
-    var q = 0.94;
-    var blob = await toBlobAsync(canvas, 'image/jpeg', q);
-    while(blob && blob.size > maxBytes && q > 0.56){
-      q = Math.max(0.56, +(q - 0.04).toFixed(2));
-      blob = await toBlobAsync(canvas, 'image/jpeg', q);
-    }
-    if(blob && blob.size <= maxBytes) return {blob: blob, ext: 'jpg', kb: Math.round(blob.size/1024), quality: q};
-
-    // 極端複雜背景仍超過時，保留原尺寸，進一步降低 JPEG 品質；不改寬高。
-    while(blob && blob.size > maxBytes && q > 0.38){
-      q = Math.max(0.38, +(q - 0.03).toFixed(2));
-      blob = await toBlobAsync(canvas, 'image/jpeg', q);
-    }
-    return {blob: blob, ext: 'jpg', kb: blob ? Math.round(blob.size/1024) : 0, quality: q};
   }
 
   function exportIgnore(el){
@@ -16792,12 +16167,11 @@ body.is-exporting .cta{
 
       var snap = await html2canvas(c.clone, {
         backgroundColor: null,
-        scale: 1,
+        scale: 2,
         useCORS: true,
         allowTaint: false,
         removeContainer: true,
         logging: false,
-        letterRendering: true,
         width: c.width,
         height: c.height,
         x: 0,
@@ -16822,34 +16196,23 @@ body.is-exporting .cta{
       ctx.drawImage(snap, 0, 0, c.width, c.height);
 
       var base = String(filename || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      // 文字清晰版：不做高倍截圖後回縮，避免文字邊緣被平均成糊狀。
-      // 先嘗試 PNG（文字最銳利）；超過限制才改用 JPG，以最高可用品質壓到限制內。
-      var limitBytes = (maxKb || 200) * 1024;
+      var limit = (maxKb || 200) * 1024;
       var pngBlob = await toBlobAsync(out, 'image/png');
-      if(pngBlob && pngBlob.size <= limitBytes){
+      if(pngBlob && pngBlob.size <= limit){
         triggerDownload(pngBlob, base + '.png');
-        if(typeof showToast === 'function') showToast('已下載：' + Math.round(pngBlob.size/1024) + 'KB（PNG，文字銳利，原尺寸 ' + c.width + '×' + c.height + '）', 'ok', 2600);
-      }else{
-        var low = 0.35, high = 1.0, best = null, bestQ = 0.35;
-        for(var bi=0; bi<10; bi++){
-          var q = (low + high) / 2;
-          var jb = await toBlobAsync(out, 'image/jpeg', q);
-          if(jb && jb.size <= limitBytes){ best = jb; bestQ = q; low = q; }
-          else { high = q; }
-        }
-        if(!best){
-          var q2 = 0.34;
-          best = await toBlobAsync(out, 'image/jpeg', q2);
-          while(best && best.size > limitBytes && q2 > 0.18){
-            q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-            best = await toBlobAsync(out, 'image/jpeg', q2);
-          }
-          bestQ = q2;
-        }
-        if(!best) throw new Error('產生 JPG 失敗');
-        triggerDownload(best, base + '.jpg');
-        if(typeof showToast === 'function') showToast('已下載：' + Math.round(best.size/1024) + 'KB（JPG q' + bestQ.toFixed(2) + '，≤' + (maxKb||200) + 'KB，原尺寸 ' + c.width + '×' + c.height + '）', 'ok', 2600);
+        if(typeof showToast === 'function') showToast('已下載（PNG，' + Math.round(pngBlob.size/1024) + 'KB）', 'ok', 2200);
+        return;
       }
+
+      var quality = 0.98;
+      var jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      while(jpgBlob && jpgBlob.size > limit && quality > 0.4){
+        quality = Math.max(0.4, +(quality - 0.04).toFixed(2));
+        jpgBlob = await toBlobAsync(out, 'image/jpeg', quality);
+      }
+      if(!jpgBlob) throw new Error('產生 JPG 失敗');
+      triggerDownload(jpgBlob, base + '.jpg');
+      if(typeof showToast === 'function') showToast('已下載（JPG，' + Math.round(jpgBlob.size/1024) + 'KB）', 'ok', 2400);
     } finally {
       DOMTokenList.prototype.add = oldBodyClassAdd;
       DOMTokenList.prototype.remove = oldBodyClassRemove;
@@ -16906,585 +16269,4 @@ body.is-exporting .cta{
 </script>
 <!-- /Jimmy final patch -->
 
-<!-- Assistant update: original-size sharp export; high-sampling render + sharpen + <=200KB encoder. -->
-
-
-<!-- Assistant final patch: HBN-style sharp export + unlimited mouse-wheel scaling -->
-<script id="assistant-hbn-tech-sharp-export-unlimited-zoom">
-(function(){
-  if(window.__assistantHbnSharpExportUnlimitedZoom) return;
-  window.__assistantHbnSharpExportUnlimitedZoom = true;
-
-  var FILE_LIMIT_BYTES = 200 * 1024;
-  var EXPORT_SCALE = 1; // text-sharp export: keep original pixel grid, do not downsample text
-
-  function clampByte(v){ return Math.max(0, Math.min(255, Math.round(v || 0))); }
-  function hexToRgb(hex){
-    var s = String(hex || '').trim();
-    if(!s) return {r:255,g:255,b:255};
-    var m = s.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if(m){
-      var h = m[1];
-      if(h.length === 3) h = h.split('').map(function(c){ return c+c; }).join('');
-      return { r:parseInt(h.slice(0,2),16)||0, g:parseInt(h.slice(2,4),16)||0, b:parseInt(h.slice(4,6),16)||0 };
-    }
-    m = s.match(/rgba?\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
-    if(m){ return {r:clampByte(m[1]), g:clampByte(m[2]), b:clampByte(m[3])}; }
-    return {r:255,g:255,b:255};
-  }
-
-  function toBlobAsync(canvas, type, quality){
-    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
-  }
-
-  function triggerDownload(blob, filename){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    if(/iPad|iPhone|iPod/.test(navigator.userAgent)) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  function exportIgnore(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    if(!el.classList) return false;
-    return el.classList.contains('ctrl') ||
-      el.classList.contains('logo-edit-btn') ||
-      el.classList.contains('logo-swap-btn') ||
-      el.classList.contains('logo-delete-btn') ||
-      el.classList.contains('logo-white-btn') ||
-      el.classList.contains('toggle-tag') ||
-      el.classList.contains('panel') ||
-      el.classList.contains('bg-scale-panel') ||
-      el.classList.contains('dd-bg-scale-panel') ||
-      el.classList.contains('guide-line') ||
-      el.classList.contains('guide-warning') ||
-      el.classList.contains('guide-doc-overlay') ||
-      el.classList.contains('dd-guide-line') ||
-      el.classList.contains('dd-guide-warning') ||
-      el.classList.contains('float-meter') ||
-      el.classList.contains('modal') ||
-      el.classList.contains('nudge') ||
-      el.classList.contains('json-toolbar') ||
-      el.classList.contains('manual-icon') ||
-      el.classList.contains('brush-cursor') ||
-      el.classList.contains('ui-only');
-  }
-
-  function normalizeClone(clonedNode){
-    if(!clonedNode) return;
-    clonedNode.style.overflow = 'hidden';
-    clonedNode.classList.add('hide-dd-icons');
-    clonedNode.querySelectorAll('.editor-item:not(.editor-bg) img, .dd-product img').forEach(function(img){
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.minWidth = '0';
-      img.style.minHeight = '0';
-      img.style.objectFit = 'contain';
-      img.style.display = 'block';
-      img.style.position = 'static';
-      img.style.left = 'auto';
-      img.style.top = 'auto';
-      img.style.transform = 'none';
-      img.style.imageRendering = 'auto';
-    });
-    clonedNode.querySelectorAll('.h1,.h2,.date,.dd-h1,.dd-h2,.dd-date,.cta,.dd-cta').forEach(function(el){
-      el.style.webkitFontSmoothing = 'antialiased';
-      el.style.textRendering = 'geometricPrecision';
-    });
-  }
-
-  async function makeLimitedBlob(canvas){
-    // PNG is sharpest; use it when already under 200KB.
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= FILE_LIMIT_BYTES){ return {blob: png, ext: '.png', label: 'PNG'}; }
-
-    // Otherwise use JPEG and keep quality as high as possible under 200KB.
-    var low = 0.35, high = 0.98, best = null, bestQ = low;
-    for(var i=0; i<9; i++){
-      var q = (low + high) / 2;
-      var b = await toBlobAsync(canvas, 'image/jpeg', q);
-      if(b && b.size <= FILE_LIMIT_BYTES){ best = b; bestQ = q; low = q; }
-      else { high = q; }
-    }
-    if(best) return {blob: best, ext: '.jpg', label: 'JPG q' + bestQ.toFixed(2)};
-
-    // Last fallback: keep 200KB rule even for complex images.
-    var q2 = 0.34;
-    var last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    while(last && last.size > FILE_LIMIT_BYTES && q2 > 0.18){
-      q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-      last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    }
-    return {blob: last, ext: '.jpg', label: 'JPG q' + q2.toFixed(2)};
-  }
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__assistantDownloadInFlight) return;
-    window.__assistantDownloadInFlight = true;
-
-    var node = document.getElementById(canvasId);
-    if(!node){
-      window.__assistantDownloadInFlight = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1600);
-      return;
-    }
-
-    try{
-      if(document.fonts && document.fonts.ready) await document.fonts.ready;
-    }catch(_){ }
-
-    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
-    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
-    var bgHex = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || getComputedStyle(node).backgroundColor || '#ffffff';
-
-    try{
-      var snap = await html2canvas(node, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        allowTaint: false,
-        removeContainer: true,
-        logging: false,
-        letterRendering: true,
-        width: exportW,
-        height: exportH,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        ignoreElements: exportIgnore,
-        onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
-          normalizeClone(doc.getElementById(canvasId));
-        }
-      });
-
-      var out = document.createElement('canvas');
-      out.width = exportW;
-      out.height = exportH;
-      var ctx = out.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
-      var rgb = hexToRgb(bgHex);
-      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-      ctx.fillRect(0, 0, exportW, exportH);
-      ctx.drawImage(snap, 0, 0, exportW, exportH);
-
-      var base = String(filename || canvasId || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var packed = await makeLimitedBlob(out);
-      if(!packed || !packed.blob) throw new Error('產生圖檔失敗');
-      triggerDownload(packed.blob, base + packed.ext);
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(packed.blob.size / 1024) + 'KB（≤200KB，' + packed.label + '，原尺寸 ' + exportW + '×' + exportH + '）', 'ok', 2600);
-      }
-    }catch(err){
-      console.error(err);
-      if(typeof showToast === 'function') showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 3200);
-    }finally{
-      window.__assistantDownloadInFlight = false;
-    }
-  };
-
-  function resizeBoxFromWheel(box, deltaY, clientX, clientY){
-    if(!box) return;
-    var oldW = parseFloat(box.style.width) || box.offsetWidth || 1;
-    var oldH = parseFloat(box.style.height) || box.offsetHeight || 1;
-    var oldL = parseFloat(box.style.left) || 0;
-    var oldT = parseFloat(box.style.top) || 0;
-    var rect = box.getBoundingClientRect();
-    var anchorX = rect.width ? (clientX - rect.left) / rect.width : 0.5;
-    var anchorY = rect.height ? (clientY - rect.top) / rect.height : 0.5;
-    anchorX = Math.max(0, Math.min(1, anchorX));
-    anchorY = Math.max(0, Math.min(1, anchorY));
-
-    var factor = deltaY < 0 ? 1.08 : 0.925;
-    var newW = Math.max(1, oldW * factor);
-    var newH = Math.max(1, oldH * factor);
-    var newL = oldL - (newW - oldW) * anchorX;
-    var newT = oldT - (newH - oldH) * anchorY;
-
-    box.style.width = newW + 'px';
-    box.style.height = newH + 'px';
-    box.style.left = newL + 'px';
-    box.style.top = newT + 'px';
-    if(box.dataset){
-      box.dataset.fixedW = String(Math.round(newW));
-      box.dataset.fixedH = String(Math.round(newH));
-    }
-
-    // keep DDCard state in sync if applicable
-    var dd = box.closest && box.closest('.dd-canvas');
-    if(dd && window.ddEditState){
-      var prefix = dd.id === 'ddSquareCanvas' ? 'ddSquare' : (dd.id === 'ddHorizCanvas' ? 'ddHoriz' : '');
-      var key = box.dataset && box.dataset.key;
-      if(prefix && key && window.ddEditState[prefix] && window.ddEditState[prefix].products){
-        window.ddEditState[prefix].products[key] = { left:newL, top:newT, width:newW, height:newH };
-      }
-    }
-  }
-
-  // Capture-phase wheel override: removes old max-width / safe-zone scale limits.
-  document.addEventListener('wheel', function(e){
-    var box = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg), .dd-product');
-    if(!box) return;
-    if(e.target.closest && e.target.closest('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn')) return;
-    resizeBoxFromWheel(box, e.deltaY, e.clientX, e.clientY);
-    if(typeof showGuideWarningFor === 'function' && box.classList.contains('editor-item')){
-      try{ showGuideWarningFor(box); }catch(_){ }
-    }
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, {capture:true, passive:false});
-
-  // Capture-phase resize-handle override: also no upper limit.
-  var activeResize = null;
-  document.addEventListener('mousedown', function(e){
-    var handle = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg) .ctrl.resize, .dd-product::after');
-    var box = e.target && e.target.closest && e.target.closest('.editor-item:not(.editor-bg)');
-    if(!box || !(e.target.classList && e.target.classList.contains('resize'))) return;
-    activeResize = {
-      box: box,
-      sx: e.clientX,
-      sy: e.clientY,
-      w: parseFloat(box.style.width) || box.offsetWidth || 1,
-      h: parseFloat(box.style.height) || box.offsetHeight || 1
-    };
-    activeResize.ratio = activeResize.w / Math.max(1, activeResize.h);
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-
-  window.addEventListener('mousemove', function(e){
-    if(!activeResize) return;
-    var delta = Math.max(e.clientX - activeResize.sx, e.clientY - activeResize.sy);
-    var nw = Math.max(1, activeResize.w + delta);
-    var nh = Math.max(1, nw / Math.max(0.0001, activeResize.ratio));
-    activeResize.box.style.width = nw + 'px';
-    activeResize.box.style.height = nh + 'px';
-    if(activeResize.box.dataset){
-      activeResize.box.dataset.fixedW = String(Math.round(nw));
-      activeResize.box.dataset.fixedH = String(Math.round(nh));
-    }
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-
-  window.addEventListener('mouseup', function(e){
-    if(!activeResize) return;
-    activeResize = null;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-  }, true);
-})();
-</script>
-
-
-
-<!-- Assistant final fix: PC CTA export is drawn by Canvas, not html2canvas text baseline -->
-<script id="assistant-pc-cta-canvas-export-final-fix">
-(function(){
-  var FILE_LIMIT_BYTES = 200 * 1024;
-  var EXPORT_SCALE = 2;
-
-  function hexToRgbAny(value){
-    var s = String(value || '#ffffff').trim();
-    if(/^rgb/.test(s)){
-      var m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
-      if(m) return {r:+m[1], g:+m[2], b:+m[3]};
-    }
-    var h = s.replace('#','');
-    if(h.length === 3) h = h.split('').map(function(c){return c+c;}).join('');
-    return {
-      r: parseInt(h.slice(0,2),16) || 255,
-      g: parseInt(h.slice(2,4),16) || 255,
-      b: parseInt(h.slice(4,6),16) || 255
-    };
-  }
-
-  function toBlobAsync(canvas, type, quality){
-    return new Promise(function(resolve){ canvas.toBlob(function(blob){ resolve(blob); }, type, quality); });
-  }
-
-  function triggerDownload(blob, name){
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    if(/iPad|iPhone|iPod/.test(navigator.userAgent)) window.open(url, '_blank');
-    else a.click();
-    a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1200);
-  }
-
-  async function makeLimitedBlob(canvas){
-    var png = await toBlobAsync(canvas, 'image/png');
-    if(png && png.size <= FILE_LIMIT_BYTES) return {blob: png, ext: '.png', label: 'PNG'};
-    var low = 0.35, high = 0.98, best = null, bestQ = low;
-    for(var i=0; i<10; i++){
-      var q = (low + high) / 2;
-      var b = await toBlobAsync(canvas, 'image/jpeg', q);
-      if(b && b.size <= FILE_LIMIT_BYTES){ best = b; bestQ = q; low = q; }
-      else high = q;
-    }
-    if(best) return {blob: best, ext: '.jpg', label: 'JPG q' + bestQ.toFixed(2)};
-    var q2 = 0.34;
-    var last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    while(last && last.size > FILE_LIMIT_BYTES && q2 > 0.18){
-      q2 = Math.max(0.18, +(q2 - 0.04).toFixed(2));
-      last = await toBlobAsync(canvas, 'image/jpeg', q2);
-    }
-    return {blob: last, ext: '.jpg', label: 'JPG q' + q2.toFixed(2)};
-  }
-
-  function exportIgnore(el){
-    if(!el) return false;
-    if(el.closest && (el.closest('.json-toolbar') || el.closest('.manual-icon'))) return true;
-    if(!el.classList) return false;
-    return el.classList.contains('ctrl') ||
-      el.classList.contains('logo-edit-btn') ||
-      el.classList.contains('logo-swap-btn') ||
-      el.classList.contains('logo-delete-btn') ||
-      el.classList.contains('logo-white-btn') ||
-      el.classList.contains('toggle-tag') ||
-      el.classList.contains('panel') ||
-      el.classList.contains('bg-scale-panel') ||
-      el.classList.contains('dd-bg-scale-panel') ||
-      el.classList.contains('guide-line') ||
-      el.classList.contains('guide-warning') ||
-      el.classList.contains('guide-doc-overlay') ||
-      el.classList.contains('dd-guide-line') ||
-      el.classList.contains('dd-guide-warning') ||
-      el.classList.contains('float-meter') ||
-      el.classList.contains('modal') ||
-      el.classList.contains('nudge') ||
-      el.classList.contains('json-toolbar') ||
-      el.classList.contains('manual-icon') ||
-      el.classList.contains('brush-cursor') ||
-      el.classList.contains('ui-only');
-  }
-
-  function normalizeClone(clonedNode, canvasId){
-    if(!clonedNode) return;
-    clonedNode.style.overflow = 'hidden';
-    clonedNode.classList.add('hide-dd-icons');
-    clonedNode.querySelectorAll('.editor-item:not(.editor-bg) img, .dd-product img').forEach(function(img){
-      img.style.width = '100%';
-      img.style.height = '100%';
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
-      img.style.minWidth = '0';
-      img.style.minHeight = '0';
-      img.style.objectFit = 'contain';
-      img.style.display = 'block';
-      img.style.position = 'static';
-      img.style.left = 'auto';
-      img.style.top = 'auto';
-      img.style.transform = 'none';
-      img.style.imageRendering = 'auto';
-    });
-    clonedNode.querySelectorAll('.h1,.h2,.date,.dd-h1,.dd-h2,.dd-date,.cta,.dd-cta').forEach(function(el){
-      el.style.webkitFontSmoothing = 'antialiased';
-      el.style.textRendering = 'geometricPrecision';
-    });
-
-    // Critical: hide only PC CTA text/arrow in the html2canvas clone.
-    // The blue CTA block stays rendered by DOM; the text and arrow are redrawn with Canvas after snapshot.
-    if(canvasId === 'pcH' || canvasId === 'pcS'){
-      clonedNode.querySelectorAll('.cta .text, .cta .triangle').forEach(function(el){
-        el.style.setProperty('visibility', 'hidden', 'important');
-        el.style.setProperty('opacity', '0', 'important');
-      });
-    }
-  }
-
-  function getPcCtaInfo(node){
-    if(!node || !(node.id === 'pcH' || node.id === 'pcS')) return null;
-    var cta = node.querySelector('.cta');
-    if(!cta) return null;
-    var textEl = cta.querySelector('.text');
-    var tri = cta.querySelector('.triangle');
-    var nr = node.getBoundingClientRect();
-    var cr = cta.getBoundingClientRect();
-    var cs = getComputedStyle(cta);
-    var ts = getComputedStyle(textEl || cta);
-    var text = textEl ? (textEl.textContent || '').trim() : '';
-    if(!text) return null;
-    return {
-      text: text,
-      x: cr.left - nr.left,
-      y: cr.top - nr.top,
-      w: cr.width,
-      h: cr.height,
-      color: cs.color,
-      fontSize: parseFloat(ts.fontSize) || 11,
-      fontWeight: ts.fontWeight || '400',
-      fontFamily: ts.fontFamily || 'Arial, sans-serif',
-      gap: parseFloat(cs.gap) || 3,
-      triColor: cs.color,
-      triW: tri ? Math.max(3, tri.getBoundingClientRect().width || 4) : 4,
-      triH: tri ? Math.max(5, tri.getBoundingClientRect().height || 7) : 7
-    };
-  }
-
-  function drawPcCtaText(ctx, info){
-    if(!info) return;
-    ctx.save();
-    ctx.fillStyle = info.color;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.font = info.fontWeight + ' ' + info.fontSize + 'px ' + info.fontFamily;
-
-    var textW = ctx.measureText(info.text).width;
-    var triW = Math.max(4, info.triW || 4);
-    var triH = Math.max(7, info.triH || 7);
-    var gap = Math.max(3, info.gap || 3);
-    var groupW = textW + gap + triW;
-    var startX = info.x + (info.w - groupW) / 2;
-
-    // Canvas textBaseline='middle' uses actual font metrics, avoiding html2canvas baseline drift.
-    // This small optical correction matches the browser preview for Shopee/Noto CJK glyphs.
-    var centerY = info.y + info.h / 2 - 0.5;
-    ctx.fillText(info.text, startX, centerY);
-
-    var ax = startX + textW + gap;
-    var ay = info.y + info.h / 2;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay - triH / 2);
-    ctx.lineTo(ax, ay + triH / 2);
-    ctx.lineTo(ax + triW, ay);
-    ctx.closePath();
-    ctx.fillStyle = info.triColor || info.color;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  window.downloadJpgFor = async function(canvasId, bgColorInputId, filename){
-    if(window.__assistantDownloadInFlight) return;
-    window.__assistantDownloadInFlight = true;
-
-    var node = document.getElementById(canvasId);
-    if(!node){
-      window.__assistantDownloadInFlight = false;
-      if(typeof showToast === 'function') showToast('找不到畫布', 'err', 1600);
-      return;
-    }
-
-    try{ if(document.fonts && document.fonts.ready) await document.fonts.ready; }catch(_){ }
-
-    var exportW = Math.max(1, Math.round(node.clientWidth || node.offsetWidth || 1));
-    var exportH = Math.max(1, Math.round(node.clientHeight || node.offsetHeight || 1));
-    var bgValue = (document.getElementById(bgColorInputId) && document.getElementById(bgColorInputId).value) || getComputedStyle(node).backgroundColor || '#ffffff';
-    var pcCtaInfo = getPcCtaInfo(node);
-
-    try{
-      var snap = await html2canvas(node, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        allowTaint: false,
-        removeContainer: true,
-        logging: false,
-        letterRendering: true,
-        width: exportW,
-        height: exportH,
-        x: 0,
-        y: 0,
-        scrollX: 0,
-        scrollY: 0,
-        ignoreElements: exportIgnore,
-        onclone: function(doc){
-          doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-delete-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.dd-bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
-          normalizeClone(doc.getElementById(canvasId), canvasId);
-        }
-      });
-
-      var out = document.createElement('canvas');
-      out.width = exportW;
-      out.height = exportH;
-      var ctx = out.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
-      ctx.imageSmoothingQuality = 'high';
-      var rgb = hexToRgbAny(bgValue);
-      ctx.fillStyle = 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
-      ctx.fillRect(0, 0, exportW, exportH);
-      ctx.drawImage(snap, 0, 0, exportW, exportH);
-
-      // Draw PC CTA text after html2canvas so vertical centering is controlled by Canvas API.
-      drawPcCtaText(ctx, pcCtaInfo);
-
-      var base = String(filename || canvasId || 'banner').replace(/\.(png|jpg|jpeg)$/i, '');
-      var packed = await makeLimitedBlob(out);
-      if(!packed || !packed.blob) throw new Error('產生圖檔失敗');
-      triggerDownload(packed.blob, base + packed.ext);
-      if(typeof showToast === 'function'){
-        showToast('已下載：' + Math.round(packed.blob.size / 1024) + 'KB（≤200KB，' + packed.label + '，原尺寸 ' + exportW + '×' + exportH + '）', 'ok', 2600);
-      }
-    }catch(err){
-      console.error(err);
-      if(typeof showToast === 'function') showToast('下載失敗：' + (err && err.message ? err.message : err), 'err', 3200);
-    }finally{
-      window.__assistantDownloadInFlight = false;
-    }
-  };
-})();
-</script>
-
-
-
-<!-- Assistant patch: PC CTA export text adjusted for download -->
-<style id="pc-cta-export-text-download-adjust-style">
-/* 僅在匯出狀態調整 PC CTA 文字，不影響前端預覽 */
-.is-exporting #pcH .cta .text,
-.is-exporting #pcS .cta .text,
-.export-clone #pcH .cta .text,
-.export-clone #pcS .cta .text{
-  position:relative !important;
-  top:-1px !important;
-  transform:none !important;
-  line-height:1 !important;
-}
-</style>
-
-<script id="pc-cta-export-text-download-adjust-script">
-(function(){
-  if(window.__pcCtaExportUp2pxPatch) return;
-  window.__pcCtaExportUp2pxPatch = true;
-
-  function patchClonePcCta(doc){
-    try{
-      doc.querySelectorAll('#pcH .cta .text, #pcS .cta .text').forEach(function(el){
-        el.style.setProperty('position','relative','important');
-        el.style.setProperty('top','-1px','important');
-        el.style.setProperty('transform','none','important');
-        el.style.setProperty('line-height','1','important');
-      });
-    }catch(_){}
-  }
-
-  var oldHtml2Canvas = window.html2canvas;
-  if(typeof oldHtml2Canvas === 'function' && !oldHtml2Canvas.__pcCtaUp2Wrapped){
-    var wrapped = function(node, opts){
-      opts = opts || {};
-      var oldOnclone = opts.onclone;
-      opts.onclone = function(doc){
-        if(typeof oldOnclone === 'function') oldOnclone(doc);
-        patchClonePcCta(doc);
-      };
-      return oldHtml2Canvas(node, opts);
-    };
-    Object.keys(oldHtml2Canvas).forEach(function(k){ try{ wrapped[k] = oldHtml2Canvas[k]; }catch(_){} });
-    wrapped.__pcCtaUp2Wrapped = true;
-    window.html2canvas = wrapped;
-  }
-})();
-</script>
 </body>
