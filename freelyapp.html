@@ -2378,333 +2378,220 @@ setTimeout(()=>{
 
 /* ============================================
    MOBILE WIZARD MODE — phones only (≤480px)
-   5-step guided flow with progress bar
    ============================================ */
 @media(max-width:480px){
-  /* Hide entire desktop app */
   .app{ display:none !important; }
   .helpFloating{ display:none !important; }
+  .mob-wizard{ display:flex !important; }
 
-  /* Show wizard */
-  .mob-wizard{
-    display:flex !important;
-  }
-
-  /* Wizard shell */
   .mob-wizard{
     flex-direction:column;
     height:100dvh;
     background:#0b0e17;
     overflow:hidden;
     font-family:var(--font-sans,system-ui,sans-serif);
+    color:#dce7ff;
   }
 
-  /* Header */
+  /* ── Header (fixed height: ~80px) ── */
   .mob-header{
-    padding:10px 16px 8px;
-    flex-shrink:0;
+    flex:0 0 auto;
+    padding:12px 16px 10px;
     background:#0b0e17;
     border-bottom:1px solid rgba(255,255,255,.07);
   }
   .mob-brand{
-    font-size:11px;font-weight:900;letter-spacing:.08em;
-    color:rgba(141,211,255,.5);margin-bottom:8px;
+    font-size:10px;font-weight:900;letter-spacing:.1em;
+    color:rgba(141,211,255,.4);margin-bottom:8px;
+    text-transform:uppercase;
   }
-
-  /* Progress bar */
   .mob-progress{
-    display:flex;gap:5px;align-items:center;
-    margin-bottom:10px;
+    display:flex;gap:4px;margin-bottom:8px;
   }
   .mob-progress-step{
     flex:1;height:3px;border-radius:99px;
-    background:rgba(255,255,255,.1);
-    transition:background .3s;
+    background:rgba(255,255,255,.1);transition:background .3s;
   }
   .mob-progress-step.done{ background:#7cf0bd; }
   .mob-progress-step.active{ background:#8dd3ff; }
-
-  /* Step label */
   .mob-step-label{
-    display:flex;justify-content:space-between;align-items:center;
+    display:flex;justify-content:space-between;align-items:baseline;
   }
-  .mob-step-title{
-    font-size:16px;font-weight:900;color:#eef4ff;
-  }
-  .mob-step-count{
-    font-size:11px;color:#6a7892;font-weight:700;
-  }
+  .mob-step-title{ font-size:15px;font-weight:900;color:#eef4ff; }
+  .mob-step-count{ font-size:11px;color:#6a7892;font-weight:600; }
 
-  /* Content area */
+  /* ── Content (scrollable, takes remaining space) ── */
   .mob-content{
     flex:1;
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
-    padding:16px;
+    padding:14px 16px;
     min-height:0;
   }
 
-  /* Step panels */
   .mob-step{ display:none; }
   .mob-step.active{ display:block; }
-
-  /* Canvas step */
-  .mob-canvas-wrap{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:10px;
-  }
-  .mob-stage-shell{
-    width:100%;
-    max-height:calc(100dvh - 320px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
+  .mob-subtitle{
+    font-size:12px;color:#6a7892;margin-bottom:14px;line-height:1.5;
   }
 
-  /* Ratio selector */
+  /* ── Footer (fixed height: 56px) ── */
+  .mob-footer{
+    flex:0 0 auto;
+    padding:10px 16px;
+    padding-bottom:max(10px,env(safe-area-inset-bottom));
+    background:#0b0e17;
+    border-top:1px solid rgba(255,255,255,.07);
+    display:flex;gap:8px;
+  }
+  .mob-btn-back{
+    flex:0 0 80px;
+    padding:0 12px;
+    height:44px;
+    background:#1a1f2e;
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:12px;
+    color:#9aa3b2;
+    font-size:13px;font-weight:700;
+    cursor:pointer;
+  }
+  .mob-btn-next{
+    flex:1;
+    height:44px;
+    padding:0 12px;
+    background:linear-gradient(135deg,#4285f4,#8dd3ff);
+    border:0;border-radius:12px;
+    color:#fff;font-size:14px;font-weight:900;
+    cursor:pointer;transition:opacity .15s;
+  }
+  .mob-btn-next:active{ opacity:.85; }
+  .mob-btn-next:disabled{ opacity:.35;pointer-events:none; }
+
+  /* ── Step 1: Ratio ── */
   .mob-ratio-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
-    width:100%;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
   }
   .mob-ratio-card{
-    display:flex;flex-direction:column;align-items:center;gap:6px;
-    padding:12px 8px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    padding:16px 8px;
     border:1.5px solid rgba(255,255,255,.1);
-    border-radius:14px;
-    background:#11141c;
-    cursor:pointer;
-    transition:.15s;
+    border-radius:14px;background:#11141c;cursor:pointer;transition:.15s;
   }
   .mob-ratio-card.active{
-    border-color:#8dd3ff;
-    background:rgba(141,211,255,.08);
+    border-color:#8dd3ff;background:rgba(141,211,255,.08);
   }
-  .mob-ratio-card .r-thumb{
-    background:rgba(141,211,255,.2);
-    border-radius:4px;
+  .mob-ratio-card .r-label{ font-size:13px;font-weight:900;color:#dce7ff; }
+  .mob-ratio-card .r-desc{ font-size:11px;color:#6a7892; }
+
+  /* ── Step 2: Upload ── */
+  .mob-upload-area{
+    border:2px dashed rgba(141,211,255,.3);
+    border-radius:16px;
+    padding:28px 16px;
+    text-align:center;
+    background:rgba(141,211,255,.04);
+    cursor:pointer;margin-bottom:12px;transition:.15s;
   }
-  .mob-ratio-card .r-label{
-    font-size:12px;font-weight:800;color:#dce7ff;
+  .mob-upload-area:active{ background:rgba(141,211,255,.1); }
+  .mob-upload-icon{ font-size:36px;margin-bottom:8px; }
+  .mob-upload-text{ font-size:14px;font-weight:800;color:#8dd3ff; }
+  .mob-upload-sub{ font-size:11px;color:#6a7892;margin-top:4px; }
+  .mob-product-list{ display:flex;flex-direction:column;gap:8px; }
+  .mob-product-item{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 12px;
+    background:#11141c;border:1px solid rgba(255,255,255,.08);border-radius:12px;
   }
-  .mob-ratio-card .r-desc{
-    font-size:10px;color:#6a7892;
+  .mob-product-item img{
+    width:48px;height:48px;object-fit:contain;
+    border-radius:8px;background:#1a1f2e;flex-shrink:0;
+  }
+  .mob-product-name{ font-size:12px;font-weight:700;color:#dce7ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+  .mob-product-role{ font-size:10px;margin-top:2px; }
+
+  /* ── Step 3: Compose ── */
+  .mob-compose-panel{
+    background:rgba(141,211,255,.05);
+    border:1px solid rgba(141,211,255,.15);
+    border-radius:14px;padding:12px;margin-bottom:12px;
+  }
+  .mob-compose-title{ font-size:11px;font-weight:900;color:#8dd3ff;margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase; }
+  .mob-compose-btns{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;
+  }
+  .mob-compose-btns button{
+    padding:11px 6px;
+    border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;
+    border:1.5px solid;transition:.15s;
+  }
+  .mob-stage-wrap{
+    border-radius:14px;overflow:hidden;
+    background:#11141c;border:1px solid rgba(255,255,255,.08);
   }
 
-  /* Scene grid */
+  /* ── Step 4: Scene ── */
   .mob-scene-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;
   }
   .mob-scene-card{
     border:1.5px solid rgba(255,255,255,.1);
-    border-radius:14px;
-    background:#11141c;
-    overflow:hidden;
-    cursor:pointer;
-    transition:.15s;
+    border-radius:12px;background:#11141c;
+    overflow:hidden;cursor:pointer;transition:.15s;
   }
-  .mob-scene-card.active{
-    border-color:#8dd3ff;
-  }
-  .mob-scene-thumb{
-    height:64px;
-    background-size:cover;
-    background-position:center;
-  }
-  .mob-scene-thumb.white-thumb{ background:linear-gradient(135deg,#f5f7fa,#e8ecf2); }
+  .mob-scene-card.active{ border-color:#8dd3ff; }
+  .mob-scene-thumb{ height:56px;background-size:cover;background-position:center; }
+  .mob-scene-thumb.white-thumb{ background:linear-gradient(135deg,#f5f7fa,#e0e8f0); }
   .mob-scene-thumb.beige-thumb{ background:linear-gradient(135deg,#e8d5b7,#c9a87c); }
-  .mob-scene-thumb.clean-thumb{ background:linear-gradient(135deg,#ffffff,#f0f2f5); }
+  .mob-scene-thumb.clean-thumb{ background:linear-gradient(135deg,#fff,#f0f2f5); }
   .mob-scene-thumb.window-thumb{ background:linear-gradient(135deg,#2a1f3d,#1a1428); }
   .mob-scene-thumb.gradient-thumb{ background:linear-gradient(135deg,#667eea,#764ba2); }
   .mob-scene-thumb.season-thumb{ background:linear-gradient(135deg,#ff9a9e,#fecfef); }
   .mob-scene-thumb.tech-thumb{ background:linear-gradient(135deg,#2c3e50,#3498db); }
   .mob-scene-thumb.dark-thumb{ background:linear-gradient(135deg,#0a0a0a,#1a1a2e); }
   .mob-scene-thumb.lucky-thumb{ background:linear-gradient(135deg,#f7971e,#ffd200); }
-  .mob-scene-thumb.custom-thumb{
-    background:#11141c;
-    display:flex;align-items:center;justify-content:center;
-    font-size:28px;color:#8dd3ff;
-  }
-  .mob-scene-info{ padding:8px 10px; }
-  .mob-scene-name{ font-size:12px;font-weight:800;color:#dce7ff; }
-  .mob-scene-badge{ font-size:10px;font-weight:700;margin-top:2px; }
+  .mob-scene-thumb.custom-thumb{ background:#11141c;display:flex;align-items:center;justify-content:center;font-size:24px;color:#8dd3ff; }
+  .mob-scene-info{ padding:7px 9px; }
+  .mob-scene-name{ font-size:11px;font-weight:800;color:#dce7ff; }
+  .mob-scene-badge{ font-size:9px;font-weight:700;margin-top:2px; }
 
-  /* Product list */
-  .mob-product-list{
-    display:flex;flex-direction:column;gap:10px;
+  /* ── Step 5: Prompt ── */
+  .mob-platform-row{ display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px; }
+  .mob-platform-btn{
+    padding:11px 8px;border-radius:10px;
+    border:1.5px solid rgba(255,255,255,.1);
+    background:#11141c;font-size:12px;font-weight:800;
+    color:#6a7892;cursor:pointer;text-align:center;transition:.15s;
   }
-  .mob-product-item{
-    display:flex;align-items:center;gap:12px;
-    padding:10px 12px;
-    background:#11141c;
-    border:1px solid rgba(255,255,255,.08);
-    border-radius:14px;
-  }
-  .mob-product-item img{
-    width:52px;height:52px;
-    object-fit:contain;
-    border-radius:8px;
-    background:#1a1f2e;
-    flex-shrink:0;
-  }
-  .mob-product-info{ flex:1;min-width:0; }
-  .mob-product-name{
-    font-size:12px;font-weight:700;color:#dce7ff;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .mob-product-role{
-    font-size:10px;color:#6a7892;margin-top:2px;
-  }
-
-  /* Compose adjust panel */
-  .mob-compose-panel{
-    background:rgba(141,211,255,.05);
-    border:1px solid rgba(141,211,255,.15);
-    border-radius:16px;
-    padding:14px;
-    margin-bottom:12px;
-  }
-  .mob-compose-title{
-    font-size:12px;font-weight:900;color:#8dd3ff;
-    margin-bottom:10px;letter-spacing:.04em;
-  }
-
-  /* Prompt output */
+  .mob-platform-btn.active-gemini{ border-color:#4285f4;background:rgba(66,133,244,.1);color:#4285f4; }
+  .mob-platform-btn.active-chatgpt{ border-color:#10a37f;background:rgba(16,163,127,.1);color:#10a37f; }
   .mob-prompt-out{
-    width:100%;
-    min-height:200px;
-    max-height:calc(100dvh - 340px);
+    width:100%;height:180px;
     background:#0f1320;
     border:1px solid rgba(255,255,255,.1);
-    border-radius:14px;
-    padding:12px;
-    font-size:11px;
-    color:#9aa3b2;
-    line-height:1.6;
-    resize:none;
-    font-family:monospace;
-    overflow-y:auto;
-  }
-
-  /* Footer nav */
-  .mob-footer{
-    padding:8px 16px;
-    padding-bottom:max(8px, env(safe-area-inset-bottom));
-    background:#0b0e17;
-    border-top:1px solid rgba(255,255,255,.07);
-    display:flex;
-    gap:8px;
-    flex-shrink:0;
+    border-radius:12px;padding:10px;
+    font-size:10px;color:#9aa3b2;
+    line-height:1.6;resize:none;
+    font-family:monospace;overflow-y:auto;
     box-sizing:border-box;
   }
-  .mob-btn-back{
-    flex:0 0 auto;
-    padding:11px 16px;
-    background:#1a1f2e;
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:12px;
-    color:#9aa3b2;
-    font-size:13px;
-    font-weight:800;
-    cursor:pointer;
-  }
-  .mob-btn-next{
-    flex:1;
-    padding:12px;
+  .mob-step5-actions{ display:flex;flex-direction:column;gap:8px;margin-top:10px; }
+  .mob-step5-actions .btn-primary{
+    width:100%;padding:14px;
     background:linear-gradient(135deg,#4285f4,#8dd3ff);
-    border:0;
-    border-radius:12px;
-    color:#fff;
-    font-size:14px;
-    font-weight:900;
-    cursor:pointer;
-    transition:.15s;
+    border:0;border-radius:12px;
+    color:#fff;font-size:14px;font-weight:900;cursor:pointer;
   }
-  .mob-btn-next:active{ transform:scale(.97); }
-  .mob-btn-next.green{
-    background:linear-gradient(135deg,#00c853,#7cf0bd);
-    color:#06101a;
-  }
-  .mob-btn-next:disabled{
-    opacity:.4;
-    pointer-events:none;
-  }
-
-  /* Section subtitle */
-  .mob-subtitle{
-    font-size:12px;color:#6a7892;margin-bottom:12px;line-height:1.5;
-  }
-
-  /* Upload area */
-  .mob-upload-area{
-    border:2px dashed rgba(141,211,255,.3);
-    border-radius:16px;
-    padding:24px 16px;
-    text-align:center;
-    background:rgba(141,211,255,.04);
-    cursor:pointer;
-    margin-bottom:14px;
-    transition:.15s;
-  }
-  .mob-upload-area:active{ background:rgba(141,211,255,.08); }
-  .mob-upload-icon{ font-size:32px;margin-bottom:8px; }
-  .mob-upload-text{ font-size:13px;font-weight:700;color:#8dd3ff; }
-  .mob-upload-sub{ font-size:11px;color:#6a7892;margin-top:4px; }
-
-  /* Platform toggle */
-  .mob-platform-row{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;
-    margin-bottom:6px;
-  }
-  .mob-platform-btn{
-    padding:12px 8px;
-    border-radius:12px;
-    border:1.5px solid rgba(255,255,255,.1);
-    background:#11141c;
-    font-size:12px;font-weight:800;
-    color:#6a7892;cursor:pointer;
-    text-align:center;transition:.15s;
-  }
-  .mob-platform-btn.active-gemini{
-    border-color:#4285f4;
-    background:rgba(66,133,244,.1);
-    color:#4285f4;
-  }
-  .mob-platform-btn.active-chatgpt{
-    border-color:#10a37f;
-    background:rgba(16,163,127,.1);
-    color:#10a37f;
-  }
-  .mob-platform-desc{
-    font-size:10px;font-weight:700;
-    text-align:center;margin-top:3px;
-  }
-
-  /* Action buttons */
-  .mob-action-grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:8px;
-    margin-top:12px;
-  }
-  .mob-action-btn{
-    padding:13px 8px;
-    border-radius:12px;
+  .mob-step5-actions .btn-secondary{
+    width:100%;padding:13px;
+    background:#1a2236;
     border:1px solid rgba(255,255,255,.12);
-    background:#1a1f2e;
-    color:#dce7ff;
-    font-size:12px;font-weight:800;
-    cursor:pointer;text-align:center;
-    transition:.15s;
+    border-radius:12px;color:#dce7ff;font-size:14px;font-weight:800;cursor:pointer;
   }
-  .mob-action-btn:active{ background:#252b3a; }
-  .mob-action-btn.primary{
-    background:#0d1f18;
-    border-color:#10a37f;
-    color:#7cf0bd;
+  .mob-step5-actions .btn-back{
+    width:100%;padding:11px;
+    background:transparent;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;color:#6a7892;font-size:13px;font-weight:700;cursor:pointer;
   }
 }
 </style>
@@ -3763,13 +3650,13 @@ manualOverlay.addEventListener('click',(e)=>{
         <p class="mob-subtitle">拖曳商品調整位置，用兩指縮放。或選擇自動構圖。</p>
         <div class="mob-compose-panel">
           <div class="mob-compose-title">自動構圖</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <button onclick="document.getElementById('applyTriangle').click()" style="padding:11px;background:#1a2236;border:1.5px solid rgba(124,240,189,.3);border-radius:12px;color:#7cf0bd;font-size:12px;font-weight:800;cursor:pointer">△ 正三角</button>
-            <button onclick="document.getElementById('applyBookend').click()" style="padding:11px;background:#1a2236;border:1.5px solid rgba(255,209,102,.3);border-radius:12px;color:#ffd166;font-size:12px;font-weight:800;cursor:pointer">⊓ 直式V型</button>
+          <div class="mob-compose-btns">
+            <button onclick="document.getElementById('applyTriangle').click()" style="background:#1a2236;border-color:rgba(124,240,189,.4);color:#7cf0bd">△ 正三角</button>
+            <button onclick="document.getElementById('applyBookend').click()" style="background:#1a2236;border-color:rgba(255,209,102,.4);color:#ffd166">⊓ 直式V型</button>
           </div>
-          <button onclick="document.getElementById('shuffleTriangle').click()" style="width:100%;padding:10px;background:#1a2236;border:1px solid var(--line);border-radius:12px;color:#9aa3b2;font-size:12px;font-weight:700;cursor:pointer">⟳ 隨機切換</button>
+          <button onclick="document.getElementById('shuffleTriangle').click()" style="width:100%;padding:10px;background:#1a2236;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#9aa3b2;font-size:12px;font-weight:700;cursor:pointer">⟳ 隨機切換</button>
         </div>
-        <div style="border-radius:16px;overflow:hidden;background:#11141c;border:1px solid rgba(255,255,255,.08)">
+        <div class="mob-stage-wrap">
           <div id="mobStageMount"></div>
         </div>
       </div>
@@ -3788,31 +3675,27 @@ manualOverlay.addEventListener('click',(e)=>{
             </div>
           `).join('')}
         </div>
-        <div id="mobCustomSceneWrap" style="display:none;margin-top:12px">
-          <textarea id="mobCustomSceneInput" placeholder="輸入自訂場景，中文可以。建議只寫顏色、材質、光影、氛圍。" style="width:100%;padding:12px;background:#11141c;border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#dce7ff;font-size:12px;line-height:1.6;resize:none;height:80px;box-sizing:border-box"></textarea>
+        <div id="mobCustomSceneWrap" style="display:none;margin-top:10px">
+          <textarea id="mobCustomSceneInput" placeholder="輸入自訂場景，中文可以。建議只寫顏色、材質、光影、氛圍。" style="width:100%;padding:10px;background:#11141c;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#dce7ff;font-size:12px;line-height:1.6;resize:none;height:72px;box-sizing:border-box"></textarea>
         </div>
       </div>
 
       <!-- Step 5: Prompt -->
       <div class="mob-step" id="mobStep5">
-        <p class="mob-subtitle">選擇 AI 平台，複製 Prompt 後連同商品圖和 Layout PNG 一起貼上</p>
+        <p class="mob-subtitle">選擇 AI 平台，複製 Prompt 後連同商品圖和 Layout PNG 一起上傳給 AI</p>
         <div class="mob-platform-row">
-          <button class="mob-platform-btn active-gemini" id="mobBtnGemini" onclick="mobSetPlatform('gemini')">
-            Gemini / Imagen
-          </button>
-          <button class="mob-platform-btn" id="mobBtnChatGPT" onclick="mobSetPlatform('chatgpt')">
-            ChatGPT / DALL·E
-          </button>
+          <button class="mob-platform-btn active-gemini" id="mobBtnGemini" onclick="mobSetPlatform('gemini')">Gemini / Imagen</button>
+          <button class="mob-platform-btn" id="mobBtnChatGPT" onclick="mobSetPlatform('chatgpt')">ChatGPT / DALL·E</button>
         </div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:10px;font-weight:700;color:#7cf0bd;flex:1;text-align:center">推薦較可維持比例</div>
-          <div style="font-size:10px;font-weight:700;color:#ff8a8a;flex:1;text-align:center">可能造成比例移位</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;color:#7cf0bd;flex:1;text-align:center">推薦較可維持比例</div>
+          <div style="font-size:9px;font-weight:700;color:#ff8a8a;flex:1;text-align:center">可能造成比例移位</div>
         </div>
         <textarea class="mob-prompt-out" id="mobPromptOut" readonly></textarea>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
-          <button id="mobCopyBtn" onclick="mobCopyPrompt()" style="width:100%;padding:15px;background:linear-gradient(135deg,#4285f4,#8dd3ff);border:0;border-radius:14px;color:#fff;font-size:15px;font-weight:900;cursor:pointer">📋 複製 Prompt</button>
-          <button onclick="document.getElementById('exportLayout').click()" style="width:100%;padding:15px;background:linear-gradient(135deg,#1a2236,#252b3a);border:1px solid rgba(255,255,255,.15);border-radius:14px;color:#dce7ff;font-size:15px;font-weight:900;cursor:pointer">⬇ 下載 Layout PNG</button>
-          <button onclick="mobStepBack()" style="width:100%;padding:13px;background:transparent;border:1px solid rgba(255,255,255,.1);border-radius:14px;color:#6a7892;font-size:14px;font-weight:800;cursor:pointer;margin-top:4px">← 上一步</button>
+        <div class="mob-step5-actions">
+          <button class="btn-primary" id="mobCopyBtn" onclick="mobCopyPrompt()">📋 複製 Prompt</button>
+          <button class="btn-secondary" onclick="document.getElementById('exportLayout').click()">⬇ 下載 Layout PNG</button>
+          <button class="btn-back" onclick="mobStepBack()">← 上一步</button>
         </div>
       </div>
 
