@@ -2072,9 +2072,35 @@ document.getElementById('snapBase').onclick=()=>{
 
 
 async function exportLayoutPNG(){
-  const s=stage.getBoundingClientRect();
+  const dataUrl = await exportLayoutPNGDataUrl();
+  const isMobile = window.matchMedia('(max-width:480px)').matches;
+  if(isMobile){
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px;`;
+    overlay.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#8dd3ff;text-align:center;line-height:1.6">
+        📥 長按圖片 → 儲存到相簿<br>
+        <span style="font-size:11px;color:#6a7892">（iOS Safari 請長按後選「加入照片」）</span>
+      </div>
+      <img src="${dataUrl}" style="max-width:100%;max-height:60dvh;border-radius:12px;border:1px solid rgba(255,255,255,.15);display:block">
+      <button style="padding:12px 32px;background:#1a2236;border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#9aa3b2;font-size:14px;font-weight:700;cursor:pointer">關閉</button>
+    `;
+    overlay.querySelector('button').onclick = () => overlay.remove();
+    overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  } else {
+    const a = document.createElement('a');
+    a.download = 'layout-reference-'+selectedCanvasRatio.replace('/','x')+'.png';
+    a.href = dataUrl;
+    a.click();
+  }
+}
+
+async function exportLayoutPNGDataUrl(){
   const OUTPUT_W = 1200;
-  const OUTPUT_H = Math.round(OUTPUT_W / (s.width / s.height));
+  // Use ratio from selectedCanvasRatio — works even when stage is display:none on mobile
+  const ratio = ratioValue(selectedCanvasRatio);
+  const OUTPUT_H = Math.round(OUTPUT_W / (ratio > 0 ? ratio : 1));
   const canvas=document.createElement('canvas');
   canvas.width=OUTPUT_W;
   canvas.height=OUTPUT_H;
@@ -2135,10 +2161,7 @@ async function exportLayoutPNG(){
     ctx.restore();
   }
 
-  const a=document.createElement('a');
-  a.download='layout-reference-'+selectedCanvasRatio.replace('/','x')+'.png';
-  a.href=canvas.toDataURL('image/png');
-  a.click();
+  return canvas.toDataURL('image/png');
 }
 
 document.getElementById('exportLayout').onclick=()=>openOperationGuide('export');
@@ -2428,6 +2451,12 @@ setTimeout(()=>{
     padding:14px 16px;
     min-height:0;
   }
+  .mob-content.step3-active{
+    padding:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
 
   .mob-step{ display:none; }
   .mob-step.active{ display:block; }
@@ -2445,7 +2474,8 @@ setTimeout(()=>{
     display:flex;gap:8px;
   }
   .mob-btn-back{
-    flex:0 0 80px;
+    flex:4;
+    min-width:0;
     padding:0 12px;
     height:44px;
     background:#1a1f2e;
@@ -2454,15 +2484,18 @@ setTimeout(()=>{
     color:#9aa3b2;
     font-size:13px;font-weight:700;
     cursor:pointer;
+    white-space:nowrap;
   }
   .mob-btn-next{
-    flex:1;
+    flex:6;
+    min-width:0;
     height:44px;
     padding:0 12px;
     background:linear-gradient(135deg,#4285f4,#8dd3ff);
     border:0;border-radius:12px;
     color:#fff;font-size:14px;font-weight:900;
     cursor:pointer;transition:opacity .15s;
+    white-space:nowrap;
   }
   .mob-btn-next:active{ opacity:.85; }
   .mob-btn-next:disabled{ opacity:.35;pointer-events:none; }
@@ -3620,8 +3653,19 @@ manualOverlay.addEventListener('click',(e)=>{
 
     <div class="mob-content">
 
-      <!-- Step 1: Ratio -->
-      <div class="mob-step" id="mobStep1">
+      <!-- Step 1: Upload -->
+      <div class="mob-step active" id="mobStep1">
+        <p class="mob-subtitle">上傳 1–3 張商品圖片。建議使用去背的 PNG。</p>
+        <div class="mob-upload-area" id="mobUploadArea">
+          <div class="mob-upload-icon">📦</div>
+          <div class="mob-upload-text">點擊上傳商品圖片</div>
+          <div class="mob-upload-sub">PNG / JPG / WEBP，最多 3 張</div>
+        </div>
+        <div class="mob-product-list" id="mobProductList"></div>
+      </div>
+
+      <!-- Step 2: Ratio -->
+      <div class="mob-step" id="mobStep2">
         <p class="mob-subtitle">選擇這次要生成的圖片比例</p>
         <div class="mob-ratio-grid">
           ${RATIOS.map(r=>`
@@ -3634,30 +3678,19 @@ manualOverlay.addEventListener('click',(e)=>{
         </div>
       </div>
 
-      <!-- Step 2: Upload -->
-      <div class="mob-step" id="mobStep2">
-        <p class="mob-subtitle">上傳 1–3 張商品圖片。建議使用去背的 PNG。</p>
-        <div class="mob-upload-area" id="mobUploadArea">
-          <div class="mob-upload-icon">📦</div>
-          <div class="mob-upload-text">點擊上傳商品圖片</div>
-          <div class="mob-upload-sub">PNG / JPG / WEBP，最多 3 張</div>
+      <!-- Step 3: Compose — full bleed canvas with minimal controls -->
+      <div class="mob-step" id="mobStep3" style="display:none;flex-direction:column;height:100%;padding:0">
+        <!-- Minimal top bar: 3 buttons, no text wrapping -->
+        <div style="padding:0 12px;height:44px;flex-shrink:0;display:flex;gap:6px;align-items:center;justify-content:center;background:#0f1320;border-bottom:1px solid rgba(255,255,255,.07)">
+          <button onclick="document.getElementById('applyTriangle').click()" style="flex:1;height:32px;background:#162032;border:1.5px solid rgba(124,240,189,.3);border-radius:8px;color:#7cf0bd;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">△ 正三角</button>
+          <button onclick="document.getElementById('applyBookend').click()" style="flex:1;height:32px;background:#1e1a10;border:1.5px solid rgba(255,209,102,.3);border-radius:8px;color:#ffd166;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap">⊓ 直式V型</button>
+          <button onclick="document.getElementById('shuffleTriangle').click()" style="flex:0 0 32px;height:32px;background:#1a1f2e;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#9aa3b2;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">⟳</button>
+          <div style="width:1px;height:20px;background:rgba(255,255,255,.08);flex-shrink:0"></div>
+          <button onclick="document.getElementById('snapBase').click()" style="flex:0 0 32px;height:32px;background:#1a1f2e;border:1px solid rgba(255,255,255,.12);border-radius:8px;color:#9aa3b2;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="吸附底線">⊥</button>
         </div>
-        <div class="mob-product-list" id="mobProductList"></div>
-      </div>
-
-      <!-- Step 3: Compose -->
-      <div class="mob-step" id="mobStep3">
-        <p class="mob-subtitle">拖曳商品調整位置，用兩指縮放。或選擇自動構圖。</p>
-        <div class="mob-compose-panel">
-          <div class="mob-compose-title">自動構圖</div>
-          <div class="mob-compose-btns">
-            <button onclick="document.getElementById('applyTriangle').click()" style="background:#1a2236;border-color:rgba(124,240,189,.4);color:#7cf0bd">△ 正三角</button>
-            <button onclick="document.getElementById('applyBookend').click()" style="background:#1a2236;border-color:rgba(255,209,102,.4);color:#ffd166">⊓ 直式V型</button>
-          </div>
-          <button onclick="document.getElementById('shuffleTriangle').click()" style="width:100%;padding:10px;background:#1a2236;border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#9aa3b2;font-size:12px;font-weight:700;cursor:pointer">⟳ 隨機切換</button>
-        </div>
-        <div class="mob-stage-wrap">
-          <div id="mobStageMount"></div>
+        <!-- Canvas: zero padding, fills everything -->
+        <div id="mobStageWrap" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#0b0e17;overflow:hidden">
+          <div id="mobStageMount" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"></div>
         </div>
       </div>
 
@@ -3683,6 +3716,14 @@ manualOverlay.addEventListener('click',(e)=>{
       <!-- Step 5: Prompt -->
       <div class="mob-step" id="mobStep5">
         <p class="mob-subtitle">選擇 AI 平台，複製 Prompt 後連同商品圖和 Layout PNG 一起上傳給 AI</p>
+
+        <!-- Layout PNG preview (auto-generated on entering step 5) -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:#6a7892;margin-bottom:6px">Layout 參考圖（長按可儲存）</div>
+          <img id="mobLayoutPreview" src="" alt="Layout PNG"
+            style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.1);display:block;background:#11141c;min-height:80px">
+        </div>
+
         <div class="mob-platform-row">
           <button class="mob-platform-btn active-gemini" id="mobBtnGemini" onclick="mobSetPlatform('gemini')">Gemini / Imagen</button>
           <button class="mob-platform-btn" id="mobBtnChatGPT" onclick="mobSetPlatform('chatgpt')">ChatGPT / DALL·E</button>
@@ -3694,7 +3735,6 @@ manualOverlay.addEventListener('click',(e)=>{
         <textarea class="mob-prompt-out" id="mobPromptOut" readonly></textarea>
         <div class="mob-step5-actions">
           <button class="btn-primary" id="mobCopyBtn" onclick="mobCopyPrompt()">📋 複製 Prompt</button>
-          <button class="btn-secondary" onclick="exportLayoutPNG()">⬇ 下載 Layout PNG</button>
           <button class="btn-back" onclick="mobStepBack()">← 上一步</button>
         </div>
       </div>
@@ -3709,22 +3749,49 @@ manualOverlay.addEventListener('click',(e)=>{
   document.body.appendChild(wiz);
 
   // ── Step logic ──
-  const TITLES = ['選擇畫布比例','上傳商品圖片','調整構圖位置','選擇場景風格','生成 Prompt'];
-  const NEXT_LABELS = ['選好了 →','下一步 →','構圖完成 →','選好了 →','完成'];
+  const TITLES = ['上傳商品圖片','選擇畫布比例','調整構圖位置','選擇場景風格','生成 Prompt'];
+  const NEXT_LABELS = ['下一步 →','選好了 →','構圖完成 →','選好了 →','完成'];
 
   window.mobGoStep = function(n){
     if(n < 1 || n > 5) return;
 
-    // Step 3: move stage into wizard
+    // Step 3: move only the #stage element (not stageShell with all its desktop buttons)
     if(n === 3){
       const mount = document.getElementById('mobStageMount');
+      const stageEl = document.getElementById('stage');
       const stageShell = document.querySelector('.stageShell');
-      if(stageShell && mount && !mount.contains(stageShell)){
-        mount.appendChild(stageShell);
-        stageShell.style.width = '100%';
-        stageShell.style.maxWidth = '100%';
-        setTimeout(()=>{ if(typeof enforceSquareCanvas==='function') enforceSquareCanvas(); }, 50);
+      if(stageEl && mount && !mount.contains(stageEl)){
+        mount.appendChild(stageEl);
+        // Hide all desktop-only controls inside stagePanel
+        ['snapBase','toggleGrid','uploadLayoutStateBtn','uploadLayoutState',
+         'downloadLayoutState','clearAll'].forEach(id=>{
+          const el = document.getElementById(id);
+          if(el) el.closest('.toggleRow, .layoutStateRow, div, button')?.style && (el.style.display='none');
+        });
+        document.querySelectorAll('.toggleRow,.layoutStateRow').forEach(el=>el.style.display='none');
+        // Hide floatTip (scroll hint)
+        document.querySelector('.floatTip')?.style && (document.querySelector('.floatTip').style.display='none');
       }
+      // Compute canvas size: fill wrap width, derive height from ratio
+      const sizeCanvas = () => {
+        const wrap = document.getElementById('mobStageWrap');
+        if(!wrap) return;
+        const W = wrap.clientWidth;
+        const H = wrap.clientHeight;
+        if(!W || !H) return;
+        const ratio = ratioValue(selectedCanvasRatio);
+        let cW, cH;
+        if(ratio >= 1){ cW=W; cH=Math.round(W/ratio); if(cH>H){cH=H;cW=Math.round(H*ratio);} }
+        else           { cH=H; cW=Math.round(H*ratio); if(cW>W){cW=W;cH=Math.round(W/ratio);} }
+        if(stageEl){
+          stageEl.style.width  = cW+'px';
+          stageEl.style.height = cH+'px';
+          stageEl.style.borderRadius = '12px';
+          stageEl.style.overflow = 'hidden';
+        }
+      };
+      setTimeout(sizeCanvas, 30);
+      setTimeout(sizeCanvas, 200);
     }
 
     // Step 4: sync scene selection to desktop
@@ -3732,13 +3799,22 @@ manualOverlay.addEventListener('click',(e)=>{
       // already handled by scene click
     }
 
-    // Step 5: generate prompt
+    // Step 5: generate prompt + layout preview
     if(n === 5){
       if(typeof genAll === 'function') genAll();
-      setTimeout(()=>{
+      // Generate layout PNG as preview image
+      setTimeout(async ()=>{
         const out = document.getElementById('out');
         const mobOut = document.getElementById('mobPromptOut');
         if(out && mobOut) mobOut.value = out.value;
+
+        // Render layout PNG inline
+        try{
+          const preview = document.getElementById('mobLayoutPreview');
+          if(preview && typeof exportLayoutPNGDataUrl === 'function'){
+            preview.src = await exportLayoutPNGDataUrl();
+          }
+        } catch(e){ console.warn('Layout preview failed', e); }
       }, 100);
     }
 
@@ -3751,10 +3827,19 @@ manualOverlay.addEventListener('click',(e)=>{
       el.className = 'mob-progress-step' + (i < n ? ' done' : i === n ? ' active' : '');
     });
 
+    const content = wiz.querySelector('.mob-content');
+    if(content) content.classList.toggle('step3-active', n === 3);
+
     // Show/hide steps
     [1,2,3,4,5].forEach(i=>{
       const el = document.getElementById('mobStep'+i);
-      if(el) el.classList.toggle('active', i === n);
+      if(!el) return;
+      if(i === 3){
+        // Step 3 uses flex column to fill height
+        el.style.display = (i === n) ? 'flex' : 'none';
+      } else {
+        el.classList.toggle('active', i === n);
+      }
     });
 
     document.getElementById('mobStepTitle').textContent = TITLES[n-1];
