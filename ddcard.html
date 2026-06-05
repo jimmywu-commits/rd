@@ -6,7 +6,7 @@
 <title>DDCard 製圖工具</title>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="./banwords-engine-hbn.js?v=combined-bluronly-20260529"></script>
+<script src="./banwords-engine-hbn.js"></script>
 <style>
 @font-face{font-family:"ShopeeNotoSans-Content-M";src:url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype");font-weight:500;font-style:normal;font-display:swap;}
 @font-face{font-family:"ShopeeNotoSans-Content-B";src:url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype");font-weight:700;font-style:normal;font-display:swap;}
@@ -495,20 +495,23 @@ function showFloatMeter(el){
 }
 function processBanword(el){
   if(!window.banwordEngine||typeof window.banwordEngine.applyToElement!=='function')return;
-  var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText,force:true});
+  var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText});
   updateCounter(el);if(result&&result.message)showToast(result.message,'err',result.duration||4000);
 }
 function bindTextEl(el){
   if(el.dataset.tb==='1')return;el.dataset.tb='1';
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
-
-  // 輸入中只更新字數與浮動提示，不執行禁用語 / 金額 / 日期格式化。
   el.addEventListener('input',function(){
-    updateCounter(el);
-    showFloatMeter(el);
+    if(el.querySelectorAll('div').length>0){
+      var c=el.querySelector('.counter'),txt=(el.textContent||'').replace(/\u00A0/g,' ').trim();
+      el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
+    }
+    updateCounter(el);showFloatMeter(el);
+    // 內容有變就清 exempt（重新輸入才重置例外記錄）
+    var cur=(el.textContent||'').replace(/\n/g,'').trim();
+    if(cur!==el.__snapText){el.removeAttribute('data-dollar-exempt');el.__snapText=cur;}
   });
-
   el.addEventListener('beforeinput',function(e){
     if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();return;}
     var lim=DD_LIMITS[el.dataset.role];if(!lim||e.inputType==='insertFromPaste')return;
@@ -518,32 +521,32 @@ function bindTextEl(el){
       if(calcUnits(base+(e.data||''))>lim){e.preventDefault();showToast('超出上限（'+lim+'）','err',1800);}
     }
   });
-
   el.addEventListener('paste',function(e){
     e.preventDefault();
     var text=((e.clipboardData&&e.clipboardData.getData('text/plain'))||'')
       .replace(/[\u00A0\u2000-\u200B\u3000]/g,' ').replace(/[\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
     if(calcUnits(getRawText(el)+text)>(DD_LIMITS[el.dataset.role]||Infinity)){showToast('超出上限（'+(DD_LIMITS[el.dataset.role]||'∞')+'）','err',1800);return;}
-    try{if(document.execCommand('insertText',false,text)){updateCounter(el);showFloatMeter(el);return;}}catch(er){}
+    try{if(document.execCommand('insertText',false,text))return;}catch(er){}
     var sel=window.getSelection();
     if(sel&&sel.rangeCount){var range=sel.getRangeAt(0);range.deleteContents();var node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.setEndAfter(node);sel.removeAllRanges();sel.addRange(range);}
-    updateCounter(el);
-    showFloatMeter(el);
+    updateCounter(el);showFloatMeter(el);
+    clearTimeout(el._bwTimer);
+    el._bwTimer=setTimeout(function(){
+      processBanword(el);
+      updateCounter(el);
+    },0);
   });
-
-  // 游標離開編輯區後才整理 DOM 與執行禁用語 / 金額 / 日期格式化。
+  el.addEventListener('focus',function(){
+    clearTimeout(el._bwTimer);
+    // 記錄 focus 時的文字，供 input 時比對是否有變動
+    el.__snapText=(el.textContent||'').replace(/\n/g,'').trim();
+  });
   el.addEventListener('blur',function(){
     clearTimeout(el._bwTimer);
-
-    if(el.querySelectorAll('div').length>0){
-      var c=el.querySelector('.counter'),txt=(el.textContent||'').replace(/\u00A0/g,' ').trim();
-      el.innerHTML='';
-      if(txt)el.appendChild(document.createTextNode(txt));
-      if(c)el.appendChild(c);
-    }
-
-    processBanword(el);
-    updateCounter(el);
+    setTimeout(function(){
+      processBanword(el);
+      updateCounter(el);
+    },0);
   });
 }
 
@@ -891,6 +894,8 @@ window.downloadJpgFor=async function(canvasId,filename){
       width:node.clientWidth,height:node.clientHeight,x:0,y:0,scrollX:0,scrollY:0,
       ignoreElements:function(el){return !!(el.classList&&(el.classList.contains('dd-guide-line')||el.classList.contains('dd-guide-warning')||el.classList.contains('dd-bg-scale-panel')||el.classList.contains('ctrl')));},
       onclone:function(doc){
+      doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ if(typeof wrapEnUp==='function') wrapEnUp(el); });
+
         doc.querySelectorAll('.dd-guide-line,.dd-guide-warning,.dd-bg-scale-panel,.ctrl').forEach(function(el){el.remove();});
         var cn=doc.getElementById(canvasId);if(cn){cn.style.overflow='hidden';cn.classList.add('hide-dd-icons');}
         doc.querySelectorAll('.counter').forEach(function(c){c.style.display='none';});
@@ -1040,5 +1045,91 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
 })();
 </script>
+
+<!-- 右鍵選單：$ 例外管理 -->
+<style id="ctx-menu-style">
+#sba-ctx-menu {
+  position: fixed; z-index: 999999; background: #fff;
+  border: 1px solid #d0d0d0; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  padding: 4px 0; min-width: 196px; display: none;
+  font-family: "ShopeeNotoSans-Content-M","Noto Sans TC",Arial,sans-serif;
+  font-size: 13px; user-select: none;
+}
+#sba-ctx-menu .ctx-item {
+  padding: 9px 16px; cursor: pointer; color: #222;
+  white-space: nowrap; display: flex; align-items: center; gap: 8px;
+}
+#sba-ctx-menu .ctx-item.ctx-remove:hover  { background: #fff3f3; color: #d0021b; }
+#sba-ctx-menu .ctx-item.ctx-restore:hover { background: #f0f9f0; color: #2a7d2a; }
+</style>
+<div id="sba-ctx-menu">
+  <div class="ctx-item ctx-remove"  id="ctx-remove-dollar">&#x2298;&#xA0;&#xA0;移除 $ 與千分位（本次例外）</div>
+  <div class="ctx-item ctx-restore" id="ctx-restore-dollar" style="display:none">&#x25CE;&#xA0;&#xA0;恢復 $ 與千分位</div>
+</div>
+<script id="sba-ctx-menu-script">
+(function(){
+  if(window.__SBA_CTX_MENU__)return;
+  window.__SBA_CTX_MENU__=true;
+  var menu=document.getElementById('sba-ctx-menu');
+  var btnRemove=document.getElementById('ctx-remove-dollar');
+  var btnRestore=document.getElementById('ctx-restore-dollar');
+  var savedRange=null,targetEl=null,selectedRaw='';
+  function hideMenu(){menu.style.display='none';savedRange=null;targetEl=null;selectedRaw='';}
+  function getExempt(el){try{return JSON.parse(el.dataset.dollarExempt||'[]');}catch(_){return[];}}
+  function setExempt(el,list){if(list.length)el.dataset.dollarExempt=JSON.stringify(list);else el.removeAttribute('data-dollar-exempt');}
+  function cleanNum(t){return t.replace(/[$,]/g,'').trim();}
+  function isNumeric(t){var c=cleanNum(t);return /^\d+$/.test(c)&&c.length>0;}
+  function addThousands(d){return String(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function fmtDollar(n){return '$'+(n.length>=4?addThousands(n):n);}
+  function replaceSelection(text){
+    var sel=window.getSelection();
+    sel.removeAllRanges();sel.addRange(savedRange);
+    try{document.execCommand('insertText',false,text);}
+    catch(_){savedRange.deleteContents();var node=document.createTextNode(text);savedRange.insertNode(node);sel.removeAllRanges();sel.collapse(node,node.length);}
+  }
+  document.addEventListener('contextmenu',function(e){
+    var el=e.target&&e.target.closest?e.target.closest('[contenteditable="true"]'):null;
+    if(!el){hideMenu();return;}
+    var sel=window.getSelection(),txt=sel?sel.toString():'';
+    if(!txt||!isNumeric(txt)){hideMenu();return;}
+    e.preventDefault();
+    if(sel.rangeCount>0)savedRange=sel.getRangeAt(0).cloneRange();
+    targetEl=el;selectedRaw=txt;
+    var clean=cleanNum(txt),exempt=getExempt(el);
+    var alreadyExempt=exempt.indexOf(clean)!==-1,hasDollar=txt.indexOf('$')!==-1;
+    if(alreadyExempt||!hasDollar){btnRemove.style.display='none';btnRestore.style.display='';}
+    else{btnRemove.style.display='';btnRestore.style.display='none';}
+    menu.style.display='block';
+    var x=e.clientX,y=e.clientY;
+    if(x+210>window.innerWidth)x=window.innerWidth-218;
+    if(y+70>window.innerHeight)y=window.innerHeight-78;
+    menu.style.left=x+'px';menu.style.top=y+'px';
+  },true);
+  btnRemove.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(!savedRange||!targetEl){hideMenu();return;}
+    var clean=cleanNum(selectedRaw);if(!clean){hideMenu();return;}
+    replaceSelection(clean);
+    var list=getExempt(targetEl);if(list.indexOf(clean)===-1)list.push(clean);
+    setExempt(targetEl,list);
+    if(typeof updateCounter==='function')updateCounter(targetEl);
+    hideMenu();
+  });
+  btnRestore.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(!savedRange||!targetEl){hideMenu();return;}
+    var clean=cleanNum(selectedRaw);if(!clean){hideMenu();return;}
+    setExempt(targetEl,getExempt(targetEl).filter(function(n){return n!==clean;}));
+    replaceSelection(fmtDollar(clean));
+    if(typeof updateCounter==='function')updateCounter(targetEl);
+    hideMenu();
+  });
+  document.addEventListener('mousedown',function(e){if(!menu.contains(e.target))hideMenu();},true);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')hideMenu();});
+  window.addEventListener('scroll',hideMenu,true);
+})();
+</script>
+
 </body>
 </html>

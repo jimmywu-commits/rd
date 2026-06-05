@@ -24,36 +24,10 @@ function wrapEnUp(el){
   el.innerHTML = wrapped;
 }
 
-document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
-  el.addEventListener('blur', ()=>{
-    wrapEnUp(el);
-
-    // After wrapEnUp() rewrites innerHTML for English/number vertical alignment,
-    // re-run the banword/numeric formatter so thousands separators and counters
-    // are restored consistently across browsers/contenteditable DOM variants.
-    requestAnimationFrame(()=>{
-      try{
-        if(typeof processBanwordElement === 'function'){
-          processBanwordElement(el);
-        }else if(window.banwordEngine && typeof window.banwordEngine.applyToElement === 'function'){
-          window.banwordEngine.applyToElement(el, {
-            role: el && el.dataset ? (el.dataset.role || '') : '',
-            force: true
-          });
-        }
-        if(typeof updateCounter === 'function') updateCounter(el);
-        if(typeof syncPcText === 'function') syncPcText();
-        if(typeof syncPcSText === 'function') syncPcSText();
-        if(window.syncDdLinkedCanvases) window.syncDdLinkedCanvases();
-      }catch(err){
-        console.warn('[hbn] contenteditable blur reformat failed', err);
-      }
-    });
-  });
-});
+// wrapEnUp 只在匯出的 onclone 中對 clone 呼叫，不動原始 DOM
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="./banwords-engine-hbn.js?v=combined-bluronly-20260529"></script>
+<script src="./banwords-engine-hbn.js"></script>
 <style>
   @font-face {font-family: "ShopeeNotoSans-Content-M"; src: url("字體/ShopeeNotoSans(content)-Medium.ttf") format("truetype"); font-weight: 500; font-style: normal; font-display: swap;}
   @font-face {font-family: "ShopeeNotoSans-Content-B"; src: url("字體/ShopeeNotoSans(content)-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap;}
@@ -3193,7 +3167,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   function updateLs(){ const n = lsPanel && lsPanel.querySelector ? lsPanel.querySelector('.ls-val') : null; if(!n) return; if(!activeEl){ n.textContent='--'; return; } let ls = getComputedStyle(activeEl).letterSpacing; if(ls==='normal'||!ls) ls='0px'; n.textContent = Math.round(parseFloat(ls)) + 'px'; }
 
   const floatMeter = document.getElementById('floatMeter');
-  function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\u200B/g,'').replace(/\n/g,''); }
+  function getRawText(el){ const clone = el.cloneNode(true); clone.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove()); return clone.textContent.replace(/\n/g,''); }
   const hanRegex = /\p{Script=Han}/u;
   function calcUnits(str){ let units = 0; for(const ch of str){ units += hanRegex.test(ch) ? 1 : 0.5; } return units; }
   const limits = new Map([ ['h1',8], ['h2',7], ['date',14] ]);
@@ -3272,8 +3246,9 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
   document.querySelectorAll('[contenteditable="true"]').forEach(el=>{
     el.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); }});
 
-    // 改為 blur 後才整理 DOM，避免使用者輸入中被即時改寫內容
-    el.addEventListener('blur', ()=>{
+    // 全刪後瀏覽器會產生巢狀 <div><br></div>，造成欄位跳成兩行高度
+    // 在每次 input 後偵測並攤平，確保只保留純文字與 .counter
+    el.addEventListener('input', ()=>{
       const childDivs = el.querySelectorAll('div');
       if(childDivs.length === 0) return;
 
@@ -3285,6 +3260,20 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
         el.appendChild(document.createTextNode(rawText));
       }
       if(counter) el.appendChild(counter);
+
+      // 游標移到文字末尾
+      const sel = window.getSelection();
+      const range = document.createRange();
+      const textNode = el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild : null;
+      if(textNode){
+        range.setStart(textNode, textNode.length);
+        range.collapse(true);
+      }else{
+        range.selectNodeContents(el);
+        range.collapse(false);
+      }
+      sel.removeAllRanges();
+      sel.addRange(range);
     });
   });
   function ensureCounter(el){ let c = el.querySelector('.counter'); if(!c){ c = document.createElement('span'); c.className='counter'; c.setAttribute('aria-hidden','true'); el.appendChild(c); } return c; }
@@ -3294,8 +3283,7 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
     if(!window.banwordEngine || typeof window.banwordEngine.applyToElement !== 'function') return;
     const result = window.banwordEngine.applyToElement(el, {
       role: el?.dataset?.role || '',
-      getText: getRawText,
-      force: true
+      getText: getRawText
     });
     ensureCounter(el);
     updateCounter(el);
@@ -3373,16 +3361,30 @@ bindColor('bg-color-s','#square','backgroundColor', (val)=>{
       updateCounter(el); showFloatMeter(el);
     });
 
+    // 記錄 focus 時文字；input 時內容有變才清 exempt
+    let __snapText = '';
+    el.addEventListener('focus', ()=>{
+      __snapText = el.textContent.replace(/\n/g,'').trim();
+    });
+    el.addEventListener('input', ()=>{
+      const cur = el.textContent.replace(/\n/g,'').trim();
+      if (cur !== __snapText) {
+        el.removeAttribute('data-dollar-exempt');
+        __snapText = cur;
+      }
+    });
     el.addEventListener('blur', ()=>{
-      processBanwordElement(el);
+      setTimeout(()=>{
+        processBanwordElement(el);
 
-      if(role==='h1') el.style.lineHeight='53px';
-      if(role==='h2') el.style.lineHeight='40px';
-      if(role==='date') el.style.lineHeight='49px';
+        if(role==='h1') el.style.lineHeight='53px';
+        if(role==='h2') el.style.lineHeight='40px';
+        if(role==='date') el.style.lineHeight='49px';
 
-      updateCounter(el);
-      syncPcText();
-      syncPcSText();
+        updateCounter(el);
+        syncPcText();
+        syncPcSText();
+      }, 0);
     });
   });
 
@@ -5368,6 +5370,8 @@ backBtn.addEventListener('click', ()=>{
       scrollY: 0,
       ignoreElements: exportIgnore,
       onclone: (doc)=>{
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove());
         doc.body.classList.add('export-clone');
 
@@ -7808,6 +7812,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('ctrl');
       },
       onclone: function(doc){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode) clonedNode.style.overflow = 'hidden';
@@ -7951,6 +7957,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       await exportNodeExact(node, bgColorInputId, filename, {
         onclone: function(doc, clonedNode){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           if(isHbn){
             applyHbnCloneOverlay(clonedNode, locks);
           }
@@ -8080,34 +8088,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function ensureEditablePlaceholder(el){
     if(!el || !isVisuallyEmpty(el)) return;
-
-    // Do not insert <br> into empty contenteditable fields. In flex-based subtitle
-    // fields, <br> can be treated as an extra line after the user deletes all text,
-    // causing newly typed text to jump upward. Use a zero-width space only as a
-    // temporary caret anchor, and keep .counter intact.
     const counter = el.querySelector('.counter');
-    el.innerHTML = '';
-    const zwsp = document.createTextNode('\u200B');
-    el.appendChild(zwsp);
-    if(counter) el.appendChild(counter);
-
-    const range = document.createRange();
-    const sel = window.getSelection();
-    range.setStart(zwsp, 1);
-    range.collapse(true);
-    sel.removeAllRanges();
-    sel.addRange(range);
+    if(counter){
+      el.insertBefore(document.createElement('br'), counter);
+    }else{
+      el.innerHTML = '<br>';
+    }
+    placeCaretAtStart(el);
   }
 
   function cleanupEditablePlaceholder(el){
     if(!el) return;
-    const counter = el.querySelector('.counter');
-    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).replace(/\u200B/g,'').trim();
+    const raw = (typeof getRawText === 'function' ? getRawText(el) : (el.textContent || '')).trim();
     if(raw !== '') return;
-
-    // Clear temporary caret anchors and stray browser-created line breaks/divs.
-    el.innerHTML = '';
-    if(counter) el.appendChild(counter);
+    el.querySelectorAll('br').forEach(function(br){ br.remove(); });
+    const html = (el.innerHTML || '')
+      .replace(/<span\b[^>]*class=["'][^"']*counter[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '')
+      .replace(/&nbsp;/gi, ' ')
+      .trim();
+    if(html === ''){
+      el.innerHTML = '';
+      const counter = el.querySelector('.counter');
+      if(counter) el.appendChild(counter);
+    }
   }
 
   function bindEmptyCaretFix(el){
@@ -8207,6 +8210,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('ctrl');
       },
       onclone: function(doc){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag,.dd-guide-line,.dd-guide-warning').forEach(el => el.remove());
         const clonedNode = doc.getElementById(node.id);
         if(clonedNode){
@@ -8402,6 +8407,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(canvasId);
           if(clonedNode){
@@ -10441,6 +10448,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(el => el.remove());
           const clonedNode = doc.getElementById(node.id);
           if(clonedNode){
@@ -10683,6 +10692,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scrollY: 0,
         ignoreElements: exportIgnoreStrict,
         onclone: function(doc){
+        doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
+
           doc.querySelectorAll('.ctrl,.logo-edit-btn,.logo-swap-btn,.logo-white-btn,.toggle-tag,.panel,.bg-scale-panel,.guide-line,.guide-warning,.guide-doc-overlay,.dd-guide-line,.dd-guide-warning,.float-meter,.modal,.nudge,.json-toolbar,.manual-icon,.brush-cursor,.ui-only').forEach(function(el){ el.remove(); });
           const clonedNode = doc.getElementById(node.id);
           if(!clonedNode) return;
@@ -14516,8 +14527,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 <!-- /Jimmy patch: floating history buttons on right canvas -->
 
-</body>
-</html>
 
 <style id="hbn-bgscale-topbar-fix">
   .hbn-bgscale-topbar{
@@ -15280,6 +15289,96 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </script>
 
 <!-- ===== 背景圖庫 Script ===== -->
+
+
+<!-- 右鍵選單：$ 例外管理 -->
+<style id="ctx-menu-style">
+#sba-ctx-menu {
+  position: fixed; z-index: 999999; background: #fff;
+  border: 1px solid #d0d0d0; border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+  padding: 4px 0; min-width: 196px; display: none;
+  font-family: "ShopeeNotoSans-Content-M","Noto Sans TC",Arial,sans-serif;
+  font-size: 13px; user-select: none;
+}
+#sba-ctx-menu .ctx-item {
+  padding: 9px 16px; cursor: pointer; color: #222;
+  white-space: nowrap; display: flex; align-items: center; gap: 8px;
+}
+#sba-ctx-menu .ctx-item.ctx-remove:hover  { background: #fff3f3; color: #d0021b; }
+#sba-ctx-menu .ctx-item.ctx-restore:hover { background: #f0f9f0; color: #2a7d2a; }
+</style>
+<div id="sba-ctx-menu">
+  <div class="ctx-item ctx-remove"  id="ctx-remove-dollar">&#x2298;&#xA0;&#xA0;移除 $ 與千分位（本次例外）</div>
+  <div class="ctx-item ctx-restore" id="ctx-restore-dollar" style="display:none">&#x25CE;&#xA0;&#xA0;恢復 $ 與千分位</div>
+</div>
+<script id="sba-ctx-menu-script">
+(function(){
+  if(window.__SBA_CTX_MENU__) return;
+  window.__SBA_CTX_MENU__=true;
+  var menu=document.getElementById('sba-ctx-menu');
+  var btnRemove=document.getElementById('ctx-remove-dollar');
+  var btnRestore=document.getElementById('ctx-restore-dollar');
+  var savedRange=null,targetEl=null,selectedRaw='';
+  function hideMenu(){menu.style.display='none';savedRange=null;targetEl=null;selectedRaw='';}
+  function getExempt(el){try{return JSON.parse(el.dataset.dollarExempt||'[]');}catch(_){return[];}}
+  function setExempt(el,list){if(list.length)el.dataset.dollarExempt=JSON.stringify(list);else el.removeAttribute('data-dollar-exempt');}
+  function cleanNum(t){return t.replace(/[$,]/g,'').trim();}
+  function isNumeric(t){var c=cleanNum(t);return /^\d+$/.test(c)&&c.length>0;}
+  function addThousands(d){return String(d).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+  function fmtDollar(n){return '$'+(n.length>=4?addThousands(n):n);}
+  function replaceSelection(text){
+    var sel=window.getSelection();
+    sel.removeAllRanges();sel.addRange(savedRange);
+    try{document.execCommand('insertText',false,text);}
+    catch(_){savedRange.deleteContents();var node=document.createTextNode(text);savedRange.insertNode(node);sel.removeAllRanges();sel.collapse(node,node.length);}
+  }
+  document.addEventListener('contextmenu',function(e){
+    var el=e.target&&e.target.closest?e.target.closest('[contenteditable="true"]'):null;
+    if(!el){hideMenu();return;}
+    var sel=window.getSelection(),txt=sel?sel.toString():'';
+    if(!txt||!isNumeric(txt)){hideMenu();return;}
+    e.preventDefault();
+    if(sel.rangeCount>0)savedRange=sel.getRangeAt(0).cloneRange();
+    targetEl=el;selectedRaw=txt;
+    var clean=cleanNum(txt),exempt=getExempt(el);
+    var alreadyExempt=exempt.indexOf(clean)!==-1,hasDollar=txt.indexOf('$')!==-1;
+    if(alreadyExempt||!hasDollar){btnRemove.style.display='none';btnRestore.style.display='';}
+    else{btnRemove.style.display='';btnRestore.style.display='none';}
+    menu.style.display='block';
+    var x=e.clientX,y=e.clientY;
+    if(x+210>window.innerWidth)x=window.innerWidth-218;
+    if(y+70>window.innerHeight)y=window.innerHeight-78;
+    menu.style.left=x+'px';menu.style.top=y+'px';
+  },true);
+  btnRemove.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(!savedRange||!targetEl){hideMenu();return;}
+    var clean=cleanNum(selectedRaw);if(!clean){hideMenu();return;}
+    replaceSelection(clean);
+    var list=getExempt(targetEl);if(list.indexOf(clean)===-1)list.push(clean);
+    setExempt(targetEl,list);
+    if(typeof updateCounter==='function')updateCounter(targetEl);
+    if(typeof syncPcText==='function')syncPcText();
+    if(typeof syncPcSText==='function')syncPcSText();
+    hideMenu();
+  });
+  btnRestore.addEventListener('click',function(e){
+    e.stopPropagation();
+    if(!savedRange||!targetEl){hideMenu();return;}
+    var clean=cleanNum(selectedRaw);if(!clean){hideMenu();return;}
+    setExempt(targetEl,getExempt(targetEl).filter(function(n){return n!==clean;}));
+    replaceSelection(fmtDollar(clean));
+    if(typeof updateCounter==='function')updateCounter(targetEl);
+    if(typeof syncPcText==='function')syncPcText();
+    if(typeof syncPcSText==='function')syncPcSText();
+    hideMenu();
+  });
+  document.addEventListener('mousedown',function(e){if(!menu.contains(e.target))hideMenu();},true);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')hideMenu();});
+  window.addEventListener('scroll',hideMenu,true);
+})();
+</script>
 
 </body>
 </html>
