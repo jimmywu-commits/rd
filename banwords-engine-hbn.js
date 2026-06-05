@@ -240,7 +240,6 @@
     }
 
     out = out.replace(/\u00A0/g, ' ');
-    out = out.replace(/\s{2,}/g, ' ');
 
     return out;
   }
@@ -248,37 +247,33 @@
   function applyStandardNumericRules(text, options){
     let out = String(text || '');
 
+    // 斜線日期保護：MM/DD 及 MM/DD - MM/DD
     const slashDateMap = [];
     out = out.replace(/\b0*\d{1,2}\/0*\d{1,2}(?:\s*-\s*0*\d{1,2}\/0*\d{1,2})?\b/g, function(match){
-      const normalized = match.replace(/\s*-\s*/g, ' - ');
+      const normalized = match.replace(/[ \t]*-[ \t]*/g, ' - ');
       const key = makeAlphaToken('SLASHDATE', slashDateMap.length);
-      slashDateMap.push({
-        token: key,
-        value: normalized
-      });
+      slashDateMap.push({ token: key, value: normalized });
       return key;
     });
 
+    // 冒號時間保護：HH:MM 前後最多2位數不加 $
+    out = out.replace(/(\d{1,2}):(\d{1,2})/g, function(match){
+      const key = makeAlphaToken('SLASHDATE', slashDateMap.length);
+      slashDateMap.push({ token: key, value: match });
+      return key;
+    });
+
+    // 百分比保護
     const percentMap = [];
     out = out.replace(/\b(\d{1,2})%/g, function(match){
       const key = makeAlphaToken('PERCENT', percentMap.length);
-      percentMap.push({
-        token: key,
-        value: match
-      });
+      percentMap.push({ token: key, value: match });
       return key;
     });
 
     const protectedMap = [];
 
-    // 保護「冒號時間格式」：冒號前後最多2位數不加 $（如 10:30、9:00、限時9:00截止）
-    out = out.replace(/(\d{1,2}):(\d{1,2})/g, function(match){
-      const key = makeAlphaToken('COLONTIME', protectedMap.length);
-      protectedMap.push({ token: key, value: match });
-      return key;
-    });
-
-    // 優先保護「已有 $ 前綴的數字」，同時補千分位（$1111 → $1,111）
+    // 優先保護「已有 $ 前綴的數字」，同時補千分位
     out = out.replace(/\$([\d,]+)/g, function(match, digits){
       const clean = digits.replace(/,/g, '');
       if (!/^\d+$/.test(clean)) return match;
@@ -288,11 +283,11 @@
       return key;
     });
 
-    // 保護 dollarExempt 清單中的數字（使用者主動移除 $，直到主動解除）
+    // 保護 dollarExempt 清單中的數字
     const exemptList = (options && options.dollarExempt) || [];
     if (exemptList.length > 0) {
       const exemptPattern = new RegExp(
-        '(?<![\\d$])(' + exemptList.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?!\\d)',
+        '(?<![\\d$])(' + exemptList.map(function(n){ return n.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&'); }).join('|') + ')(?!\\d)',
         'g'
       );
       out = out.replace(exemptPattern, function(match){
@@ -302,80 +297,56 @@
       });
     }
 
-    // 保護「數字+折」「數字+件/組/個」：個位數或雙位數後接「折、件、組、個」，不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件組個入盒包罐台支雙])/g, function(match, prefix, digits){
+    // 保護「數字+折/件/組/個...」
+    out = out.replace(/(^|[^\d$,\x00])(\d{1,2})(?=[折件組個入盒包罐台支雙])/g, function(match, prefix, digits){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: prefix + digits
-      });
+      protectedMap.push({ token: key, value: prefix + digits });
       return key;
     });
 
-    // 保護「數字+加+數字」：如 1加1、2加1，不強加 $ 符號
-    out = out.replace(/(^|[^\d$,])(\d+)(加)(\d+)/g, function(match, prefix, left, mid, right){
+    // 保護「數字+加+數字」
+    out = out.replace(/(^|[^\d$,\x00])(\d+)(加)(\d+)/g, function(match, prefix, left, mid, right){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: prefix + left + mid + right
-      });
+      protectedMap.push({ token: key, value: prefix + left + mid + right });
       return key;
     });
 
-    // 保護「買數字送數字」：如 買1送1、買2送1，不強加 $ 符號
+    // 保護「買數字送數字」
     out = out.replace(/(買)(\d+)(送)(\d+)/g, function(match, buy, left, give, right){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: buy + left + give + right
-      });
+      protectedMap.push({ token: key, value: buy + left + give + right });
       return key;
     });
 
+    // 蝦幣
     out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
       const formatted = keyword + formatNumericToken(digits, false);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: formatted
-      });
+      protectedMap.push({ token: key, value: formatted });
       return key;
     });
-
-    out = out.replace(/(^|[^\d,])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
+    out = out.replace(/(^|[^\d,\x00])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
       const formatted = prefix + formatNumericToken(digits, false) + keyword;
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: formatted
-      });
+      protectedMap.push({ token: key, value: formatted });
       return key;
     });
 
-    out = out.replace(/\$(\d[\d,]*)\b/g, function(match, digits){
-      return '$' + formatNumericToken(digits, false);
-    });
-
-    out = out.replace(/(^|[^\d$,])(\d[\d,]*)(?=$|[^\d,])/g, function(match, prefix, digits){
+    // 加 $ 和千分位到所有裸數字
+    out = out.replace(/(^|[^\d$,\x00])(\d[\d,]*)(?=$|[^\d,])/g, function(match, prefix, digits){
       const clean = String(digits || '').replace(/,/g, '');
       if (!/^\d+$/.test(clean)) return match;
       return prefix + formatNumericToken(clean, true);
     });
 
-    protectedMap.forEach(function(item){
-      out = out.split(item.token).join(item.value);
-    });
-
-    percentMap.forEach(function(item){
-      out = out.split(item.token).join(item.value);
-    });
-
-    slashDateMap.forEach(function(item){
-      out = out.split(item.token).join(item.value);
-    });
+    // 還原所有保護的 token
+    protectedMap.forEach(function(item){ out = out.split(item.token).join(item.value); });
+    percentMap.forEach(function(item){   out = out.split(item.token).join(item.value); });
+    slashDateMap.forEach(function(item){ out = out.split(item.token).join(item.value); });
 
     return out;
   }
+
 
   function normalizeSlashDateString(text){
     return String(text || '').replace(
@@ -613,6 +584,9 @@
       out = sanitizedAfterRules;
       changed = true;
     }
+
+    // - 左右補空格：清掉 - 周圍任意空白後補成 ' - '（不含字串開頭的負號）
+    out = out.replace(/(?<=.)[ \t]*-[ \t]*(?=\S)/g, ' - ');
 
     out = out.replace(/\s{2,}/g, ' ').trim();
 

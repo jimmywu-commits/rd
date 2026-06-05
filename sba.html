@@ -14817,9 +14817,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   function sanitizeLocal(text, role){
     var out = String(text || '');
-    if(role === 'date') out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/-]/gu, '');
+    if(role === 'date') out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/\-:]/gu, '');
     else out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%]/gu, '');
-    out = out.replace(/\u00A0/g, ' ').replace(/\s{2,}/g, ' ');
+    out = out.replace(/\u00A0/g, ' ');
     return out;
   }
 
@@ -14950,11 +14950,39 @@ document.addEventListener('DOMContentLoaded', ()=>{
     el.addEventListener('input', function(){
       var role = el.dataset.role || '';
       var raw = getPlainEditableText(el);
+      // 只過濾非法字元，不縮空白（空白縮減在 blur 時才做）
       var sanitized = sanitizeLocal(raw, role);
-      if(sanitized !== raw){
+      // 比較時忽略空白差異：只有真正有非法字元被移除才重寫 DOM
+      // 否則末尾空白會觸發重寫導致游標跳位
+      var rawNoSpace = raw.replace(/\s/g, '');
+      var sanitizedNoSpace = sanitized.replace(/\s/g, '');
+      if(sanitizedNoSpace !== rawNoSpace){
+        // 有非法字元被移除，需要重寫（保留游標位置）
+        var caretPos = 0;
+        var sel = window.getSelection();
+        if(sel && sel.rangeCount > 0){
+          var range = sel.getRangeAt(0);
+          var preRange = document.createRange();
+          preRange.selectNodeContents(el);
+          preRange.setEnd(range.endContainer, range.endOffset);
+          caretPos = Math.min(preRange.toString().replace(/\n/g,'').length, sanitized.length);
+        }
         var counter = el.querySelector('.counter');
         el.textContent = sanitized;
         if(counter) el.appendChild(counter);
+        try{
+          var newSel = window.getSelection();
+          var textNode = null;
+          for(var n = el.firstChild; n; n = n.nextSibling){
+            if(n.nodeType === 3){ textNode = n; break; }
+          }
+          if(textNode){
+            var pos = Math.min(caretPos, textNode.length);
+            var nr = document.createRange();
+            nr.setStart(textNode, pos); nr.collapse(true);
+            newSel.removeAllRanges(); newSel.addRange(nr);
+          }
+        }catch(_){}
       }
       updatePersistentOverLimitNotice();
     });
