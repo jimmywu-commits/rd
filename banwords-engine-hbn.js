@@ -234,7 +234,7 @@
     let out = String(text || '');
 
     if (role === 'date') {
-      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/-]/gu, '');
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/\-:]/gu, '');
     } else {
       out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%]/gu, '');
     }
@@ -271,8 +271,14 @@
 
     const protectedMap = [];
 
+    // 保護「冒號時間格式」：冒號前後最多2位數不加 $（如 10:30、9:00、限時9:00截止）
+    out = out.replace(/(\d{1,2}):(\d{1,2})/g, function(match){
+      const key = makeAlphaToken('COLONTIME', protectedMap.length);
+      protectedMap.push({ token: key, value: match });
+      return key;
+    });
+
     // 優先保護「已有 $ 前綴的數字」，同時補千分位（$1111 → $1,111）
-    // 必須在其他規則之前，避免 $ 被白名單或 exempt 邏輯誤處理
     out = out.replace(/\$([\d,]+)/g, function(match, digits){
       const clean = digits.replace(/,/g, '');
       if (!/^\d+$/.test(clean)) return match;
@@ -649,8 +655,6 @@
     const role = options.role || (el && el.dataset ? el.dataset.role : '');
     const getText = options.getText || getTextFromElement;
     const before = getText(el);
-
-    // 讀取 element 上的例外清單，傳入 transformText
     let dollarExempt = [];
     if (el && el.dataset && el.dataset.dollarExempt) {
       try { dollarExempt = JSON.parse(el.dataset.dollarExempt); } catch(_) {}
@@ -713,12 +717,9 @@
       });
 
       function normalizeLiveEditable(){
-        // Safety guard: never format while the element is still focused/active.
         if (global.document && document.activeElement === el) return;
 
         const raw = getEditablePlainText(el);
-
-        // 讀取 element 上的例外清單
         let dollarExempt = [];
         if (el.dataset && el.dataset.dollarExempt) {
           try { dollarExempt = JSON.parse(el.dataset.dollarExempt); } catch(_) {}
