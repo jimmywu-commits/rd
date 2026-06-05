@@ -227,7 +227,7 @@
       label = String.fromCharCode(65 + (n % 26)) + label;
       n = Math.floor(n / 26) - 1;
     } while (n >= 0);
-    return '__' + prefix + '_' + label + '__';
+    return '\x00' + prefix + '_' + label + '\x00';
   }
 
   function sanitizeAllowedCharacters(text, role){
@@ -245,7 +245,7 @@
     return out;
   }
 
-  function applyStandardNumericRules(text){
+  function applyStandardNumericRules(text, options){
     let out = String(text || '');
 
     const slashDateMap = [];
@@ -271,24 +271,30 @@
 
     const protectedMap = [];
 
-    // 白名單數字：這些活動/節慶數字不強加 $ 符號（如 618、1111、99 等）
-    const NUMERIC_WHITELIST = [
-      '111', '22', '33', '44', '55', '66', '618',
-      '77', '88', '99', '1010', '1111', '1212',
-      '118', '218', '125', '225'
-    ];
-    const whitelistPattern = new RegExp(
-      '(?<!\\d)(' + NUMERIC_WHITELIST.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?!\\d)',
-      'g'
-    );
-    out = out.replace(whitelistPattern, function(match){
+    // 優先保護「已有 $ 前綴的數字」，同時補千分位（$1111 → $1,111）
+    // 必須在其他規則之前，避免 $ 被白名單或 exempt 邏輯誤處理
+    out = out.replace(/\$([\d,]+)/g, function(match, digits){
+      const clean = digits.replace(/,/g, '');
+      if (!/^\d+$/.test(clean)) return match;
+      const formatted = '$' + (clean.length >= 4 ? addThousandsSeparator(clean) : clean);
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({
-        token: key,
-        value: match
-      });
+      protectedMap.push({ token: key, value: formatted });
       return key;
     });
+
+    // 保護 dollarExempt 清單中的數字（使用者主動移除 $，直到主動解除）
+    const exemptList = (options && options.dollarExempt) || [];
+    if (exemptList.length > 0) {
+      const exemptPattern = new RegExp(
+        '(?<![\\d$])(' + exemptList.map(function(n){ return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?!\\d)',
+        'g'
+      );
+      out = out.replace(exemptPattern, function(match){
+        const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+        protectedMap.push({ token: key, value: match });
+        return key;
+      });
+    }
 
     // 保護「數字+折」「數字+件/組/個」：個位數或雙位數後接「折、件、組、個」，不強加 $ 符號
     out = out.replace(/(^|[^\d$,])(\d{1,2})(?=[折件組個入盒包罐台支雙])/g, function(match, prefix, digits){
@@ -351,15 +357,15 @@
     });
 
     protectedMap.forEach(function(item){
-      out = out.replace(item.token, item.value);
+      out = out.split(item.token).join(item.value);
     });
 
     percentMap.forEach(function(item){
-      out = out.replace(item.token, item.value);
+      out = out.split(item.token).join(item.value);
     });
 
     slashDateMap.forEach(function(item){
-      out = out.replace(item.token, item.value);
+      out = out.split(item.token).join(item.value);
     });
 
     return out;
@@ -453,7 +459,7 @@
     return datePart;
   }
 
-  function applyNumericRules(text, role){
+  function applyNumericRules(text, role, options){
     let out = String(text || '');
 
     if (role === 'date') {
@@ -462,7 +468,7 @@
       const match = out.match(/^(0*\d{1,2}\/0*\d{1,2}(?:\s*-\s*0*\d{1,2}\/0*\d{1,2})?)(\s*)([\s\S]*)$/);
 
       if (!match) {
-        return applyStandardNumericRules(out);
+        return applyStandardNumericRules(out, options);
       }
 
       const datePart = match[1];
@@ -471,10 +477,10 @@
 
       if (!rest) return datePart;
 
-      return datePart + spacer + applyStandardNumericRules(rest);
+      return datePart + spacer + applyStandardNumericRules(rest, options);
     }
 
-    return applyStandardNumericRules(out);
+    return applyStandardNumericRules(out, options);
   }
 
   function makeToken(prefix, index){
@@ -543,7 +549,7 @@
     return out;
   }
 
-  function transformText(text, role){
+  function transformText(text, role, options){
     const original = String(text || '');
     let out = original;
     const messages = [];
@@ -590,7 +596,7 @@
       out = restoreExcludedSegments(workingText, protectedMap);
     });
 
-    const adjusted = applyNumericRules(out, role);
+    const adjusted = applyNumericRules(out, role, options);
     if (adjusted !== out) {
       out = adjusted;
       changed = true;
@@ -643,7 +649,13 @@
     const role = options.role || (el && el.dataset ? el.dataset.role : '');
     const getText = options.getText || getTextFromElement;
     const before = getText(el);
-    const result = transformText(before, role);
+
+    // 讀取 element 上的例外清單，傳入 transformText
+    let dollarExempt = [];
+    if (el && el.dataset && el.dataset.dollarExempt) {
+      try { dollarExempt = JSON.parse(el.dataset.dollarExempt); } catch(_) {}
+    }
+    const result = transformText(before, role, { dollarExempt: dollarExempt });
 
     if (el && result.text !== before) {
       const counter = el.querySelector('.counter');
@@ -705,7 +717,13 @@
         if (global.document && document.activeElement === el) return;
 
         const raw = getEditablePlainText(el);
-        const result = transformText(raw, role);
+
+        // 讀取 element 上的例外清單
+        let dollarExempt = [];
+        if (el.dataset && el.dataset.dollarExempt) {
+          try { dollarExempt = JSON.parse(el.dataset.dollarExempt); } catch(_) {}
+        }
+        const result = transformText(raw, role, { dollarExempt: dollarExempt });
 
         if (result.text !== raw) {
           setEditableText(el, result.text);
