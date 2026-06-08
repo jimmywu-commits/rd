@@ -102,7 +102,8 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-canvas:not(.square) .dd-brand{top:102.5px !important;}
 .dd-canvas.square .dd-brand{top:82.5px !important;}
 .mall-tag,.toggle-tag{display:none !important;}
-.dd-canvas .dd-h1,.dd-canvas .dd-h2,.dd-canvas .dd-date{position:absolute;left:0;width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:5;outline:none;}
+.dd-canvas .dd-h1,.dd-canvas .dd-h2,.dd-canvas .dd-date{position:absolute;left:0;width:100%;text-align:center;white-space:nowrap;overflow:hidden;z-index:5;outline:none;}
+.dd-canvas .dd-date{text-overflow:ellipsis;}
 .dd-canvas .dd-h1{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:56px;color:#2176ff;padding:0 20px;}
 .dd-canvas .dd-h2{font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:68px;color:#3f49cf;padding:0 20px;}
 .dd-canvas .dd-date{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:24px;line-height:50px;color:#3f49cf;padding:0 20px;}
@@ -502,11 +503,63 @@ function bindTextEl(el){
   if(el.dataset.tb==='1')return;el.dataset.tb='1';
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
+
+  /* ── 輔助：把超出上限的文字截斷（保留游標在末尾） ── */
+  function hardTrimToLimit(){
+    var lim=DD_LIMITS[el.dataset.role];if(!lim)return;
+    var c=el.querySelector('.counter');
+    var raw=(el.textContent||'').replace(/\u00A0/g,' ');
+    // 移除 counter 的文字才是真實內容
+    var counterTxt=c?c.textContent:'';
+    var txt=raw.slice(0, raw.length - counterTxt.length).trim();
+    // 逐字截斷到 lim
+    var out='',units=0;
+    for(var i=0;i<txt.length;i++){
+      var ch=txt[i],cu=/\p{Script=Han}/u.test(ch)?1:0.5;
+      if(units+cu>lim+0.001)break;
+      out+=ch;units+=cu;
+    }
+    if(out!==txt){
+      el.innerHTML='';
+      el.appendChild(document.createTextNode(out));
+      if(c){el.appendChild(c);}
+      // 游標移到末尾（文字節點）
+      try{var sel=window.getSelection(),r=document.createRange();r.setStart(el.firstChild||el,out.length);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}catch(_){}
+      showToast('超出上限（'+lim+'）','err',1800);
+    }
+  }
+
   el.addEventListener('input',function(){
     if(el.querySelectorAll('div').length>0){
       var c=el.querySelector('.counter'),txt=(el.textContent||'').replace(/\u00A0/g,' ').trim();
       el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
     }
+
+    /* ── Bug 修正①：input 事件補丁，攔截 Firefox / 輸入法 composing 漏網字 ── */
+    hardTrimToLimit();
+
+    /* ── Bug 修正②：date 欄位前導零保護 ──
+       某些瀏覽器/OS 在 contenteditable 裡把前導 0 吃掉（如 01:01 → 1:01）。
+       用 snapshot 比對：若目前文字比上次短、且差異只是某個 0 消失，就還原。 */
+    if(el.dataset.role==='date'){
+      var c2=el.querySelector('.counter');
+      var raw2=(el.textContent||'').replace(/\u00A0/g,' ');
+      var counterTxt2=c2?c2.textContent:'';
+      var dateStr=raw2.slice(0,raw2.length-counterTxt2.length);
+      var snap=el.__dateSnap||'';
+      if(snap&&dateStr.length<snap.length&&snap.replace(/0/g,'')===dateStr.replace(/0/g,'')){
+        el.innerHTML='';
+        el.appendChild(document.createTextNode(snap));
+        if(c2)el.appendChild(c2);
+        try{var sel2=window.getSelection(),r2=document.createRange();var tn2=el.firstChild;r2.setStart(tn2,snap.length);r2.collapse(true);sel2.removeAllRanges();sel2.addRange(r2);}catch(_){}
+        updateCounter(el);showFloatMeter(el);
+        var cur2=(el.textContent||'').replace(/\n/g,'').trim();
+        if(cur2!==el.__snapText){el.removeAttribute('data-dollar-exempt');el.__snapText=cur2;}
+        return;
+      }
+      el.__dateSnap=dateStr;
+    }
+
     updateCounter(el);showFloatMeter(el);
     // 內容有變就清 exempt（重新輸入才重置例外記錄）
     var cur=(el.textContent||'').replace(/\n/g,'').trim();
