@@ -102,7 +102,8 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-canvas:not(.square) .dd-brand{top:102.5px !important;}
 .dd-canvas.square .dd-brand{top:82.5px !important;}
 .mall-tag,.toggle-tag{display:none !important;}
-.dd-canvas .dd-h1,.dd-canvas .dd-h2,.dd-canvas .dd-date{position:absolute;left:0;width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:5;outline:none;}
+.dd-canvas .dd-h1,.dd-canvas .dd-h2,.dd-canvas .dd-date{position:absolute;left:0;width:100%;text-align:center;white-space:nowrap;overflow:hidden;z-index:5;outline:none;}
+.dd-canvas .dd-date{text-overflow:ellipsis;}
 .dd-canvas .dd-h1{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:56px;color:#2176ff;padding:0 20px;}
 .dd-canvas .dd-h2{font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:68px;color:#3f49cf;padding:0 20px;}
 .dd-canvas .dd-date{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:24px;line-height:50px;color:#3f49cf;padding:0 20px;}
@@ -538,21 +539,25 @@ function bindTextEl(el){
     hardTrimToLimit();
 
     /* ── Bug 修正②：date 欄位前導零保護 ──
-       某些瀏覽器/OS 把 contenteditable 裡以數字開頭的字串當數字處理，
-       會吃掉 09:00 的前導 0。偵測到前導零遺失時強制補回。            */
+       某些瀏覽器/OS 在 contenteditable 裡把前導 0 吃掉（如 01:01 → 1:01）。
+       用 snapshot 比對：若目前文字比上次短、且差異只是某個 0 消失，就還原。 */
     if(el.dataset.role==='date'){
-      var raw2=(el.textContent||'').replace(/\u00A0/g,' ');
       var c2=el.querySelector('.counter');
+      var raw2=(el.textContent||'').replace(/\u00A0/g,' ');
       var counterTxt2=c2?c2.textContent:'';
       var dateStr=raw2.slice(0,raw2.length-counterTxt2.length);
-      // 若時間部分如 9:00 應為 09:00，則補前導零
-      var fixed=dateStr.replace(/(?<![0-9])([0-9]):([0-5][0-9])/g,function(_,h,m){return(h.length<2?'0'+h:h)+':'+m;});
-      if(fixed!==dateStr){
+      var snap=el.__dateSnap||'';
+      if(snap&&dateStr.length<snap.length&&snap.replace(/0/g,'')===dateStr.replace(/0/g,'')){
         el.innerHTML='';
-        el.appendChild(document.createTextNode(fixed));
+        el.appendChild(document.createTextNode(snap));
         if(c2)el.appendChild(c2);
-        try{var sel2=window.getSelection(),r2=document.createRange();r2.setStart(el.firstChild||el,fixed.length);r2.collapse(true);sel2.removeAllRanges();sel2.addRange(r2);}catch(_){}
+        try{var sel2=window.getSelection(),r2=document.createRange();var tn2=el.firstChild;r2.setStart(tn2,snap.length);r2.collapse(true);sel2.removeAllRanges();sel2.addRange(r2);}catch(_){}
+        updateCounter(el);showFloatMeter(el);
+        var cur2=(el.textContent||'').replace(/\n/g,'').trim();
+        if(cur2!==el.__snapText){el.removeAttribute('data-dollar-exempt');el.__snapText=cur2;}
+        return;
       }
+      el.__dateSnap=dateStr;
     }
 
     updateCounter(el);showFloatMeter(el);
