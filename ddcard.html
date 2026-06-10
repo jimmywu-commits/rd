@@ -1121,22 +1121,31 @@ function renderTagGrid(){
   if(loading)loading.style.display='none';
   if(!taglibData||!taglibData.length){if(empty){empty.textContent='找不到掛標圖片';empty.style.display='block';}return;}
   if(empty)empty.style.display='none';
-  // 標記目前已套用的掛標
   var curH=$('ddHorizTagImg'),curS=$('ddSquareTagImg');
   var curSrcH=curH&&curH.classList.contains('visible')?curH.getAttribute('src'):'';
   var curSrcS=curS&&curS.classList.contains('visible')?curS.getAttribute('src'):'';
-  taglibData.forEach(function(filename){
-    if(!filename)return;
-    var name=String(filename),src='掛標圖檔/'+name,dn=name.replace(/\.[^.]+$/,'');
-    var card=document.createElement('div');card.className='taglib-card';card.dataset.src=src;
-    // 若此張已套用則預選
+  taglibData.forEach(function(item){
+    if(!item)return;
+    // 支援純字串 "file.png" 或物件 {file:"file.png",name:"顯示名稱"}
+    var filename=typeof item==='string'?item:(item.file||item);
+    var dn=typeof item==='object'&&item.name?item.name:String(filename).replace(/\.[^.]+$/,'');
+    var src='掛標圖檔/'+filename;
+    var card=document.createElement('div');
+    card.className='taglib-card';card.dataset.src=src;
+    card.style.cssText='display:flex;flex-direction:column;aspect-ratio:unset;height:auto;padding:8px 8px 6px;gap:6px;';
     if(src===curSrcH||src===curSrcS)card.classList.add('selected');
+    var imgWrap=document.createElement('div');
+    imgWrap.style.cssText='width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:6px;background:rgba(0,0,0,.25);';
     var img=document.createElement('img');img.src=src;img.alt=dn;
-    img.addEventListener('load',function(){img.classList.add('loaded');});
+    img.style.cssText='max-width:100%;max-height:100%;object-fit:contain;opacity:0;transition:opacity .2s;display:block;';
+    img.addEventListener('load',function(){img.style.opacity='1';});
     img.addEventListener('error',function(){card.style.opacity='0.35';});
-    var nameEl=document.createElement('div');nameEl.className='taglib-card-name';nameEl.textContent=dn;
     var check=document.createElement('div');check.className='taglib-check';check.textContent='✓';
-    card.appendChild(img);card.appendChild(nameEl);card.appendChild(check);
+    var nameEl=document.createElement('div');
+    nameEl.style.cssText='font-size:11px;color:rgba(255,255,255,.75);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;padding:0 2px;flex-shrink:0;';
+    nameEl.textContent=dn;
+    imgWrap.appendChild(img);imgWrap.appendChild(check);
+    card.appendChild(imgWrap);card.appendChild(nameEl);
     card.addEventListener('click',function(){
       document.querySelectorAll('#tagLibGrid .taglib-card').forEach(function(c){c.classList.remove('selected');});
       card.classList.add('selected');
@@ -1175,7 +1184,6 @@ function bindTagDrag(prefix){
   imgEl.addEventListener('mousedown',function(e){if(e.button!==0)return;dragging=true;sx=e.clientX;sy=e.clientY;sl=parseFloat(imgEl.style.left)||0;st=parseFloat(imgEl.style.top)||0;e.preventDefault();e.stopPropagation();});
   window.addEventListener('mousemove',function(e){if(!dragging)return;imgEl.style.left=(sl+e.clientX-sx)+'px';imgEl.style.top=(st+e.clientY-sy)+'px';});
   window.addEventListener('mouseup',function(){dragging=false;});
-  imgEl.addEventListener('wheel',function(e){e.preventDefault();e.stopPropagation();var w=parseFloat(imgEl.style.width)||imgEl.offsetWidth,d=e.deltaY<0?1.08:1/1.08;imgEl.style.width=Math.max(30,w*d)+'px';imgEl.style.height='auto';},{passive:false});
 }
 function initTagLib(){
   var closeBtn=$('tagLibClose'),applyBtn=$('tagLibApply'),removeBtn=$('tagLibRemove'),modal=$('tagLibModal');
