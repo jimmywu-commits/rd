@@ -182,7 +182,7 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 @media(max-width:980px){.hbn-shell{grid-template-columns:1fr;}.hbn-sidebar{position:static;max-height:none;}}
 
 /* ---- 掛標圖層 ---- */
-.dd-tag-img{position:absolute;z-index:8;cursor:move;user-select:none;display:none;pointer-events:auto;}
+.dd-tag-img{position:absolute;z-index:8;user-select:none;display:none;pointer-events:none;}
 .dd-tag-img.visible{display:block;}
 .is-exporting .dd-tag-img{pointer-events:none;}
 
@@ -1178,12 +1178,7 @@ function setTagImg(prefix,src){
   if(imgEl.complete&&imgEl.naturalWidth)onLoad();
 }
 function bindTagDrag(prefix){
-  var imgEl=$(prefix+'TagImg');if(!imgEl||imgEl.dataset.tagDrag==='1')return;
-  imgEl.dataset.tagDrag='1';
-  var dragging=false,sx=0,sy=0,sl=0,st=0;
-  imgEl.addEventListener('mousedown',function(e){if(e.button!==0)return;dragging=true;sx=e.clientX;sy=e.clientY;sl=parseFloat(imgEl.style.left)||0;st=parseFloat(imgEl.style.top)||0;e.preventDefault();e.stopPropagation();});
-  window.addEventListener('mousemove',function(e){if(!dragging)return;imgEl.style.left=(sl+e.clientX-sx)+'px';imgEl.style.top=(st+e.clientY-sy)+'px';});
-  window.addEventListener('mouseup',function(){dragging=false;});
+  // 掛標位置固定，不可拖曳
 }
 function initTagLib(){
   var closeBtn=$('tagLibClose'),applyBtn=$('tagLibApply'),removeBtn=$('tagLibRemove'),modal=$('tagLibModal');
