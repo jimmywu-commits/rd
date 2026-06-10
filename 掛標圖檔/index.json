@@ -1,1 +1,6 @@
-["紅商城.png","白商城.png","白DD Banner Card_HBN.png","橘DD Banner Card_HBN.png"]
+[
+  {"file":"紅商城.png","name":"商城紅"},
+  {"file":"白商城.png","name":"商城白"},
+  {"file":"白77大促.png","name":"白77大促"},
+  {"file":"橘77大促.png","name":"橘77大促"}
+]
