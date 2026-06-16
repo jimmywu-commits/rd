@@ -52,7 +52,7 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 #ddHorizBg[data-dd-hidden="1"],#ddSquareBg[data-dd-hidden="1"]{display:none !important;}
 .bg[src=""]{display:none !important;}
 .dd-canvas .dd-brand{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:15px;z-index:5;padding:0 20px;overflow:visible;}
-.dd-canvas .dd-brand img{max-height:48px;width:auto;max-width:420px;object-fit:contain;display:block;}
+.dd-canvas .dd-brand img{max-height:50px;width:auto;max-width:420px;object-fit:contain;display:block;}
 .dd-canvas.square .dd-brand img{max-height:105px;max-width:220px;}
 /* logo-item: overflow visible so trigger shows above canvas */
 .dd-canvas .logo-item{position:relative;display:inline-flex;align-items:center;justify-content:center;overflow:visible !important;}
@@ -106,9 +106,9 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-canvas .dd-date{text-overflow:ellipsis;}
 .dd-canvas .dd-h1{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:40px;line-height:56px;color:#2176ff;padding:0 20px;}
 .dd-canvas .dd-h2{font-family:"ShopeeNotoSans-Content-B","Noto Sans TC",Arial;font-weight:700;font-size:60px;line-height:68px;color:#3f49cf;padding:0 20px;}
-.dd-canvas .dd-date{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:24px;line-height:50px;color:#3f49cf;padding:0 20px;}
-.dd-canvas:not(.square) .dd-h1{top:170.5px !important;}.dd-canvas:not(.square) .dd-h2{top:220px !important;}.dd-canvas:not(.square) .dd-date{top:295.5px !important;}
-.dd-canvas.square .dd-h1{top:203.5px !important;}.dd-canvas.square .dd-h2{top:253px !important;}.dd-canvas.square .dd-date{top:327px !important;}
+.dd-canvas .dd-date{font-family:"ShopeeNotoSans-Content-M","Noto Sans TC",Arial;font-weight:500;font-size:30px;line-height:50px;color:#3f49cf;padding:0 20px;}
+.dd-canvas:not(.square) .dd-h1{top:160.54px !important;}.dd-canvas:not(.square) .dd-h2{top:211.77px !important;}.dd-canvas:not(.square) .dd-date{top:281px !important;}
+.dd-canvas.square .dd-h1{top:192px !important;}.dd-canvas.square .dd-h2{top:242px !important;}.dd-canvas.square .dd-date{top:312px !important;}
 .dd-canvas [contenteditable="true"]{outline:2px dashed rgba(255,255,255,0);transition:outline-color .2s,background-color .2s;cursor:text;border-radius:4px;}
 .dd-canvas [contenteditable="true"]:focus{outline:2px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.10);}
 .dd-canvas [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
@@ -418,6 +418,7 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+<script src="./ps-ddcard-calibrator.js"></script>
 <script src="./editor-plugin.js"></script>
 <script>
 window.syncDdLinkedCanvases = function(){};
