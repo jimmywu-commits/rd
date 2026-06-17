@@ -18,6 +18,8 @@
 // 英文數字額外上移（安全版）
 function wrapEnUp(el){
   if(!el) return;
+  // 先移除 counter/audit-tip，避免其文字被納入輸出或套上 en-up
+  el.querySelectorAll('.counter,.audit-tip').forEach(function(n){ n.remove(); });
   const text = el.textContent;
   const wrapped = text.replace(/([A-Za-z0-9!@#$%^&*()\-_=+\[\]{};:'",.<>/?]+)/g,
     '<span class="en-up">$1</span>');
@@ -5373,6 +5375,7 @@ backBtn.addEventListener('click', ()=>{
         doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
 
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el=>el?.remove());
+        doc.querySelectorAll('.counter,.audit-tip').forEach(n=>n.remove());
         doc.body.classList.add('export-clone');
 
         // Ensure exported snapshot matches what you see inside the canvas bounds
@@ -7812,6 +7815,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
                el.classList.contains('ctrl');
       },
       onclone: function(doc){
+        doc.querySelectorAll('.counter,.audit-tip').forEach(function(n){ n.remove(); });
         doc.querySelectorAll('[contenteditable="true"]').forEach(function(el){ wrapEnUp(el); });
 
         doc.querySelectorAll('.panel,.bg-scale-panel,.toggle-tag').forEach(el => el.remove());
@@ -13113,6 +13117,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   .editor-item:not(.editor-bg) > img{
     object-fit:contain;
     object-position:center center;
+  }
+
+  .export-clone .counter,
+  .export-clone .audit-tip{
+    display:none !important;
+    visibility:hidden !important;
   }
 
   body[data-exporting="1"] .editor-item:not(.editor-bg),
