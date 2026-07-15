@@ -273,6 +273,23 @@
 
     const protectedMap = [];
 
+    // 蝦幣前後若已有 $，自動移除 $，並統一數字千分位。
+    // 例：$100蝦幣 → 100蝦幣、蝦幣$100 → 蝦幣100、蝦幣回饋 $10000 → 蝦幣回饋10,000
+    out = out.replace(/\$\s*([\d,]+)\s*(蝦幣回饋|蝦幣)/g, function(match, digits, keyword){
+      const clean = String(digits || '').replace(/,/g, '');
+      if (!/^\d+$/.test(clean)) return match;
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({ token: key, value: formatNumericToken(clean, false) + keyword });
+      return key;
+    });
+    out = out.replace(/(蝦幣回饋|蝦幣)\s*\$\s*([\d,]+)/g, function(match, keyword, digits){
+      const clean = String(digits || '').replace(/,/g, '');
+      if (!/^\d+$/.test(clean)) return match;
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({ token: key, value: keyword + formatNumericToken(clean, false) });
+      return key;
+    });
+
     // 優先保護「已有 $ 前綴的數字」，同時補千分位
     out = out.replace(/\$([\d,]+)/g, function(match, digits){
       const clean = digits.replace(/,/g, '');
