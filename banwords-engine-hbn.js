@@ -236,7 +236,16 @@
     if (role === 'date') {
       out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%\/\-:]/gu, '');
     } else {
-      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s,$%]/gu, '');
+      /* 主標／副標仍禁止一般逗號，但必須保留數字千分位中的半形逗號。
+         先把合法的 1,200／12,345,678 暫存，再做字元過濾，最後還原。 */
+      const commaMap = [];
+      out = out.replace(/\d{1,3}(?:,\d{3})+/g, function(match){
+        const token = makeAlphaToken('NUMCOMMA', commaMap.length);
+        commaMap.push({ token: token, value: match });
+        return token;
+      });
+      out = out.replace(/[^\p{Script=Han}\p{L}\p{N}\s$%\x00_]/gu, '');
+      commaMap.forEach(function(item){ out = out.split(item.token).join(item.value); });
     }
 
     out = out.replace(/\u00A0/g, ' ');
@@ -273,20 +282,20 @@
 
     const protectedMap = [];
 
-    // 蝦幣前後若已有 $，自動移除 $，並統一數字千分位。
-    // 例：$100蝦幣 → 100蝦幣、蝦幣$100 → 蝦幣100、蝦幣回饋 $10000 → 蝦幣回饋10,000
-    out = out.replace(/\$\s*([\d,]+)\s*(蝦幣回饋|蝦幣)/g, function(match, digits, keyword){
-      const clean = String(digits || '').replace(/,/g, '');
-      if (!/^\d+$/.test(clean)) return match;
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({ token: key, value: formatNumericToken(clean, false) + keyword });
-      return key;
-    });
-    out = out.replace(/(蝦幣回饋|蝦幣)\s*\$\s*([\d,]+)/g, function(match, keyword, digits){
+    /* 蝦幣規則一定要早於一般 $ 金額，否則「蝦幣$120」中的 $120
+       會先被鎖成一般金額，後續就無法移除 $。支援前後寫法與既有千分位。 */
+    out = out.replace(/(蝦幣回饋|蝦幣)\s*\$?\s*([\d,]+)/g, function(match, keyword, digits){
       const clean = String(digits || '').replace(/,/g, '');
       if (!/^\d+$/.test(clean)) return match;
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({ token: key, value: keyword + formatNumericToken(clean, false) });
+      return key;
+    });
+    out = out.replace(/(^|[^\d,\x00])\$?\s*([\d,]+)\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
+      const clean = String(digits || '').replace(/,/g, '');
+      if (!/^\d+$/.test(clean)) return match;
+      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
+      protectedMap.push({ token: key, value: prefix + formatNumericToken(clean, false) + keyword });
       return key;
     });
 
@@ -332,20 +341,6 @@
     out = out.replace(/(買)(\d+)(送)(\d+)/g, function(match, buy, left, give, right){
       const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
       protectedMap.push({ token: key, value: buy + left + give + right });
-      return key;
-    });
-
-    // 蝦幣
-    out = out.replace(/(蝦幣回饋|蝦幣)\s*(\d{1,})(?![\d,])/g, function(match, keyword, digits){
-      const formatted = keyword + formatNumericToken(digits, false);
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({ token: key, value: formatted });
-      return key;
-    });
-    out = out.replace(/(^|[^\d,\x00])(\d{1,})\s*(蝦幣回饋|蝦幣)/g, function(match, prefix, digits, keyword){
-      const formatted = prefix + formatNumericToken(digits, false) + keyword;
-      const key = makeAlphaToken('SPECIALNUM', protectedMap.length);
-      protectedMap.push({ token: key, value: formatted });
       return key;
     });
 
@@ -519,7 +514,8 @@
     const chars = String(str || '');
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
-      if (/\p{Script=Han}/u.test(ch)) units += 1;
+      if (ch === ',') units += 1;
+      else if (/\p{Script=Han}/u.test(ch)) units += 1;
       else units += 0.5;
     }
     return units;
@@ -534,7 +530,7 @@
 
     for (let i = 0; i < chars.length; i++) {
       const ch = chars[i];
-      const next = /\p{Script=Han}/u.test(ch) ? 1 : 0.5;
+      const next = (ch === ',') ? 1 : (/\p{Script=Han}/u.test(ch) ? 1 : 0.5);
       if (units + next > limit) break;
       out += ch;
       units += next;
