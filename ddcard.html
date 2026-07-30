@@ -1160,10 +1160,11 @@ function renderTagGrid(){
 }
 function applyTagLib(){
   if(!taglibSelectedSrc)return;
-  var prefix=taglibTarget==='H'?'ddHoriz':'ddSquare';
-  setTagImg(prefix,taglibSelectedSrc);
+  // 掛標為方／橫共用：無論從哪個畫布開啟，都同步套用到兩個畫布
+  setTagImg('ddHoriz',taglibSelectedSrc);
+  setTagImg('ddSquare',taglibSelectedSrc);
   closeTagLib();
-  showToast('掛標已套用：'+taglibSelectedName,'ok',1400);
+  showToast('掛標已同步套用至方、橫畫布：'+taglibSelectedName,'ok',1600);
 }
 function setTagImg(prefix,src){
   var imgEl=$(prefix+'TagImg'),canvas=$(prefix+'Canvas');if(!imgEl||!canvas)return;
@@ -1186,7 +1187,7 @@ function initTagLib(){
   if(closeBtn&&!closeBtn.dataset.bound){closeBtn.dataset.bound='1';closeBtn.addEventListener('click',closeTagLib);}
   if(modal&&!modal.dataset.bound){modal.dataset.bound='1';modal.addEventListener('click',function(e){if(e.target===this)closeTagLib();});}
   if(applyBtn&&!applyBtn.dataset.bound){applyBtn.dataset.bound='1';applyBtn.addEventListener('click',applyTagLib);}
-  if(removeBtn&&!removeBtn.dataset.bound){removeBtn.dataset.bound='1';removeBtn.addEventListener('click',function(){var prefix=taglibTarget==='H'?'ddHoriz':'ddSquare';setTagImg(prefix,'');showToast('掛標已移除','ok',1200);closeTagLib();});}
+  if(removeBtn&&!removeBtn.dataset.bound){removeBtn.dataset.bound='1';removeBtn.addEventListener('click',function(){setTagImg('ddHoriz','');setTagImg('ddSquare','');showToast('方、橫畫布掛標已同步移除','ok',1400);closeTagLib();});}
   document.querySelectorAll('.tag-lib-btn').forEach(function(btn){btn.addEventListener('click',function(){openTagLib(btn.dataset.target||'H');});});
 }
 
