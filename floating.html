@@ -937,13 +937,13 @@ function d2(){
   if(S.proc){
     getCachedImg(S.proc,img=>{
       ctx.clearRect(0,0,360,360);
-      fillCirc(ctx,cx,cy,150,col);
+      // 圓形底色功能保留；有商品圖時底色半徑略微內縮，避免 Canvas 抗鋸齒在外緣透出色邊。
+      fillCirc(ctx,cx,cy,148,col);
       ctx.save();
       ctx.beginPath(); ctx.arc(cx,cy,150,0,Math.PI*2); ctx.clip();
-      // 讓上傳圖片預設略大於圓形遮罩，避免匯出時底色從圓邊露出
-      const COVER_PADDING=8; // px
-      const targetSize=300 + COVER_PADDING*2;
-      const sc=Math.max(targetSize/img.width,targetSize/img.height)*S.imgScale;
+      // 商品圖永遠至少完整覆蓋圓形範圍；保留放大功能，但避免縮小後露出底色。
+      const coverScale=Math.max(304/img.width,304/img.height);
+      const sc=coverScale*Math.max(1,S.imgScale);
       const dw=img.width*sc, dh=img.height*sc;
       ctx.drawImage(img, cx-dw/2+S.imgOffX, cy-dh/2+S.imgOffY, dw, dh);
       ctx.restore();
