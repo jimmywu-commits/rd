@@ -89,31 +89,7 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
 .cw{display:flex;flex-direction:column;align-items:center;gap:12px}
 .clb{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mu);display:flex;align-items:center;gap:8px}
 .clb::before,.clb::after{content:'';height:1px;width:28px;background:var(--b2)}
-/* product zoom hint */
-.zoom-hint{
-  position:absolute;
-  left:50%;
-  bottom:18px;
-  transform:translateX(-50%);
-  display:flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 11px;
-  border-radius:10px;
-  border:1px solid rgba(255,255,255,.14);
-  background:rgba(13,16,24,.68);
-  color:#cbd7ff;
-  font-size:11px;
-  line-height:1;
-  z-index:12;
-  pointer-events:none;
-  backdrop-filter:blur(8px);
-  opacity:.92;
-}
-.zoom-hint svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
-#cf2:not(:hover) .zoom-hint{opacity:.68}
-
- /* canvas frame */
+/* canvas frame */
 .cf{position:relative;width:360px;height:360px;border:1px solid var(--b2);border-radius:10px;overflow:hidden;
   background-color:#161b24;
   background-image:linear-gradient(45deg,rgba(255,255,255,.025) 25%,transparent 25%),
@@ -293,8 +269,8 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
       <div class="banword-status" id="bw-status">⏳ 禁用語規則載入中…</div>
     </div>
 
-    <!-- Image upload: only show on Product tab -->
-    <div class="sc" id="sc-image" style="display:none">
+    <!-- Image upload -->
+    <div class="sc">
       <div class="st">商品圖片</div>
       <div class="up" id="upzone">
         <input type="file" accept="image/*" id="fIn" onchange="onFile(event)">
@@ -337,10 +313,6 @@ body{font-family:'ShopeeNotoSans','Noto Sans TC','PingFang TC',sans-serif;backgr
       <div class="clb">商品型 Floating</div>
       <div class="cf" id="cf2">
         <canvas id="cv2" width="360" height="360"></canvas>
-        <div class="zoom-hint" id="zoomHint">
-          <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="5"/><line x1="12" y1="6" x2="12" y2="10"/></svg>
-          滾輪縮放
-        </div>
       </div>
       <div style="font-size:10px;color:var(--mu)">360 × 360 px · 透明底 · 可拖曳圖片至圓形區域</div>
     </div>
@@ -675,7 +647,6 @@ function switchTab(t){
   document.getElementById('t-product').classList.toggle('on',t==='product');
   document.getElementById('sc-text').style.display=t==='text'?'':'none';
   document.getElementById('sc-product').style.display=t==='product'?'':'none';
-  document.getElementById('sc-image').style.display=t==='product'?'':'none';
 }
 
 // ══════════════════════════════════════════════
@@ -808,33 +779,6 @@ function setupProd2Drop(){
     const f=e.dataTransfer.files[0];
     if(f&&f.type.startsWith('image/')){ readFile(f); toast('圖片已載入','ok'); }
   });
-}
-
-
-// ══════════════════════════════════════════════
-// PRODUCT CANVAS — mouse wheel zoom image
-// ══════════════════════════════════════════════
-function setupProd2Scroll(){
-  const cv2=document.getElementById('cv2');
-  if(!cv2) return;
-  cv2.addEventListener('wheel',e=>{
-    if(!S.proc) return;
-    e.preventDefault();
-
-    const oldScale=S.imgScale||1;
-    const factor=e.deltaY<0?1.08:0.92;
-    const nextScale=Math.max(0.35,Math.min(4,oldScale*factor));
-    if(Math.abs(nextScale-oldScale)<0.001) return;
-
-    S.imgScale=nextScale;
-    d2();
-
-    clearTimeout(cv2._wheelCommitTimer);
-    cv2._wheelCommitTimer=setTimeout(()=>{
-      push();
-      persistEditorState();
-    },180);
-  },{passive:false});
 }
 
 // ══════════════════════════════════════════════
@@ -996,7 +940,10 @@ function d2(){
       fillCirc(ctx,cx,cy,150,col);
       ctx.save();
       ctx.beginPath(); ctx.arc(cx,cy,150,0,Math.PI*2); ctx.clip();
-      const sc=Math.max(300/img.width,300/img.height)*S.imgScale;
+      // 讓上傳圖片預設略大於圓形遮罩，避免匯出時底色從圓邊露出
+      const COVER_PADDING=8; // px
+      const targetSize=300 + COVER_PADDING*2;
+      const sc=Math.max(targetSize/img.width,targetSize/img.height)*S.imgScale;
       const dw=img.width*sc, dh=img.height*sc;
       ctx.drawImage(img, cx-dw/2+S.imgOffX, cy-dh/2+S.imgOffY, dw, dh);
       ctx.restore();
