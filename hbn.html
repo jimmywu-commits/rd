@@ -138,9 +138,9 @@ function wrapEnUp(el){
   #square .stack{position:absolute;left: 166px;top: 132px;display:block;max-width:64%;}
 
   /* 鎖死：主/副/日期的座標（兩版各自固定數值） */
-  #horiz #h1-h{position:absolute;left: 0; top:0;top:0;}
-  #horiz #h2-h{position:absolute;left: 0; top:60px;top:53px;}
-  #horiz #date-h{position:absolute;left: 0; top:132px;top:117px;}
+  #horiz #h1-h{position:absolute;left: 0; top:0;top:-10;}
+  #horiz #h2-h{position:absolute;left: 0; top:60px;top:50px;}
+  #horiz #date-h{position:absolute;left: 0; top:132px;top:100px;}
 
   #square #h1-s{position:absolute;left: 0; top:0px;top:-16.5px;}
   #square #h2-s{position:absolute;left: 0; top:44px;top:33.5px;}
@@ -1415,9 +1415,9 @@ label:has(#editZoom){
 
 <style id="fix-ddcard-square-y">
 .dd-canvas.square .dd-brand{ top:82.5px !important; }
-.dd-canvas.square .dd-h1{ top:203.5px !important; }
-.dd-canvas.square .dd-h2{ top:253px !important; }
-.dd-canvas.square .dd-date{ top:327px !important; }
+.dd-canvas.square .dd-h1{ top:193px !important; }
+.dd-canvas.square .dd-h2{ top:246px !important; }
+.dd-canvas.square .dd-date{ top:313px !important; }
 
 
 </style>
@@ -1425,9 +1425,9 @@ label:has(#editZoom){
 
 <style id="fix-ddcard-horiz-y">
 .dd-canvas:not(.square) .dd-brand{ top:102.5px !important; }
-.dd-canvas:not(.square) .dd-h1{ top:170.5px !important; }
-.dd-canvas:not(.square) .dd-h2{ top:220px !important; }
-.dd-canvas:not(.square) .dd-date{ top:295.5px !important; }
+.dd-canvas:not(.square) .dd-h1{ top:162px !important; }
+.dd-canvas:not(.square) .dd-h2{ top:215px !important; }
+.dd-canvas:not(.square) .dd-date{ top:282px !important; }
 .dd-canvas:not(.square) .dd-solid-top{ height:270px !important; }
 .dd-canvas:not(.square) .dd-gradient-top{ top:268px !important; }
 </style>
@@ -2329,6 +2329,55 @@ label.upload-btn input{ display:none !important; }
 
 })();
 </script>
+
+<style id="ddcard-check-overlay-style">
+  .dd-check-overlay{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    /* 位於背景／色塊之上，但在商品、LOGO、文字與 CTA 下方 */
+    z-index:4;
+    pointer-events:none;
+    user-select:none;
+    display:none;
+  }
+  .dd-canvas.show-dd-check-overlay .dd-check-overlay{
+    display:block;
+  }
+  .dd-check-toggle{
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    z-index:100003;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 14px;
+    border-radius:10px;
+    background:rgba(17,17,17,.9);
+    color:#fff;
+    font-size:13px;
+    line-height:1;
+    box-shadow:0 6px 20px rgba(0,0,0,.3);
+    cursor:pointer;
+    user-select:none;
+  }
+  .dd-check-toggle input{
+    width:16px;
+    height:16px;
+    margin:0;
+    cursor:pointer;
+  }
+  .is-exporting .dd-check-overlay,
+  .is-exporting .dd-check-toggle,
+  .export-clone .dd-check-overlay,
+  .export-clone .dd-check-toggle{
+    display:none !important;
+  }
+</style>
+
 </head>
 <body>
   <div class="wrap">
@@ -2399,6 +2448,7 @@ label.upload-btn input{ display:none !important; }
 
 <button type="button" data-step="-0.05">–</button><span id="ddBgScaleValHoriz">100%</span><button type="button" data-step="0.05">+</button></div>
       <div style="margin: auto" id="ddHorizCanvas" class="dd-canvas">
+        <img class="dd-check-overlay ui-only" id="ddHorizCheckOverlay" src="檢查用-橫式LOGO.jpg" alt="橫式 DDCard 位置檢查底圖" aria-hidden="true">
         <div class="dd-guide-line dd-guide-top-h" aria-hidden="true"></div>
         <div class="dd-guide-line dd-guide-bottom-h" aria-hidden="true"></div>
         <div class="dd-guide-warning" id="ddHorizGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
@@ -2507,6 +2557,7 @@ label.upload-btn input{ display:none !important; }
       <div class="dd-bg-scale-panel" id="ddBgScaleSquare"><span class="tag">&nbsp; &nbsp;DDCard 方 LOGO背景圖尺寸 放大縮小鈕&gt;</span>
       <button type="button" data-step="-0.05">–</button><span id="ddBgScaleValSquare">100%</span><button type="button" data-step="0.05">+</button></div>
       <div style="margin: auto" id="ddSquareCanvas" class="dd-canvas square">
+        <img class="dd-check-overlay ui-only" id="ddSquareCheckOverlay" src="檢查用-直式LOGO.jpg" alt="直式 DDCard 位置檢查底圖" aria-hidden="true">
         <div class="dd-guide-line dd-guide-top-s" aria-hidden="true"></div>
         <div class="dd-guide-line dd-guide-bottom-s" aria-hidden="true"></div>
         <div class="dd-guide-warning" id="ddSquareGuideWarning" aria-hidden="true">商品請勿放置在範圍線外</div>
@@ -15415,6 +15466,37 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('mousedown',function(e){if(!menu.contains(e.target))hideMenu();},true);
   document.addEventListener('keydown',function(e){if(e.key==='Escape')hideMenu();});
   window.addEventListener('scroll',hideMenu,true);
+})();
+</script>
+
+
+<label class="dd-check-toggle" id="ddCheckToggleWrap" title="僅供對位檢查，下載圖片時不會輸出">
+  <input type="checkbox" id="ddCheckToggle">
+  <span>顯示 DDCard 檢查底圖</span>
+</label>
+<script id="ddcard-check-overlay-script">
+(function(){
+  function syncDdCheckOverlay(){
+    var checked = !!document.getElementById('ddCheckToggle')?.checked;
+    var horiz = document.getElementById('ddHorizCanvas');
+    var square = document.getElementById('ddSquareCanvas');
+    if(horiz) horiz.classList.toggle('show-dd-check-overlay', checked);
+    if(square) square.classList.toggle('show-dd-check-overlay', checked);
+  }
+
+  function initDdCheckOverlay(){
+    var toggle = document.getElementById('ddCheckToggle');
+    if(!toggle || toggle.dataset.bound === '1') return;
+    toggle.dataset.bound = '1';
+    toggle.addEventListener('change', syncDdCheckOverlay);
+    syncDdCheckOverlay();
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initDdCheckOverlay);
+  }else{
+    initDdCheckOverlay();
+  }
 })();
 </script>
 
