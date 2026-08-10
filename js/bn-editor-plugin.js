@@ -1159,9 +1159,73 @@
       document.getElementById('bn-dl-all').addEventListener('click',downloadAll);
     }
 
+    /* ══ 超字狀態追蹤（來自各 iframe 的 bn-overflow 回報） ══ */
+    var _overflowMap={};   /* { iframeName: [{field,used,limit}] } */
+    function iframeName(iframe){
+      var b=iframe&&iframe.closest?iframe.closest('.preview-block'):null;
+      var n=b?((b.querySelector('.pname')||{}).textContent||''):'';
+      return (n||iframe&&iframe.id||'排版').trim();
+    }
+    window.addEventListener('message',function(e){
+      if(!e.data||e.data.type!=='bn-overflow')return;
+      var list=document.querySelectorAll('.preview-block iframe');
+      for(var i=0;i<list.length;i++){
+        if(list[i].contentWindow===e.source){
+          var key=iframeName(list[i]);
+          if(e.data.fields&&e.data.fields.length)_overflowMap[key]=e.data.fields;
+          else delete _overflowMap[key];
+          break;
+        }
+      }
+    });
+
+    function showLimitBlockModal(entries){
+      var old=document.getElementById('bn-limit-modal');if(old)old.remove();
+      var rows=entries.map(function(en){
+        return '<li><b>'+en.name+'</b>　'+en.field+'　'
+             + (Math.round(en.used*10)/10)+' / '+en.limit+' 字</li>';
+      }).join('');
+      var m=document.createElement('div');
+      m.id='bn-limit-modal';
+      m.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
+      m.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:22px 24px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);font-size:14px;line-height:1.7;">'
+        +'<h3 style="margin:0 0 10px;font-size:17px;color:#dc2626;">⚠ 文字超出字數上限，無法下載</h3>'
+        +'<p style="font-size:12.5px;color:#666;margin:0 0 10px;">系統會自動為數字加上 $ 與千分位符號，加上後可能就超過上限。請調整下列欄位後再下載：</p>'
+        +'<ul style="margin:10px 0 14px;padding-left:20px;">'+rows+'</ul>'
+        +'<p style="font-size:12.5px;color:#666;margin:0 0 16px;">建議做法：縮短文字，或在該數字上按右鍵選擇「暫時不加$和千分位符號」。</p>'
+        +'<button type="button" style="width:100%;padding:11px;border:0;border-radius:8px;background:#2176ff;color:#fff;font-size:14px;cursor:pointer;">知道了，我去修改</button>'
+        +'</div>';
+      m.querySelector('button').addEventListener('click',function(){m.remove();});
+      m.addEventListener('click',function(e){if(e.target===m)m.remove();});
+      document.body.appendChild(m);
+    }
+
+    function collectOverflow(){
+      var out=[];
+      Object.keys(_overflowMap).forEach(function(name){
+        (_overflowMap[name]||[]).forEach(function(f){
+          out.push({name:name,field:f.field,used:f.used,limit:f.limit});
+        });
+      });
+      return out;
+    }
+
     function downloadAll(){
       var iframes=document.querySelectorAll('.preview-block iframe');
       if(!iframes.length){setProgress('沒有勾選的排版');return;}
+      /* 先要各 iframe 重新回報一次，避免狀態過期 */
+      _overflowMap={};
+      iframes.forEach(function(f){try{f.contentWindow.postMessage({type:'bn-overflow-check'},'*');}catch(_){}}); 
+      setProgress('檢查字數中…');
+      setTimeout(function(){
+        var bad=collectOverflow();
+        if(bad.length){setProgress('');showLimitBlockModal(bad);return;}
+        setProgress('');
+        doDownloadAll(iframes);
+      },300);
+    }
+
+    function doDownloadAll(iframes){
       var btn=document.getElementById('bn-dl-all');btn.disabled=true;
       var total=iframes.length,done=0;setProgress('準備中…');
       iframes.forEach(function(iframe){
