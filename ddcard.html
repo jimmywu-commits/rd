@@ -112,6 +112,18 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-canvas [contenteditable="true"]{outline:2px dashed rgba(255,255,255,0);transition:outline-color .2s,background-color .2s;cursor:text;border-radius:4px;}
 .dd-canvas [contenteditable="true"]:focus{outline:2px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.10);}
 .dd-canvas [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
+.dd-canvas [contenteditable="true"].over-limit{outline:3px solid #ff4d4f !important;background:rgba(255,77,79,.14) !important;}
+.counter.over{background:#dc2626 !important;}
+.float-meter.over{background:#dc2626;font-weight:700;}
+#limitAlert{position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:99998;background:#dc2626;color:#fff;font-size:13px;line-height:1.6;padding:10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none;max-width:80vw;}
+.limit-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;}
+.limit-modal.show{display:flex;}
+.limit-modal .box{background:#fff;color:#111;border-radius:14px;padding:22px 24px;max-width:430px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.limit-modal h3{margin:0 0 10px;font-size:17px;color:#dc2626;}
+.limit-modal ul{margin:10px 0 14px;padding-left:20px;font-size:14px;line-height:1.95;}
+.limit-modal .hint{font-size:12.5px;color:#666;line-height:1.75;margin:0 0 16px;}
+.limit-modal button{width:100%;padding:11px;border:0;border-radius:8px;background:#2176ff;color:#fff;font-size:14px;cursor:pointer;}
+.limit-modal button:hover{background:#1b62d8;}
 .dd-canvas [contenteditable="true"]:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,.38);pointer-events:none;}
 .counter{position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;background:#111;color:#fff;padding-right:6px;border-radius:6px;pointer-events:none;user-select:none;}
 .dd-canvas .dd-cta{position:absolute;left:0;right:0;top:674.5px;width:238px;height:44px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;border-radius:8px;background:#2176FF;color:#fff;z-index:6;font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial;font-weight:400;font-size:29px;line-height:1;}
@@ -228,6 +240,14 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 </div>
 <div id="toast" class="toast"></div>
 <div id="floatMeter" class="float-meter"></div>
+<div id="limitAlert"></div>
+<div class="limit-modal" id="limitModal"><div class="box">
+  <h3>⚠ 文字超出字數上限，無法下載</h3>
+  <p class="hint">系統會自動為數字加上 $ 與千分位符號，加上後可能就超過上限。請調整下列欄位後再下載：</p>
+  <ul id="limitModalList"></ul>
+  <p class="hint">建議做法：縮短文字，或在該數字上按右鍵選擇「暫時不加$和千分位符號」。</p>
+  <button type="button" id="limitModalOk">知道了，我去修改</button>
+</div></div>
 
 <div class="hbn-shell">
   <aside class="hbn-sidebar">
@@ -450,6 +470,7 @@ function hexToRgb(hex){
 function calcUnits(s){var u=0;s=String(s||'');for(var i=0;i<s.length;i++)u+=/\p{Script=Han}/u.test(s[i])?1:0.5;return u;}
 function getRawText(el){if(!el)return'';var c=el.cloneNode(true);c.querySelectorAll('.counter').forEach(function(n){n.remove();});return(c.textContent||'').replace(/\u00A0/g,' ').trim();}
 var DD_LIMITS={h1:8,h2:7,date:14};
+var DD_ROLE_LABEL={h1:'主標',h2:'副標',date:'日期'};
 
 /* ---- underlay ---- */
 function applyUnderlay(prefix,hex){
@@ -550,32 +571,93 @@ function bindBgScalePanel(prefix){
 
 /* ---- text fields ---- */
 function ensureCounter(el){var c=el.querySelector('.counter');if(!c){c=document.createElement('span');c.className='counter';el.appendChild(c);}return c;}
-function updateCounter(el){var u=calcUnits(getRawText(el)),lim=DD_LIMITS[el.dataset.role]||Infinity;ensureCounter(el).textContent='（'+Math.round(u*10)/10+' / '+lim+'）';}
+function isOverLimit(el){
+  var lim=DD_LIMITS[el.dataset.role];if(!lim)return false;
+  return calcUnits(getRawText(el))>lim+0.001;
+}
+function updateCounter(el){
+  var u=calcUnits(getRawText(el)),lim=DD_LIMITS[el.dataset.role]||Infinity;
+  var c=ensureCounter(el);
+  c.textContent='（'+Math.round(u*10)/10+' / '+lim+'）';
+  var over=u>lim+0.001;
+  c.classList.toggle('over',over);
+  el.classList.toggle('over-limit',over);
+  if(!over)el.__fmtOver=false;
+  refreshLimitAlert();
+}
+/* 掃描所有欄位，超字時顯示常駐提醒（不會自動消失） */
+function getOverLimitFields(scopeId){
+  var scope=scopeId?$(scopeId):document;
+  if(!scope)return[];
+  return Array.prototype.filter.call(
+    scope.querySelectorAll('[contenteditable="true"]'),
+    function(el){return DD_LIMITS[el.dataset.role]&&isOverLimit(el);}
+  );
+}
+function describeField(el){
+  var lim=DD_LIMITS[el.dataset.role]||0;
+  var canvas=el.closest('.dd-canvas');
+  var side=canvas&&canvas.id==='ddSquareCanvas'?'方':'橫';
+  return '［'+side+'］'+(DD_ROLE_LABEL[el.dataset.role]||el.dataset.role)+'　'
+       + Math.round(calcUnits(getRawText(el))*10)/10+' / '+lim+' 字';
+}
+function refreshLimitAlert(){
+  var bar=$('limitAlert');if(!bar)return;
+  var list=getOverLimitFields();
+  if(!list.length){bar.style.display='none';bar.textContent='';return;}
+  bar.innerHTML='⚠ 有 '+list.length+' 個欄位超出字數上限，無法下載：<br>'
+    + list.map(function(el){return describeField(el);}).join('　｜　');
+  bar.style.display='block';
+}
+function refreshAllLimits(){
+  document.querySelectorAll('.dd-canvas [contenteditable="true"]').forEach(function(el){
+    if(DD_LIMITS[el.dataset.role])updateCounter(el);
+  });
+  refreshLimitAlert();
+}
+window.refreshAllLimits=refreshAllLimits;
 function showFloatMeter(el){
   var fm=$('floatMeter');if(!fm||!el)return;
-  fm.textContent=Math.round(calcUnits(getRawText(el))*10)/10+' / '+(DD_LIMITS[el.dataset.role]||'∞')+' 字';
+  var lim=DD_LIMITS[el.dataset.role]||Infinity;
+  var u=Math.round(calcUnits(getRawText(el))*10)/10;
+  var over=u>lim+0.001;
+  fm.textContent=over?('⚠ 超出上限　'+u+' / '+lim+' 字'):(u+' / '+(DD_LIMITS[el.dataset.role]||'∞')+' 字');
+  fm.classList.toggle('over',over);
   var r=el.getBoundingClientRect();fm.style.left=(r.right+8)+'px';fm.style.top=r.top+'px';fm.style.display='block';
-  clearTimeout(showFloatMeter._t);showFloatMeter._t=setTimeout(function(){fm.style.display='none';},1800);
+  clearTimeout(showFloatMeter._t);
+  /* 超字時常駐顯示，不自動消失 */
+  if(!over)showFloatMeter._t=setTimeout(function(){fm.style.display='none';},1800);
+}
+function hideFloatMeterIfOk(el){
+  var fm=$('floatMeter');if(!fm)return;
+  if(!el||!isOverLimit(el)){clearTimeout(showFloatMeter._t);fm.style.display='none';}
 }
 function processBanword(el){
   if(!window.banwordEngine||typeof window.banwordEngine.applyToElement!=='function')return;
   var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText});
-  updateCounter(el);if(result&&result.message)showToast(result.message,'err',result.duration||4000);
+  updateCounter(el);
+  refreshAllLimits();
+  /* 格式化（加$與千分位）後才超字 → 標記為系統造成，保留原文並紅框提醒 */
+  el.__fmtOver=isOverLimit(el);
+  if(el.__fmtOver){showFloatMeter(el);showToast('加上 $ 與千分位後超出上限（'+DD_LIMITS[el.dataset.role]+' 字），請修改後才能下載','err',4000);}
+  if(result&&result.message)showToast(result.message,'err',result.duration||4000);
 }
 function bindTextEl(el){
   if(el.dataset.tb==='1')return;el.dataset.tb='1';
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
 
-  /* ── 輔助：把超出上限的文字截斷（保留游標在末尾） ── */
-  function hardTrimToLimit(){
+  /* ── 手打漏網字截斷（輸入法 / Firefox composing）──
+     只在「非格式化造成的超字」時才截斷；
+     $ 與千分位補上後造成的超字保留原文，改用紅框＋常駐提醒＋擋下載 ── */
+  function trimTypedOverflow(){
     var lim=DD_LIMITS[el.dataset.role];if(!lim)return;
+    if(el.__fmtOver)return;              /* 這是系統加符號造成的，不動它 */
     var c=el.querySelector('.counter');
     var raw=(el.textContent||'').replace(/\u00A0/g,' ');
-    // 移除 counter 的文字才是真實內容
     var counterTxt=c?c.textContent:'';
     var txt=raw.slice(0, raw.length - counterTxt.length).trim();
-    // 逐字截斷到 lim
+    if(calcUnits(txt)<=lim+0.001)return;
     var out='',units=0;
     for(var i=0;i<txt.length;i++){
       var ch=txt[i],cu=/\p{Script=Han}/u.test(ch)?1:0.5;
@@ -586,7 +668,6 @@ function bindTextEl(el){
       el.innerHTML='';
       el.appendChild(document.createTextNode(out));
       if(c){el.appendChild(c);}
-      // 游標移到末尾（文字節點）
       try{var sel=window.getSelection(),r=document.createRange();r.setStart(el.firstChild||el,out.length);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}catch(_){}
       showToast('超出上限（'+lim+'）','err',1800);
     }
@@ -598,8 +679,8 @@ function bindTextEl(el){
       el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
     }
 
-    /* ── Bug 修正①：input 事件補丁，攔截 Firefox / 輸入法 composing 漏網字 ── */
-    hardTrimToLimit();
+
+    trimTypedOverflow();
 
     /* ── Bug 修正②：date 欄位前導零保護 ──
        某些瀏覽器/OS 在 contenteditable 裡把前導 0 吃掉（如 01:01 → 1:01）。
@@ -631,17 +712,26 @@ function bindTextEl(el){
   el.addEventListener('beforeinput',function(e){
     if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();return;}
     var lim=DD_LIMITS[el.dataset.role];if(!lim||e.inputType==='insertFromPaste')return;
+    /* 手打仍然硬擋：不讓使用者自己打超過上限
+       （系統補上 $ 與千分位造成的超字則放行，改用紅框＋擋下載處理） */
     if(e.inputType.startsWith('insert')){
       var base=getRawText(el),sel=window.getSelection();
       if(sel&&sel.rangeCount){var rr=sel.getRangeAt(0);if(rr&&rr.toString())base=base.replace(rr.toString(),'');}
-      if(calcUnits(base+(e.data||''))>lim){e.preventDefault();showToast('超出上限（'+lim+'）','err',1800);}
+      if(calcUnits(base+(e.data||''))>lim+0.001){
+        e.preventDefault();
+        showToast('超出上限（'+lim+' 字），無法再輸入','err',1800);
+        showFloatMeter(el);
+      }
     }
   });
   el.addEventListener('paste',function(e){
     e.preventDefault();
     var text=((e.clipboardData&&e.clipboardData.getData('text/plain'))||'')
       .replace(/[\u00A0\u2000-\u200B\u3000]/g,' ').replace(/[\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
-    if(calcUnits(getRawText(el)+text)>(DD_LIMITS[el.dataset.role]||Infinity)){showToast('超出上限（'+(DD_LIMITS[el.dataset.role]||'∞')+'）','err',1800);return;}
+    var _lim=DD_LIMITS[el.dataset.role];
+    if(_lim&&calcUnits(getRawText(el)+text)>_lim+0.001){
+      showToast('貼上內容超出上限（'+_lim+' 字）','err',1800);showFloatMeter(el);return;
+    }
     try{if(document.execCommand('insertText',false,text))return;}catch(er){}
     var sel=window.getSelection();
     if(sel&&sel.rangeCount){var range=sel.getRangeAt(0);range.deleteContents();var node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.setEndAfter(node);sel.removeAllRanges();sel.addRange(range);}
@@ -654,6 +744,7 @@ function bindTextEl(el){
   });
   el.addEventListener('focus',function(){
     clearTimeout(el._bwTimer);
+    el.__fmtOver=isOverLimit(el);   /* 進來時若已是格式化超字，維持不截斷 */
     // 記錄 focus 時的文字，供 input 時比對是否有變動
     el.__snapText=(el.textContent||'').replace(/\n/g,'').trim();
   });
@@ -662,6 +753,7 @@ function bindTextEl(el){
     setTimeout(function(){
       processBanword(el);
       updateCounter(el);
+      hideFloatMeterIfOk(el);
     },0);
   });
 }
@@ -998,9 +1090,31 @@ function bindItemUpload(inputId,prefix){
 }
 
 /* ---- download ---- */
+/* 下載前檢查：任何欄位超字就跳提醒視窗，硬擋不下載 */
+function openLimitModal(list){
+  var m=$('limitModal'),ul=$('limitModalList');if(!m||!ul)return;
+  ul.innerHTML=list.map(function(el){return '<li>'+describeField(el)+'</li>';}).join('');
+  m.classList.add('show');
+  var first=list[0];
+  if(first){
+    try{ first.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+    try{ showFloatMeter(first); }catch(_){}
+  }
+}
+function closeLimitModal(){var m=$('limitModal');if(m)m.classList.remove('show');}
+function canDownload(canvasId){
+  refreshAllLimits();
+  var list=getOverLimitFields(canvasId);
+  if(list.length){openLimitModal(list);return false;}
+  return true;
+}
+window.canDownload=canDownload;
+
 window.__dlBusy=false;
 window.downloadJpgFor=async function(canvasId,filename){
-  if(window.__dlBusy)return;window.__dlBusy=true;
+  if(window.__dlBusy)return;
+  if(!canDownload(canvasId))return;          /* ← 超字時直接中止下載 */
+  window.__dlBusy=true;
   var node=$(canvasId);if(!node){window.__dlBusy=false;return;}
   try{
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(_){}
@@ -1015,6 +1129,7 @@ window.downloadJpgFor=async function(canvasId,filename){
         doc.querySelectorAll('.dd-guide-line,.dd-guide-warning,.dd-bg-scale-panel,.ctrl').forEach(function(el){el.remove();});
         var cn=doc.getElementById(canvasId);if(cn){cn.style.overflow='hidden';cn.classList.add('hide-dd-icons');}
         doc.querySelectorAll('.counter').forEach(function(c){c.style.display='none';});
+        doc.querySelectorAll('.over-limit').forEach(function(c){c.classList.remove('over-limit');});
       }
     });
     var ew=Math.round(node.clientWidth),eh=Math.round(node.clientHeight);
@@ -1231,13 +1346,18 @@ function init(){
   bindItemUpload('items-s','ddSquare');
   bindBgInteraction('ddHoriz');bindBgInteraction('ddSquare');
   bindBgScalePanel('ddHoriz');bindBgScalePanel('ddSquare');
+  var lmOk=$('limitModalOk'),lmBox=$('limitModal');
+  if(lmOk)lmOk.addEventListener('click',closeLimitModal);
+  if(lmBox)lmBox.addEventListener('click',function(e){if(e.target===this)closeLimitModal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLimitModal();});
+  refreshAllLimits();
   var dlH=$('dl-dd-h'),dlS=$('dl-dd-s');
   if(dlH)dlH.addEventListener('click',function(){window.downloadJpgFor('ddHorizCanvas','ddcard-h');});
   if(dlS)dlS.addEventListener('click',function(){window.downloadJpgFor('ddSquareCanvas','ddcard-s');});
   var expBtn=$('jsonExport'),impBtn=$('jsonImportBtn'),impInput=$('jsonImportInput');
   if(expBtn)expBtn.addEventListener('click',function(){var blob=new Blob([JSON.stringify(captureState(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ddcard_state.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},500);showToast('已匯出暫存','ok',1200);});
   if(impBtn)impBtn.addEventListener('click',function(){if(impInput)impInput.click();});
-  if(impInput)impInput.addEventListener('change',async function(e){var file=e.target.files&&e.target.files[0];if(!file)return;try{applyJsonState(JSON.parse(await file.text()));showToast('已匯入暫存','ok',1400);}catch(err){showToast('JSON 匯入失敗','err',1800);}e.target.value='';});
+  if(impInput)impInput.addEventListener('change',async function(e){var file=e.target.files&&e.target.files[0];if(!file)return;try{applyJsonState(JSON.parse(await file.text()));refreshAllLimits();showToast('已匯入暫存','ok',1400);}catch(err){showToast('JSON 匯入失敗','err',1800);}e.target.value='';});
   document.querySelectorAll('.bg-lib-btn').forEach(function(btn){btn.addEventListener('click',function(){openBgLib(btn.dataset.target||'H');});});
   var bgClose=$('bgLibClose'),bgApply=$('bgLibApply'),bgOwn=$('bgLibOwnUpload'),bgSearch=$('bgLibSearch'),bgModal=$('bgLibModal');
   if(bgClose)bgClose.addEventListener('click',closeBgLib);
