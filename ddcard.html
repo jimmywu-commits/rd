@@ -972,6 +972,70 @@ function initLogoMenu(){
   },true);
 }
 
+/* ---- logo 上傳自動去邊 ----------------------------------------------------
+   把圖畫進 canvas、逐像素找出「非背景」的最小外框再裁下來，避免原圖上下左右
+   留白太多、logo 放上版位後顯得特別小。
+
+   邊界判斷直接沿用這支檔案原本給「白底」功能寫的 ddExtractSmartLogoBounds()，
+   不另外拉外掛。它的做法是從四邊往內 flood fill、只吃「跟四角同色」的連通
+   區域，所以：
+     - logo 內部被線條包起來的白色區塊不會被誤當成背景挖掉
+     - 四角不是不透明時會自動退回 alpha 邊界，純白 logo 疊在透明底上不會被切爛
+     - 四角顏色彼此差太多（照片、漸層底）時它會退回 alpha 邊界，不會亂切
+--------------------------------------------------------------------------- */
+function ddAutoTrimLogoSrc(src){
+  return new Promise(function(resolve){
+    var im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=function(){
+      try{
+        var nw=Math.max(1,im.naturalWidth||im.width);
+        var nh=Math.max(1,im.naturalHeight||im.height);
+
+        /* 找邊界用縮圖就夠（上限 1400px）。原圖動輒 3000px 以上，
+           flood fill 跑全解析度會明顯卡住；輸出時仍用原圖裁，畫質不受影響。 */
+        var sc=Math.min(1,1400/Math.max(nw,nh));
+        var sw=Math.max(1,Math.round(nw*sc)), sh=Math.max(1,Math.round(nh*sc));
+        var scan=document.createElement('canvas');
+        scan.width=sw; scan.height=sh;
+        scan.getContext('2d',{willReadFrequently:true}).drawImage(im,0,0,sw,sh);
+
+        var b=ddExtractSmartLogoBounds(scan)||ddGetAlphaBounds(scan,1);
+        if(!b){ resolve(null); return; }
+
+        /* 縮圖座標換回原圖座標 */
+        var inv=1/sc;
+        var x=Math.max(0,Math.floor(b.minX*inv));
+        var y=Math.max(0,Math.floor(b.minY*inv));
+        var w=Math.min(nw-x,Math.ceil((b.maxX-b.minX+1)*inv));
+        var h=Math.min(nh-y,Math.ceil((b.maxY-b.minY+1)*inv));
+        if(w<1||h<1){ resolve(null); return; }
+
+        /* 兩道保險，寧可不切也不要切爛：
+           範圍小於原圖 1% → 判定誤判，不動；
+           省不到 2% 面積 → 沒必要重新編碼（jpg 轉 png 反而變大）。 */
+        var area=w*h, full=nw*nh;
+        if(area<full*0.01){ resolve(null); return; }
+        if(1-area/full<0.02){ resolve(null); return; }
+
+        /* 貼齊邊界看起來太緊，四周留 2% 呼吸空間 */
+        var pad=Math.round(Math.max(w,h)*0.02);
+        x=Math.max(0,x-pad); y=Math.max(0,y-pad);
+        w=Math.min(nw-x,w+pad*2); h=Math.min(nh-y,h+pad*2);
+
+        var out=document.createElement('canvas');
+        out.width=w; out.height=h;
+        out.getContext('2d').drawImage(im,x,y,w,h,0,0,w,h);
+        resolve(out.toDataURL('image/png'));
+      }catch(err){
+        resolve(null);   /* 去邊只是加分功能，失敗就當沒這回事 */
+      }
+    };
+    im.onerror=function(){ resolve(null); };
+    im.src=src;
+  });
+}
+
 function makeLogo(url, root, kind){
   var wrap=document.createElement('div'); wrap.className='logo-item';
   var img=document.createElement('img'); img.src=url; img.alt='logo'; img.draggable=false;
@@ -991,7 +1055,17 @@ function bindLogoUpload(inputId, brandId, multi, kind){
     var toLoad=files.slice(0,remain);
     for(var i=0;i<toLoad.length;i++){
       var url=await readFile(toLoad[i]);
-      root.appendChild(makeLogo(url,root,kind||'horiz'));
+      /* 上傳後自動去掉多餘留白；回傳 null 代表不需要或不適合裁，就沿用原圖 */
+      var trimmed=await ddAutoTrimLogoSrc(url);
+      var item=makeLogo(trimmed||url,root,kind||'horiz');
+      var lim=item.querySelector('img');
+      if(lim){
+        /* 保留「剛上傳、還沒去邊」的原圖。刻意跟白底功能的 logoOriginalSrc
+           分開存，兩個功能才不會互相蓋掉。 */
+        lim.dataset.logoUploadSrc=url;
+        if(trimmed) lim.dataset.logoAutoTrimmed='1';
+      }
+      root.appendChild(item);
     }
     e.target.value='';
   });
