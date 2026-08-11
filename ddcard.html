@@ -1371,6 +1371,49 @@ function setTagImg(prefix,src){
 function bindTagDrag(prefix){
   // 掛標位置固定，不可拖曳
 }
+/* ---- 預設掛標：商城紅（方、橫兩個畫布都掛上） --------------------------------
+   掛標檔名是以「掛標圖檔/index.json」為準的，直接寫死檔名的話，圖庫哪天改名或
+   換檔就會默默失效。所以這裡改成讀 index.json、找名稱裡同時有「商城」和「紅」
+   的那一張；真的找不到（或 index.json 讀不到）才退回專案內既有的
+   程式檔案/ddcard紅商城.PNG（原本隱藏的 .mall-tag 用的就是這張）。
+--------------------------------------------------------------------------- */
+var DD_DEFAULT_TAG_FALLBACK='程式檔案/ddcard紅商城.PNG';
+function ddFindMallRedTag(list){
+  if(!Array.isArray(list))return'';
+  for(var i=0;i<list.length;i++){
+    var item=list[i];if(!item)continue;
+    var filename=typeof item==='string'?item:(item.file||'');
+    if(!filename)continue;
+    var name=(typeof item==='object'&&item.name)?item.name:String(filename);
+    var key=String(name)+'|'+String(filename);
+    /* 「商城」和「紅」都要命中才算，避免抓到「官方紅」之類的其他掛標；
+       同時接受英文檔名（mall / red）。 */
+    var isMall=key.indexOf('商城')>=0||/mall/i.test(key);
+    var isRed =key.indexOf('紅')>=0||/red/i.test(key);
+    if(isMall&&isRed)return'掛標圖檔/'+filename;
+  }
+  return'';
+}
+function applyDefaultMallTag(){
+  var h=$('ddHorizTagImg'),sq=$('ddSquareTagImg');
+  /* 已經有掛標了就不要蓋掉（例如使用者剛匯入暫存 JSON） */
+  if((h&&h.classList.contains('visible'))||(sq&&sq.classList.contains('visible')))return;
+  function apply(src){
+    if(!src)return;
+    setTagImg('ddHoriz',src);
+    setTagImg('ddSquare',src);
+  }
+  if(taglibData){apply(ddFindMallRedTag(taglibData)||DD_DEFAULT_TAG_FALLBACK);return;}
+  fetch('掛標圖檔/index.json',{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      /* 順手把圖庫資料快取起來，之後開圖庫視窗就不用再抓一次 */
+      taglibData=Array.isArray(d)?d:(d.files||d.list||[]);
+      apply(ddFindMallRedTag(taglibData)||DD_DEFAULT_TAG_FALLBACK);
+    })
+    ['catch'](function(){ apply(DD_DEFAULT_TAG_FALLBACK); });
+}
+
 function initTagLib(){
   var closeBtn=$('tagLibClose'),applyBtn=$('tagLibApply'),removeBtn=$('tagLibRemove'),modal=$('tagLibModal');
   if(closeBtn&&!closeBtn.dataset.bound){closeBtn.dataset.bound='1';closeBtn.addEventListener('click',closeTagLib);}
@@ -1412,6 +1455,7 @@ function renderBgGrid(cat,search){
 function init(){
   initLogoMenu();
   initTagLib();
+  applyDefaultMallTag();   /* 預設掛「商城紅」，方、橫都掛 */
   initColors();
   document.querySelectorAll('.dd-canvas [contenteditable="true"]').forEach(bindTextEl);
   bindLogoUpload('logo-horiz','ddHorizBrand',true,'horiz');
