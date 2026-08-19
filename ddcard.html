@@ -112,6 +112,18 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 .dd-canvas [contenteditable="true"]{outline:2px dashed rgba(255,255,255,0);transition:outline-color .2s,background-color .2s;cursor:text;border-radius:4px;}
 .dd-canvas [contenteditable="true"]:focus{outline:2px dashed rgba(255,255,255,.45);background:rgba(255,255,255,.10);}
 .dd-canvas [contenteditable="true"].audit-error{outline:2px solid #ff4d4f !important;}
+.dd-canvas [contenteditable="true"].over-limit{outline:3px solid #ff4d4f !important;background:rgba(255,77,79,.14) !important;}
+.counter.over{background:#dc2626 !important;}
+.float-meter.over{background:#dc2626;font-weight:700;}
+#limitAlert{position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:99998;background:#dc2626;color:#fff;font-size:13px;line-height:1.6;padding:10px 16px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);display:none;max-width:80vw;}
+.limit-modal{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;}
+.limit-modal.show{display:flex;}
+.limit-modal .box{background:#fff;color:#111;border-radius:14px;padding:22px 24px;max-width:430px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.limit-modal h3{margin:0 0 10px;font-size:17px;color:#dc2626;}
+.limit-modal ul{margin:10px 0 14px;padding-left:20px;font-size:14px;line-height:1.95;}
+.limit-modal .hint{font-size:12.5px;color:#666;line-height:1.75;margin:0 0 16px;}
+.limit-modal button{width:100%;padding:11px;border:0;border-radius:8px;background:#2176ff;color:#fff;font-size:14px;cursor:pointer;}
+.limit-modal button:hover{background:#1b62d8;}
 .dd-canvas [contenteditable="true"]:empty:before{content:attr(data-placeholder);color:rgba(255,255,255,.38);pointer-events:none;}
 .counter{position:absolute;left:-78px;top:0.25em;font-size:11px;line-height:1;background:#111;color:#fff;padding-right:6px;border-radius:6px;pointer-events:none;user-select:none;}
 .dd-canvas .dd-cta{position:absolute;left:0;right:0;top:674.5px;width:238px;height:44px;margin:0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:0 16px;border-radius:8px;background:#2176FF;color:#fff;z-index:6;font-family:"ShopeeNotoSans-Content-R","Noto Sans TC",Arial;font-weight:400;font-size:29px;line-height:1;}
@@ -228,6 +240,14 @@ html,body{margin:0;padding:0;background:#eef3f8;font-family:"ShopeeNotoSans-Cont
 </div>
 <div id="toast" class="toast"></div>
 <div id="floatMeter" class="float-meter"></div>
+<div id="limitAlert"></div>
+<div class="limit-modal" id="limitModal"><div class="box">
+  <h3>⚠ 文字超出字數上限，無法下載</h3>
+  <p class="hint">系統會自動為數字加上 $ 與千分位符號，加上後可能就超過上限。請調整下列欄位後再下載：</p>
+  <ul id="limitModalList"></ul>
+  <p class="hint">建議做法：縮短文字，或在該數字上按右鍵選擇「暫時不加$和千分位符號」。</p>
+  <button type="button" id="limitModalOk">知道了，我去修改</button>
+</div></div>
 
 <div class="hbn-shell">
   <aside class="hbn-sidebar">
@@ -450,6 +470,7 @@ function hexToRgb(hex){
 function calcUnits(s){var u=0;s=String(s||'');for(var i=0;i<s.length;i++)u+=/\p{Script=Han}/u.test(s[i])?1:0.5;return u;}
 function getRawText(el){if(!el)return'';var c=el.cloneNode(true);c.querySelectorAll('.counter').forEach(function(n){n.remove();});return(c.textContent||'').replace(/\u00A0/g,' ').trim();}
 var DD_LIMITS={h1:8,h2:7,date:14};
+var DD_ROLE_LABEL={h1:'主標',h2:'副標',date:'日期'};
 
 /* ---- underlay ---- */
 function applyUnderlay(prefix,hex){
@@ -550,32 +571,93 @@ function bindBgScalePanel(prefix){
 
 /* ---- text fields ---- */
 function ensureCounter(el){var c=el.querySelector('.counter');if(!c){c=document.createElement('span');c.className='counter';el.appendChild(c);}return c;}
-function updateCounter(el){var u=calcUnits(getRawText(el)),lim=DD_LIMITS[el.dataset.role]||Infinity;ensureCounter(el).textContent='（'+Math.round(u*10)/10+' / '+lim+'）';}
+function isOverLimit(el){
+  var lim=DD_LIMITS[el.dataset.role];if(!lim)return false;
+  return calcUnits(getRawText(el))>lim+0.001;
+}
+function updateCounter(el){
+  var u=calcUnits(getRawText(el)),lim=DD_LIMITS[el.dataset.role]||Infinity;
+  var c=ensureCounter(el);
+  c.textContent='（'+Math.round(u*10)/10+' / '+lim+'）';
+  var over=u>lim+0.001;
+  c.classList.toggle('over',over);
+  el.classList.toggle('over-limit',over);
+  if(!over)el.__fmtOver=false;
+  refreshLimitAlert();
+}
+/* 掃描所有欄位，超字時顯示常駐提醒（不會自動消失） */
+function getOverLimitFields(scopeId){
+  var scope=scopeId?$(scopeId):document;
+  if(!scope)return[];
+  return Array.prototype.filter.call(
+    scope.querySelectorAll('[contenteditable="true"]'),
+    function(el){return DD_LIMITS[el.dataset.role]&&isOverLimit(el);}
+  );
+}
+function describeField(el){
+  var lim=DD_LIMITS[el.dataset.role]||0;
+  var canvas=el.closest('.dd-canvas');
+  var side=canvas&&canvas.id==='ddSquareCanvas'?'方':'橫';
+  return '［'+side+'］'+(DD_ROLE_LABEL[el.dataset.role]||el.dataset.role)+'　'
+       + Math.round(calcUnits(getRawText(el))*10)/10+' / '+lim+' 字';
+}
+function refreshLimitAlert(){
+  var bar=$('limitAlert');if(!bar)return;
+  var list=getOverLimitFields();
+  if(!list.length){bar.style.display='none';bar.textContent='';return;}
+  bar.innerHTML='⚠ 有 '+list.length+' 個欄位超出字數上限，無法下載：<br>'
+    + list.map(function(el){return describeField(el);}).join('　｜　');
+  bar.style.display='block';
+}
+function refreshAllLimits(){
+  document.querySelectorAll('.dd-canvas [contenteditable="true"]').forEach(function(el){
+    if(DD_LIMITS[el.dataset.role])updateCounter(el);
+  });
+  refreshLimitAlert();
+}
+window.refreshAllLimits=refreshAllLimits;
 function showFloatMeter(el){
   var fm=$('floatMeter');if(!fm||!el)return;
-  fm.textContent=Math.round(calcUnits(getRawText(el))*10)/10+' / '+(DD_LIMITS[el.dataset.role]||'∞')+' 字';
+  var lim=DD_LIMITS[el.dataset.role]||Infinity;
+  var u=Math.round(calcUnits(getRawText(el))*10)/10;
+  var over=u>lim+0.001;
+  fm.textContent=over?('⚠ 超出上限　'+u+' / '+lim+' 字'):(u+' / '+(DD_LIMITS[el.dataset.role]||'∞')+' 字');
+  fm.classList.toggle('over',over);
   var r=el.getBoundingClientRect();fm.style.left=(r.right+8)+'px';fm.style.top=r.top+'px';fm.style.display='block';
-  clearTimeout(showFloatMeter._t);showFloatMeter._t=setTimeout(function(){fm.style.display='none';},1800);
+  clearTimeout(showFloatMeter._t);
+  /* 超字時常駐顯示，不自動消失 */
+  if(!over)showFloatMeter._t=setTimeout(function(){fm.style.display='none';},1800);
+}
+function hideFloatMeterIfOk(el){
+  var fm=$('floatMeter');if(!fm)return;
+  if(!el||!isOverLimit(el)){clearTimeout(showFloatMeter._t);fm.style.display='none';}
 }
 function processBanword(el){
   if(!window.banwordEngine||typeof window.banwordEngine.applyToElement!=='function')return;
   var result=window.banwordEngine.applyToElement(el,{role:el.dataset.role||'',getText:getRawText});
-  updateCounter(el);if(result&&result.message)showToast(result.message,'err',result.duration||4000);
+  updateCounter(el);
+  refreshAllLimits();
+  /* 格式化（加$與千分位）後才超字 → 標記為系統造成，保留原文並紅框提醒 */
+  el.__fmtOver=isOverLimit(el);
+  if(el.__fmtOver){showFloatMeter(el);showToast('加上 $ 與千分位後超出上限（'+DD_LIMITS[el.dataset.role]+' 字），請修改後才能下載','err',4000);}
+  if(result&&result.message)showToast(result.message,'err',result.duration||4000);
 }
 function bindTextEl(el){
   if(el.dataset.tb==='1')return;el.dataset.tb='1';
   ensureCounter(el);updateCounter(el);
   el.addEventListener('keydown',function(e){if(e.key==='Enter')e.preventDefault();});
 
-  /* ── 輔助：把超出上限的文字截斷（保留游標在末尾） ── */
-  function hardTrimToLimit(){
+  /* ── 手打漏網字截斷（輸入法 / Firefox composing）──
+     只在「非格式化造成的超字」時才截斷；
+     $ 與千分位補上後造成的超字保留原文，改用紅框＋常駐提醒＋擋下載 ── */
+  function trimTypedOverflow(){
     var lim=DD_LIMITS[el.dataset.role];if(!lim)return;
+    if(el.__fmtOver)return;              /* 這是系統加符號造成的，不動它 */
     var c=el.querySelector('.counter');
     var raw=(el.textContent||'').replace(/\u00A0/g,' ');
-    // 移除 counter 的文字才是真實內容
     var counterTxt=c?c.textContent:'';
     var txt=raw.slice(0, raw.length - counterTxt.length).trim();
-    // 逐字截斷到 lim
+    if(calcUnits(txt)<=lim+0.001)return;
     var out='',units=0;
     for(var i=0;i<txt.length;i++){
       var ch=txt[i],cu=/\p{Script=Han}/u.test(ch)?1:0.5;
@@ -586,7 +668,6 @@ function bindTextEl(el){
       el.innerHTML='';
       el.appendChild(document.createTextNode(out));
       if(c){el.appendChild(c);}
-      // 游標移到末尾（文字節點）
       try{var sel=window.getSelection(),r=document.createRange();r.setStart(el.firstChild||el,out.length);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}catch(_){}
       showToast('超出上限（'+lim+'）','err',1800);
     }
@@ -598,8 +679,8 @@ function bindTextEl(el){
       el.innerHTML='';if(txt)el.appendChild(document.createTextNode(txt));if(c)el.appendChild(c);
     }
 
-    /* ── Bug 修正①：input 事件補丁，攔截 Firefox / 輸入法 composing 漏網字 ── */
-    hardTrimToLimit();
+
+    trimTypedOverflow();
 
     /* ── Bug 修正②：date 欄位前導零保護 ──
        某些瀏覽器/OS 在 contenteditable 裡把前導 0 吃掉（如 01:01 → 1:01）。
@@ -631,17 +712,26 @@ function bindTextEl(el){
   el.addEventListener('beforeinput',function(e){
     if(e.inputType==='insertParagraph'||e.inputType==='insertLineBreak'){e.preventDefault();return;}
     var lim=DD_LIMITS[el.dataset.role];if(!lim||e.inputType==='insertFromPaste')return;
+    /* 手打仍然硬擋：不讓使用者自己打超過上限
+       （系統補上 $ 與千分位造成的超字則放行，改用紅框＋擋下載處理） */
     if(e.inputType.startsWith('insert')){
       var base=getRawText(el),sel=window.getSelection();
       if(sel&&sel.rangeCount){var rr=sel.getRangeAt(0);if(rr&&rr.toString())base=base.replace(rr.toString(),'');}
-      if(calcUnits(base+(e.data||''))>lim){e.preventDefault();showToast('超出上限（'+lim+'）','err',1800);}
+      if(calcUnits(base+(e.data||''))>lim+0.001){
+        e.preventDefault();
+        showToast('超出上限（'+lim+' 字），無法再輸入','err',1800);
+        showFloatMeter(el);
+      }
     }
   });
   el.addEventListener('paste',function(e){
     e.preventDefault();
     var text=((e.clipboardData&&e.clipboardData.getData('text/plain'))||'')
       .replace(/[\u00A0\u2000-\u200B\u3000]/g,' ').replace(/[\r\n]+/g,' ').replace(/\s{2,}/g,' ').trim();
-    if(calcUnits(getRawText(el)+text)>(DD_LIMITS[el.dataset.role]||Infinity)){showToast('超出上限（'+(DD_LIMITS[el.dataset.role]||'∞')+'）','err',1800);return;}
+    var _lim=DD_LIMITS[el.dataset.role];
+    if(_lim&&calcUnits(getRawText(el)+text)>_lim+0.001){
+      showToast('貼上內容超出上限（'+_lim+' 字）','err',1800);showFloatMeter(el);return;
+    }
     try{if(document.execCommand('insertText',false,text))return;}catch(er){}
     var sel=window.getSelection();
     if(sel&&sel.rangeCount){var range=sel.getRangeAt(0);range.deleteContents();var node=document.createTextNode(text);range.insertNode(node);range.setStartAfter(node);range.setEndAfter(node);sel.removeAllRanges();sel.addRange(range);}
@@ -654,6 +744,7 @@ function bindTextEl(el){
   });
   el.addEventListener('focus',function(){
     clearTimeout(el._bwTimer);
+    el.__fmtOver=isOverLimit(el);   /* 進來時若已是格式化超字，維持不截斷 */
     // 記錄 focus 時的文字，供 input 時比對是否有變動
     el.__snapText=(el.textContent||'').replace(/\n/g,'').trim();
   });
@@ -662,6 +753,7 @@ function bindTextEl(el){
     setTimeout(function(){
       processBanword(el);
       updateCounter(el);
+      hideFloatMeterIfOk(el);
     },0);
   });
 }
@@ -880,6 +972,70 @@ function initLogoMenu(){
   },true);
 }
 
+/* ---- logo 上傳自動去邊 ----------------------------------------------------
+   把圖畫進 canvas、逐像素找出「非背景」的最小外框再裁下來，避免原圖上下左右
+   留白太多、logo 放上版位後顯得特別小。
+
+   邊界判斷直接沿用這支檔案原本給「白底」功能寫的 ddExtractSmartLogoBounds()，
+   不另外拉外掛。它的做法是從四邊往內 flood fill、只吃「跟四角同色」的連通
+   區域，所以：
+     - logo 內部被線條包起來的白色區塊不會被誤當成背景挖掉
+     - 四角不是不透明時會自動退回 alpha 邊界，純白 logo 疊在透明底上不會被切爛
+     - 四角顏色彼此差太多（照片、漸層底）時它會退回 alpha 邊界，不會亂切
+--------------------------------------------------------------------------- */
+function ddAutoTrimLogoSrc(src){
+  return new Promise(function(resolve){
+    var im=new Image();
+    im.crossOrigin='anonymous';
+    im.onload=function(){
+      try{
+        var nw=Math.max(1,im.naturalWidth||im.width);
+        var nh=Math.max(1,im.naturalHeight||im.height);
+
+        /* 找邊界用縮圖就夠（上限 1400px）。原圖動輒 3000px 以上，
+           flood fill 跑全解析度會明顯卡住；輸出時仍用原圖裁，畫質不受影響。 */
+        var sc=Math.min(1,1400/Math.max(nw,nh));
+        var sw=Math.max(1,Math.round(nw*sc)), sh=Math.max(1,Math.round(nh*sc));
+        var scan=document.createElement('canvas');
+        scan.width=sw; scan.height=sh;
+        scan.getContext('2d',{willReadFrequently:true}).drawImage(im,0,0,sw,sh);
+
+        var b=ddExtractSmartLogoBounds(scan)||ddGetAlphaBounds(scan,1);
+        if(!b){ resolve(null); return; }
+
+        /* 縮圖座標換回原圖座標 */
+        var inv=1/sc;
+        var x=Math.max(0,Math.floor(b.minX*inv));
+        var y=Math.max(0,Math.floor(b.minY*inv));
+        var w=Math.min(nw-x,Math.ceil((b.maxX-b.minX+1)*inv));
+        var h=Math.min(nh-y,Math.ceil((b.maxY-b.minY+1)*inv));
+        if(w<1||h<1){ resolve(null); return; }
+
+        /* 兩道保險，寧可不切也不要切爛：
+           範圍小於原圖 1% → 判定誤判，不動；
+           省不到 2% 面積 → 沒必要重新編碼（jpg 轉 png 反而變大）。 */
+        var area=w*h, full=nw*nh;
+        if(area<full*0.01){ resolve(null); return; }
+        if(1-area/full<0.02){ resolve(null); return; }
+
+        /* 貼齊邊界看起來太緊，四周留 2% 呼吸空間 */
+        var pad=Math.round(Math.max(w,h)*0.02);
+        x=Math.max(0,x-pad); y=Math.max(0,y-pad);
+        w=Math.min(nw-x,w+pad*2); h=Math.min(nh-y,h+pad*2);
+
+        var out=document.createElement('canvas');
+        out.width=w; out.height=h;
+        out.getContext('2d').drawImage(im,x,y,w,h,0,0,w,h);
+        resolve(out.toDataURL('image/png'));
+      }catch(err){
+        resolve(null);   /* 去邊只是加分功能，失敗就當沒這回事 */
+      }
+    };
+    im.onerror=function(){ resolve(null); };
+    im.src=src;
+  });
+}
+
 function makeLogo(url, root, kind){
   var wrap=document.createElement('div'); wrap.className='logo-item';
   var img=document.createElement('img'); img.src=url; img.alt='logo'; img.draggable=false;
@@ -899,7 +1055,17 @@ function bindLogoUpload(inputId, brandId, multi, kind){
     var toLoad=files.slice(0,remain);
     for(var i=0;i<toLoad.length;i++){
       var url=await readFile(toLoad[i]);
-      root.appendChild(makeLogo(url,root,kind||'horiz'));
+      /* 上傳後自動去掉多餘留白；回傳 null 代表不需要或不適合裁，就沿用原圖 */
+      var trimmed=await ddAutoTrimLogoSrc(url);
+      var item=makeLogo(trimmed||url,root,kind||'horiz');
+      var lim=item.querySelector('img');
+      if(lim){
+        /* 保留「剛上傳、還沒去邊」的原圖。刻意跟白底功能的 logoOriginalSrc
+           分開存，兩個功能才不會互相蓋掉。 */
+        lim.dataset.logoUploadSrc=url;
+        if(trimmed) lim.dataset.logoAutoTrimmed='1';
+      }
+      root.appendChild(item);
     }
     e.target.value='';
   });
@@ -998,9 +1164,31 @@ function bindItemUpload(inputId,prefix){
 }
 
 /* ---- download ---- */
+/* 下載前檢查：任何欄位超字就跳提醒視窗，硬擋不下載 */
+function openLimitModal(list){
+  var m=$('limitModal'),ul=$('limitModalList');if(!m||!ul)return;
+  ul.innerHTML=list.map(function(el){return '<li>'+describeField(el)+'</li>';}).join('');
+  m.classList.add('show');
+  var first=list[0];
+  if(first){
+    try{ first.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+    try{ showFloatMeter(first); }catch(_){}
+  }
+}
+function closeLimitModal(){var m=$('limitModal');if(m)m.classList.remove('show');}
+function canDownload(canvasId){
+  refreshAllLimits();
+  var list=getOverLimitFields(canvasId);
+  if(list.length){openLimitModal(list);return false;}
+  return true;
+}
+window.canDownload=canDownload;
+
 window.__dlBusy=false;
 window.downloadJpgFor=async function(canvasId,filename){
-  if(window.__dlBusy)return;window.__dlBusy=true;
+  if(window.__dlBusy)return;
+  if(!canDownload(canvasId))return;          /* ← 超字時直接中止下載 */
+  window.__dlBusy=true;
   var node=$(canvasId);if(!node){window.__dlBusy=false;return;}
   try{
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(_){}
@@ -1015,6 +1203,7 @@ window.downloadJpgFor=async function(canvasId,filename){
         doc.querySelectorAll('.dd-guide-line,.dd-guide-warning,.dd-bg-scale-panel,.ctrl').forEach(function(el){el.remove();});
         var cn=doc.getElementById(canvasId);if(cn){cn.style.overflow='hidden';cn.classList.add('hide-dd-icons');}
         doc.querySelectorAll('.counter').forEach(function(c){c.style.display='none';});
+        doc.querySelectorAll('.over-limit').forEach(function(c){c.classList.remove('over-limit');});
       }
     });
     var ew=Math.round(node.clientWidth),eh=Math.round(node.clientHeight);
@@ -1182,6 +1371,49 @@ function setTagImg(prefix,src){
 function bindTagDrag(prefix){
   // 掛標位置固定，不可拖曳
 }
+/* ---- 預設掛標：商城紅（方、橫兩個畫布都掛上） --------------------------------
+   掛標檔名是以「掛標圖檔/index.json」為準的，直接寫死檔名的話，圖庫哪天改名或
+   換檔就會默默失效。所以這裡改成讀 index.json、找名稱裡同時有「商城」和「紅」
+   的那一張；真的找不到（或 index.json 讀不到）才退回專案內既有的
+   程式檔案/ddcard紅商城.PNG（原本隱藏的 .mall-tag 用的就是這張）。
+--------------------------------------------------------------------------- */
+var DD_DEFAULT_TAG_FALLBACK='程式檔案/ddcard紅商城.PNG';
+function ddFindMallRedTag(list){
+  if(!Array.isArray(list))return'';
+  for(var i=0;i<list.length;i++){
+    var item=list[i];if(!item)continue;
+    var filename=typeof item==='string'?item:(item.file||'');
+    if(!filename)continue;
+    var name=(typeof item==='object'&&item.name)?item.name:String(filename);
+    var key=String(name)+'|'+String(filename);
+    /* 「商城」和「紅」都要命中才算，避免抓到「官方紅」之類的其他掛標；
+       同時接受英文檔名（mall / red）。 */
+    var isMall=key.indexOf('商城')>=0||/mall/i.test(key);
+    var isRed =key.indexOf('紅')>=0||/red/i.test(key);
+    if(isMall&&isRed)return'掛標圖檔/'+filename;
+  }
+  return'';
+}
+function applyDefaultMallTag(){
+  var h=$('ddHorizTagImg'),sq=$('ddSquareTagImg');
+  /* 已經有掛標了就不要蓋掉（例如使用者剛匯入暫存 JSON） */
+  if((h&&h.classList.contains('visible'))||(sq&&sq.classList.contains('visible')))return;
+  function apply(src){
+    if(!src)return;
+    setTagImg('ddHoriz',src);
+    setTagImg('ddSquare',src);
+  }
+  if(taglibData){apply(ddFindMallRedTag(taglibData)||DD_DEFAULT_TAG_FALLBACK);return;}
+  fetch('掛標圖檔/index.json',{cache:'no-store'})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      /* 順手把圖庫資料快取起來，之後開圖庫視窗就不用再抓一次 */
+      taglibData=Array.isArray(d)?d:(d.files||d.list||[]);
+      apply(ddFindMallRedTag(taglibData)||DD_DEFAULT_TAG_FALLBACK);
+    })
+    ['catch'](function(){ apply(DD_DEFAULT_TAG_FALLBACK); });
+}
+
 function initTagLib(){
   var closeBtn=$('tagLibClose'),applyBtn=$('tagLibApply'),removeBtn=$('tagLibRemove'),modal=$('tagLibModal');
   if(closeBtn&&!closeBtn.dataset.bound){closeBtn.dataset.bound='1';closeBtn.addEventListener('click',closeTagLib);}
@@ -1223,6 +1455,7 @@ function renderBgGrid(cat,search){
 function init(){
   initLogoMenu();
   initTagLib();
+  applyDefaultMallTag();   /* 預設掛「商城紅」，方、橫都掛 */
   initColors();
   document.querySelectorAll('.dd-canvas [contenteditable="true"]').forEach(bindTextEl);
   bindLogoUpload('logo-horiz','ddHorizBrand',true,'horiz');
@@ -1231,13 +1464,18 @@ function init(){
   bindItemUpload('items-s','ddSquare');
   bindBgInteraction('ddHoriz');bindBgInteraction('ddSquare');
   bindBgScalePanel('ddHoriz');bindBgScalePanel('ddSquare');
+  var lmOk=$('limitModalOk'),lmBox=$('limitModal');
+  if(lmOk)lmOk.addEventListener('click',closeLimitModal);
+  if(lmBox)lmBox.addEventListener('click',function(e){if(e.target===this)closeLimitModal();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLimitModal();});
+  refreshAllLimits();
   var dlH=$('dl-dd-h'),dlS=$('dl-dd-s');
   if(dlH)dlH.addEventListener('click',function(){window.downloadJpgFor('ddHorizCanvas','ddcard-h');});
   if(dlS)dlS.addEventListener('click',function(){window.downloadJpgFor('ddSquareCanvas','ddcard-s');});
   var expBtn=$('jsonExport'),impBtn=$('jsonImportBtn'),impInput=$('jsonImportInput');
   if(expBtn)expBtn.addEventListener('click',function(){var blob=new Blob([JSON.stringify(captureState(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ddcard_state.json';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},500);showToast('已匯出暫存','ok',1200);});
   if(impBtn)impBtn.addEventListener('click',function(){if(impInput)impInput.click();});
-  if(impInput)impInput.addEventListener('change',async function(e){var file=e.target.files&&e.target.files[0];if(!file)return;try{applyJsonState(JSON.parse(await file.text()));showToast('已匯入暫存','ok',1400);}catch(err){showToast('JSON 匯入失敗','err',1800);}e.target.value='';});
+  if(impInput)impInput.addEventListener('change',async function(e){var file=e.target.files&&e.target.files[0];if(!file)return;try{applyJsonState(JSON.parse(await file.text()));refreshAllLimits();showToast('已匯入暫存','ok',1400);}catch(err){showToast('JSON 匯入失敗','err',1800);}e.target.value='';});
   document.querySelectorAll('.bg-lib-btn').forEach(function(btn){btn.addEventListener('click',function(){openBgLib(btn.dataset.target||'H');});});
   var bgClose=$('bgLibClose'),bgApply=$('bgLibApply'),bgOwn=$('bgLibOwnUpload'),bgSearch=$('bgLibSearch'),bgModal=$('bgLibModal');
   if(bgClose)bgClose.addEventListener('click',closeBgLib);

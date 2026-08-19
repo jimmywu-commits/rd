@@ -232,8 +232,11 @@
           });
         }
 
+        /* 選單文字要看這張 logo 現在是不是「已處理過」的版本 */
+        var lgCur = window._bnLogos.find(function(x){return x.id===lid;}) || {};
         var items = [
           { label:'裁切', action:'crop' },
+          { label: lgCur.trimmed ? '還原上傳原圖' : '自動去邊', action:'trimtoggle' },
           { label:'加圓邊', action:'round' },
         ];
 
@@ -280,12 +283,47 @@
           if(!newSrc) return;
           var lo = window._bnLogos.find(function(x){return x.id===lid;});
           if(lo){
+            if(!lo.srcOriginal) lo.srcOriginal = lo.src;
             lo.src = newSrc;
+            /* 手動裁過也算「已不是上傳原圖」，選單才會提供還原 */
+            lo.trimmed = true;
             imgEl.src = newSrc;
             window._bnLogoDataUrl = window._bnLogos[0].src;
+            renderLogoList();
             broadcast({type:'bn-logos', logos:window._bnLogos});
           }
         });
+      } else if(action === 'trimtoggle'){
+        var loT = window._bnLogos.find(function(x){return x.id===lid;});
+        if(!loT) return;
+        if(loT.trimmed){
+          /* 還原成剛上傳時的原圖 */
+          if(!loT.srcOriginal){ alert('這張 logo 沒有保留原圖（可能是從暫存還原的），請重新上傳。'); return; }
+          loT.src = loT.srcOriginal;
+          loT.trimmed = false;
+          imgEl.src = loT.src;
+          window._bnLogoDataUrl = window._bnLogos[0].src;
+          renderLogoList();
+          broadcast({type:'bn-logos', logos:window._bnLogos});
+        } else {
+          ensureLogoTrim().then(function(){
+            return window.BNLogoTrim.trim(loT.srcOriginal || loT.src);
+          }).then(function(r){
+            if(!r.trimmed){
+              alert('偵測不到明顯的單色或透明留白，已保持原樣。\n（若還是想縮小範圍，請用「裁切」手動拉框）');
+              return;
+            }
+            if(!loT.srcOriginal) loT.srcOriginal = loT.src;
+            loT.src = r.src;
+            loT.trimmed = true;
+            imgEl.src = r.src;
+            window._bnLogoDataUrl = window._bnLogos[0].src;
+            renderLogoList();
+            broadcast({type:'bn-logos', logos:window._bnLogos});
+          })['catch'](function(){
+            alert('自動去邊失敗，請確認 js/logo-autotrim-plugin.js 已放進 js 資料夾。');
+          });
+        }
       } else if(action === 'swap'){
         var idx = window._bnLogos.findIndex(function(x){return x.id===lid;});
         if(idx >= 0){
@@ -365,15 +403,46 @@
       }
     }
 
+    /* logo 自動去邊外掛：第一次用到才載入，同一個 Promise 快取住避免重複插入 <script> */
+    var _bnTrimLoad = null;
+    function ensureLogoTrim(){
+      if(window.BNLogoTrim) return Promise.resolve();
+      if(_bnTrimLoad) return _bnTrimLoad;
+      _bnTrimLoad = new Promise(function(resolve, reject){
+        var s = document.createElement('script');
+        s.src = 'js/logo-autotrim-plugin.js';
+        s.onload = function(){ resolve(); };
+        s.onerror = function(){ _bnTrimLoad = null; reject(new Error('load failed')); };
+        document.head.appendChild(s);
+      });
+      return _bnTrimLoad;
+    }
+
     function doLoadLogo(file){
       if(window._bnLogos.length>=MAX_LOGOS)return;
       readFile(file).then(function(s){
-        var id='logo_'+Date.now();
-        window._bnLogos.push({id:id,src:s});
-        window._bnLogoDataUrl=window._bnLogos[0].src;
-        renderLogoList();
-        /* 廣播：送出全部 logos */
-        broadcast({type:'bn-logos',logos:window._bnLogos});
+        /* 一次拖多張時 Date.now() 可能撞號，補隨機碼確保 id 唯一 */
+        var id='logo_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+
+        function push(src, trimmed){
+          /* srcOriginal 留在記憶體裡，供編輯選單的「還原上傳原圖」使用。
+             注意 bn-state-plugin.js 存暫存時只挑 {id,src,round} 三個欄位，
+             所以這份原圖不會被寫進 localStorage，不會有容量爆掉的問題。 */
+          window._bnLogos.push({id:id, src:src, srcOriginal:s, trimmed:!!trimmed});
+          window._bnLogoDataUrl=window._bnLogos[0].src;
+          renderLogoList();
+          /* 廣播：送出全部 logos */
+          broadcast({type:'bn-logos',logos:window._bnLogos});
+        }
+
+        /* 上傳後自動去掉多餘留白；去邊失敗一律退回原圖，不擋住上傳流程 */
+        ensureLogoTrim().then(function(){
+          return window.BNLogoTrim.trim(s);
+        }).then(function(r){
+          push(r.src, r.trimmed);
+        })['catch'](function(){
+          push(s, false);
+        });
       });
     }
 
@@ -1159,9 +1228,73 @@
       document.getElementById('bn-dl-all').addEventListener('click',downloadAll);
     }
 
+    /* ══ 超字狀態追蹤（來自各 iframe 的 bn-overflow 回報） ══ */
+    var _overflowMap={};   /* { iframeName: [{field,used,limit}] } */
+    function iframeName(iframe){
+      var b=iframe&&iframe.closest?iframe.closest('.preview-block'):null;
+      var n=b?((b.querySelector('.pname')||{}).textContent||''):'';
+      return (n||iframe&&iframe.id||'排版').trim();
+    }
+    window.addEventListener('message',function(e){
+      if(!e.data||e.data.type!=='bn-overflow')return;
+      var list=document.querySelectorAll('.preview-block iframe');
+      for(var i=0;i<list.length;i++){
+        if(list[i].contentWindow===e.source){
+          var key=iframeName(list[i]);
+          if(e.data.fields&&e.data.fields.length)_overflowMap[key]=e.data.fields;
+          else delete _overflowMap[key];
+          break;
+        }
+      }
+    });
+
+    function showLimitBlockModal(entries){
+      var old=document.getElementById('bn-limit-modal');if(old)old.remove();
+      var rows=entries.map(function(en){
+        return '<li><b>'+en.name+'</b>　'+en.field+'　'
+             + (Math.round(en.used*10)/10)+' / '+en.limit+' 字</li>';
+      }).join('');
+      var m=document.createElement('div');
+      m.id='bn-limit-modal';
+      m.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;';
+      m.innerHTML='<div style="background:#fff;color:#111;border-radius:14px;padding:22px 24px;max-width:460px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4);font-size:14px;line-height:1.7;">'
+        +'<h3 style="margin:0 0 10px;font-size:17px;color:#dc2626;">⚠ 文字超出字數上限，無法下載</h3>'
+        +'<p style="font-size:12.5px;color:#666;margin:0 0 10px;">系統會自動為數字加上 $ 與千分位符號，加上後可能就超過上限。請調整下列欄位後再下載：</p>'
+        +'<ul style="margin:10px 0 14px;padding-left:20px;">'+rows+'</ul>'
+        +'<p style="font-size:12.5px;color:#666;margin:0 0 16px;">建議做法：縮短文字，或在該數字上按右鍵選擇「暫時不加$和千分位符號」。</p>'
+        +'<button type="button" style="width:100%;padding:11px;border:0;border-radius:8px;background:#2176ff;color:#fff;font-size:14px;cursor:pointer;">知道了，我去修改</button>'
+        +'</div>';
+      m.querySelector('button').addEventListener('click',function(){m.remove();});
+      m.addEventListener('click',function(e){if(e.target===m)m.remove();});
+      document.body.appendChild(m);
+    }
+
+    function collectOverflow(){
+      var out=[];
+      Object.keys(_overflowMap).forEach(function(name){
+        (_overflowMap[name]||[]).forEach(function(f){
+          out.push({name:name,field:f.field,used:f.used,limit:f.limit});
+        });
+      });
+      return out;
+    }
+
     function downloadAll(){
       var iframes=document.querySelectorAll('.preview-block iframe');
       if(!iframes.length){setProgress('沒有勾選的排版');return;}
+      /* 先要各 iframe 重新回報一次，避免狀態過期 */
+      _overflowMap={};
+      iframes.forEach(function(f){try{f.contentWindow.postMessage({type:'bn-overflow-check'},'*');}catch(_){}}); 
+      setProgress('檢查字數中…');
+      setTimeout(function(){
+        var bad=collectOverflow();
+        if(bad.length){setProgress('');showLimitBlockModal(bad);return;}
+        setProgress('');
+        doDownloadAll(iframes);
+      },300);
+    }
+
+    function doDownloadAll(iframes){
       var btn=document.getElementById('bn-dl-all');btn.disabled=true;
       var total=iframes.length,done=0;setProgress('準備中…');
       iframes.forEach(function(iframe){

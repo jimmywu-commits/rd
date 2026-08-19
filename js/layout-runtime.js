@@ -99,6 +99,7 @@
           else if(!el.children.length) el.textContent = d[cls];
         });
       });
+      setTimeout(function(){ try{ refreshOverflowAll(); }catch(_){} }, 0);
     }
 
     /* 畫布直接編輯完成後，父層轉換好再推回來 */
@@ -113,6 +114,11 @@
         if(ct) ct.textContent = val;
         else if(!el.children.length) el.textContent = val;
       });
+      setTimeout(function(){ try{ refreshOverflowAll(); }catch(_){} }, 0);
+    }
+
+    if (e.data.type === 'bn-overflow-check') {
+      try{ refreshOverflowAll(); }catch(_){}
     }
 
     if (e.data.type === 'bn-color') {
@@ -621,32 +627,80 @@
     }
   }
 
-  function enforceLimit(el, cls){
-    var limit = CHAR_LIMITS[cls];
-    if(!limit) return;
-    var text = el.textContent;
-    var units = calcUnits(text);
-    if(units <= limit) return;
-    /* 截斷到限制 */
-    var out = '';
-    var sum = 0;
-    for(var i=0; i<text.length; i++){
-      var c = text.charCodeAt(i);
-      var w = (c > 0x2E7F) ? 1 : 0.5;
-      if(sum + w > limit) break;
-      out += text[i];
-      sum += w;
-    }
-    /* 保留游標位置 */
-    var sel = window.getSelection();
-    el.textContent = out;
-    /* 游標移到尾端 */
-    var r = document.createRange();
-    r.selectNodeContents(el);
-    r.collapse(false);
-    sel.removeAllRanges();
-    sel.addRange(r);
+  /* 超出上限不再截斷文字，改為紅框標記並回報父層（下載時會被擋下） */
+  var _overflowState = {};
+
+  function ensureOverflowStyle(){
+    if(document.getElementById('_bn_overflow_style')) return;
+    var st = document.createElement('style');
+    st.id = '_bn_overflow_style';
+    st.textContent = '.bn-over-limit{outline:3px solid #ff4d4f !important;'
+      + 'background:rgba(255,77,79,.14) !important;border-radius:2px;}';
+    document.head.appendChild(st);
   }
+
+  function isOverLimit(el, cls){
+    var limit = CHAR_LIMITS[cls];
+    if(!limit) return false;
+    return calcUnits(el.textContent) > limit + 0.001;
+  }
+
+  function markOverflow(el, cls){
+    var limit = CHAR_LIMITS[cls];
+    if(!limit) return false;
+    ensureOverflowStyle();
+    var over = isOverLimit(el, cls);
+    el.classList.toggle('bn-over-limit', over);
+    if(over) _overflowState[cls] = { used: calcUnits(el.textContent), limit: limit };
+    else { delete _overflowState[cls]; el.__fmtOver = false; }
+    reportOverflow();
+    return over;
+  }
+
+  function refreshOverflowAll(){
+    EDITABLE_CLASSES.forEach(function(cls){
+      if(!CHAR_LIMITS[cls]) return;
+      var found = false;
+      document.querySelectorAll('.' + cls).forEach(function(el){
+        if(el.children.length) return;
+        found = true;
+        if(markOverflow(el, cls)) el.__fmtOver = true;   /* 系統加 $／千分位造成，不截斷 */
+      });
+      if(!found) delete _overflowState[cls];
+    });
+    reportOverflow();
+  }
+
+  function reportOverflow(){
+    if(window.parent === window) return;
+    var list = Object.keys(_overflowState).map(function(cls){
+      return { field: cls, used: _overflowState[cls].used, limit: _overflowState[cls].limit };
+    });
+    window.parent.postMessage({ type: 'bn-overflow', fields: list }, '*');
+  }
+
+  /* 手打仍硬擋：超過上限就截斷漏網字；但系統補符號造成的超字不動 */
+  function trimTypedOverflow(el, cls){
+    var limit = CHAR_LIMITS[cls];
+    if(!limit || el.__fmtOver) return false;
+    var text = el.textContent;
+    if(calcUnits(text) <= limit + 0.001) return false;
+    var out = '', sum = 0;
+    for(var i=0; i<text.length; i++){
+      var w = (text.charCodeAt(i) > 0x2E7F) ? 1 : 0.5;
+      if(sum + w > limit + 0.001) break;
+      out += text[i]; sum += w;
+    }
+    el.textContent = out;
+    try{
+      var sel = window.getSelection(), r = document.createRange();
+      r.selectNodeContents(el); r.collapse(false);
+      sel.removeAllRanges(); sel.addRange(r);
+    }catch(_){}
+    return true;
+  }
+
+  window.__bnRefreshOverflow = refreshOverflowAll;
 
   /* ── makeEditable ── */
   function makeEditable(el, cls){
@@ -676,6 +730,7 @@
       _editing = false;
       el.contentEditable = 'false';
       el.style.outline = 'none';
+      markOverflow(el, cls);
       hideCounter(cls);
       _sendUpdate(el, cls);
     }
@@ -687,15 +742,31 @@
     });
 
     el.addEventListener('input', function(){
+      var trimmed = trimTypedOverflow(el, cls);   /* 手打超字 → 截斷 */
       updateCharCounter(el, cls);
-      var limit = CHAR_LIMITS[cls];
-      if(limit && calcUnits(el.textContent) > limit){
-        enforceLimit(el, cls);
-        updateCharCounter(el, cls);
-        el.style.outline = '1.5px solid #ef4444';
-        setTimeout(function(){ if(_editing) el.style.outline='1.5px solid rgba(74,144,226,.55)'; }, 400);
+      var over = markOverflow(el, cls);
+      if(over){
+        /* 系統加 $／千分位造成的超字：保留文字，紅框常駐 */
+        el.style.outline = '2px solid #ef4444';
+      }else if(_editing){
+        el.style.outline = trimmed ? '1.5px solid #ef4444' : '1.5px solid rgba(74,144,226,.55)';
+        if(trimmed) setTimeout(function(){ if(_editing) el.style.outline='1.5px solid rgba(74,144,226,.55)'; }, 400);
       }
       showCounter(el, cls);
+    });
+
+    /* 打字時就先擋掉：已達上限且非系統造成的超字，不再讓使用者插入字元 */
+    el.addEventListener('beforeinput', function(e){
+      var limit = CHAR_LIMITS[cls];
+      if(!limit || el.__fmtOver) return;
+      if(!e.inputType || e.inputType.indexOf('insert') !== 0) return;
+      var base = el.textContent, sel = window.getSelection();
+      if(sel && sel.rangeCount){
+        var rr = sel.getRangeAt(0);
+        if(rr && rr.toString()) base = base.replace(rr.toString(), '');
+      }
+      var add = e.data || (e.dataTransfer ? (e.dataTransfer.getData('text/plain')||'') : '');
+      if(calcUnits(base + add) > limit + 0.001) e.preventDefault();
     });
 
     el.addEventListener('blur', function(){

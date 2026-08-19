@@ -48,6 +48,84 @@
     while(tmp.firstChild) document.body.appendChild(tmp.firstChild);
   }
 
+  /* ── 自動去邊：載入 logo-autotrim-plugin.js（算 logo 邊界用） ── */
+  var _trimLoad = null;
+  function loadTrimPlugin(){
+    if(global.BNLogoTrim) return Promise.resolve();
+    if(_trimLoad) return _trimLoad;
+    _trimLoad = new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'js/logo-autotrim-plugin.js';
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ _trimLoad = null; reject(new Error('load failed')); };
+      document.head.appendChild(s);
+    });
+    return _trimLoad;
+  }
+
+  /* 這一版的 modal HTML / CSS 都是寫在字串裡，直接改字串容易改壞，
+     所以「自動去邊」那一排改成事後用 DOM 塞進 .actions，CSS 也另開一個 <style>。 */
+  function injectTrimCSS(){
+    if(document.getElementById('_bn_trim_css')) return;
+    var s = document.createElement('style');
+    s.id = '_bn_trim_css';
+    s.textContent =
+      '#logoCropModal .actions{ flex-wrap:wrap !important; align-items:center !important; }' +
+      '#bn-trim-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-right:auto; padding-left:2px; }' +
+      '#bn-trim-row button{ border:1px solid #ddd; background:#fff; color:#111; border-radius:6px;' +
+      ' padding:5px 10px; font-size:12px; cursor:pointer; line-height:1.2; }' +
+      '#bn-trim-row button:hover{ background:#f4f4f4; }' +
+      '#bn-trim-row button[disabled]{ opacity:.5; cursor:default; }' +
+      '#bn-trim-row label{ display:flex; align-items:center; gap:6px; font-size:12px; color:#888; margin:0; }' +
+      '#bn-trim-row input[type=range]{ width:92px; }' +
+      '#bn-trim-tolval{ font-size:12px; color:#111; min-width:16px; text-align:right; }';
+    document.head.appendChild(s);
+  }
+
+  function ensureTrimUI(){
+    injectTrimCSS();
+    var actions = document.querySelector('#logoCropModal .actions');
+    if(!actions || document.getElementById('bn-trim-row')) return;
+
+    var row = document.createElement('div');
+    row.id = 'bn-trim-row';
+    row.innerHTML =
+      '<button id="bn-trim-btn" type="button" title="自動把裁切框縮到 logo 邊界，去掉多餘留白">自動去邊</button>' +
+      '<button id="bn-trim-reset" type="button" title="裁切框恢復成整張圖">全選</button>' +
+      '<label>靈敏度<input id="bn-trim-tol" type="range" min="4" max="40" step="2" value="12"></label>' +
+      '<span id="bn-trim-tolval">12</span>';
+    /* 塞在最前面，套用按鈕維持在最右邊 */
+    actions.insertBefore(row, actions.firstChild);
+
+    var tol = document.getElementById('bn-trim-tol');
+    var tolVal = document.getElementById('bn-trim-tolval');
+    tol.addEventListener('input', function(){ tolVal.textContent = this.value; });
+
+    document.getElementById('bn-trim-reset').addEventListener('click', function(){
+      if(activeCropper) activeCropper.reset();
+    });
+
+    document.getElementById('bn-trim-btn').addEventListener('click', function(){
+      if(!activeCropper) return;
+      var btn = this, label = btn.textContent;
+      btn.disabled = true; btn.textContent = '計算中…';
+      loadTrimPlugin().then(function(){
+        var target = document.getElementById('logoCropImg');
+        /* findBox 回傳的是原圖座標，跟 cropper.setData 用的座標系一致 */
+        var box = global.BNLogoTrim.findBox(target, { tolerance: +tol.value });
+        if(!box){
+          alert('偵測不到明顯的單色或透明留白。\n可以把靈敏度調高一點再試，或直接手動拉框。');
+          return;
+        }
+        activeCropper.setData({ x:box.x, y:box.y, width:box.width, height:box.height });
+      })['catch'](function(){
+        alert('自動去邊失敗，請確認 js/logo-autotrim-plugin.js 已放進 js 資料夾。');
+      }).then(function(){
+        btn.disabled = false; btn.textContent = label;
+      });
+    });
+  }
+
   /* ── 核心邏輯（從 hbn.html 抽取，移除 hbn 專屬 DOM 依賴） ── */
 
   var ctx = null;
@@ -146,6 +224,7 @@
 
       activeTarget = null;
       destroyCropper();
+      ensureTrimUI();
       /* 重設 img 讓瀏覽器重新 load */
       cropImg.removeAttribute('src');
       modal.classList.add('open');
