@@ -579,13 +579,13 @@ function syncCircleUI(c){
   document.querySelectorAll('#sws .sw').forEach(s=>s.classList.toggle('on',s.title===c));
 }
 function setCol(c){ S.color=c; syncCircleUI(c); push(); draw(); }
-function onHex(v){ if(/^#[0-9a-fA-F]{6}$/.test(v)) setCol(v); }
+function onHex(v){ v=guardFullwidthInput(document.getElementById('hex-in')); if(/^#[0-9a-fA-F]{6}$/.test(v)) setCol(v); }
 function onPick(v){ setCol(v); }
 
 // ══════════════════════════════════════════════
 // COLOR — TEXT
 // ══════════════════════════════════════════════
-function onTxtHex(v){ if(/^#[0-9a-fA-F]{6}$/.test(v)){ S.textColor=v; document.getElementById('txt-col').value=v; document.querySelectorAll('#txt-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v)); push(); draw(); } }
+function onTxtHex(v){ v=guardFullwidthInput(document.getElementById('txt-hex')); if(/^#[0-9a-fA-F]{6}$/.test(v)){ S.textColor=v; document.getElementById('txt-col').value=v; document.querySelectorAll('#txt-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v)); push(); draw(); } }
 function onTxtPick(v){ S.textColor=v; document.getElementById('txt-hex').value=v; document.querySelectorAll('#txt-sws .sw').forEach(s=>s.classList.toggle('on',s.title===v)); push(); draw(); }
 
 
@@ -622,6 +622,7 @@ function onXFontSize(v){
 }
 
 function onCtaHex(v){
+  v=guardFullwidthInput(document.getElementById('cta-hex'));
   if(/^#[0-9a-fA-F]{6}$/.test(v)){
     S.ctaColor=v;
     document.getElementById('cta-col').value=v;
@@ -647,6 +648,30 @@ function switchTab(t){
   document.getElementById('t-product').classList.toggle('on',t==='product');
   document.getElementById('sc-text').style.display=t==='text'?'':'none';
   document.getElementById('sc-product').style.display=t==='product'?'':'none';
+}
+
+// ══════════════════════════════════════════════
+// FULLWIDTH GUARD — 禁止在文字輸入框中輸入全形字元
+// （全形拉丁字母/數字/符號 U+FF00–U+FFEF、全形空白 U+3000）
+// 一般中文漢字不受影響，仍可正常輸入。
+// ══════════════════════════════════════════════
+const FULLWIDTH_TEST_RE=/[\uFF00-\uFFEF\u3000]/;
+const FULLWIDTH_REPLACE_RE=/[\uFF00-\uFFEF\u3000]/g;
+function hasFullwidth(s){ return FULLWIDTH_TEST_RE.test(String(s||'')); }
+function stripFullwidth(s){ return String(s||'').replace(FULLWIDTH_REPLACE_RE,''); }
+// 通用：過濾單一文字輸入框（<input type=text>）的全形字元
+function guardFullwidthInput(el){
+  if(!el) return '';
+  if(hasFullwidth(el.value)){
+    const pos=el.selectionStart;
+    const before=el.value;
+    el.value=stripFullwidth(el.value);
+    const diff=before.length-el.value.length;
+    if(typeof pos==='number') el.selectionStart=el.selectionEnd=Math.max(0,pos-diff);
+    toast('不可輸入全形字元','wa');
+    shakeEl(el);
+  }
+  return el.value;
 }
 
 // ══════════════════════════════════════════════
@@ -689,6 +714,8 @@ function updateTextField(type, options){
   const max=isText?6:5;
   const hint=document.getElementById(isText?'h-text':'h-prod');
   const msgId=isText?'audit-text':'audit-prod';
+
+  guardFullwidthInput(ta);
 
   if(cws(ta.value)>max){
     ta.value=trimToMax(ta.value,max);
