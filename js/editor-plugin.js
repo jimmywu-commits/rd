@@ -390,7 +390,7 @@
       if(shadowLoaded){ cb && cb(); return; }
       shadowImg.onload = ()=>{ shadowLoaded=true; cb && cb(); };
       shadowImg.onerror = ()=> setStatus('找不到 bg.png：請確認 bg.png 跟 hbn.html 放在同一層資料夾');
-      shadowImg.src = 'bg.png';
+      shadowImg.src = '程式檔案/bg.png';
     }
     function setShadowMode(){
       if(!hasImage()) return;
