@@ -531,7 +531,7 @@ function isAllowedCtaColor(hex){
   var rgb=hexToRgb(hex);
   var max=Math.max(rgb.r,rgb.g,rgb.b),min=Math.min(rgb.r,rgb.g,rgb.b);
   /* 對應色彩選擇器左側低飽和度灰階區；底部接近黑色也不可用。 */
-  var nearBlack=max<=64,nearGray=(max-min)/Math.max(max,1)<=.12;
+  var nearBlack=max<=64,nearGray=(max-min)/Math.max(max,1)<=.1;
   return !(nearBlack||nearGray);
 }
 function enforceCtaColor(pfx){
@@ -541,7 +541,7 @@ function enforceCtaColor(pfx){
   if(!m)return;
   var rgb=[m[1],m[2],m[3]].map(function(n){return Math.max(0,Math.min(255,Math.round(parseFloat(n)||0)));});
   var h='#'+rgb.map(function(n){return('0'+n.toString(16)).slice(-2);}).join('').toUpperCase();
-  var safe=isAllowedCtaColor(h)?h:'#2176FF',isH=pfx==='ddHoriz';
+  var safe=isAllowedCtaColor(h)?h:CTA_SAFE_COLOR,isH=pfx==='ddHoriz';
   if(safe!==h)el.style.backgroundColor=safe;
   var hx=$(isH?'hx-cta-h':'hx-cta-s'),sw=$(isH?'sw-cta-h':'sw-cta-s');
   if(hx){hx.__ddLastValid=safe;hx.value=safe;}
