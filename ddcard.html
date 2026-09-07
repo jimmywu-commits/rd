@@ -531,7 +531,7 @@ function isAllowedCtaColor(hex){
   var rgb=hexToRgb(hex);
   var max=Math.max(rgb.r,rgb.g,rgb.b),min=Math.min(rgb.r,rgb.g,rgb.b);
   /* 對應色彩選擇器左側低飽和度灰階區；底部接近黑色也不可用。 */
-  var nearBlack=max<=64,nearGray=(max-min)/Math.max(max,1)<=.1;
+  var nearBlack=max<=64,nearGray=(max-min)/Math.max(max,1)<=.18;
   return !(nearBlack||nearGray);
 }
 function enforceCtaColor(pfx){
